@@ -22,11 +22,11 @@ import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssis
 import { isHex } from "@/lib/theme";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
 import type { Settings, Status } from "@/lib/types";
-import { STATUS_LABELS } from "@/lib/types";
+import { RESEARCH_POINTS, STATUS_LABELS } from "@/lib/types";
 
 export type ActionResult = { ok: boolean; message: string };
 
-const ENGINE_STAGES = ["build-profile", "rank-jobs", "research-job", "tailor-job"];
+const ENGINE_STAGES = ["build-profile", "rank-jobs", "research-job", "tailor-job", "design-template"];
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
 
 export async function runStage(stage: string, jobId: number | null = null): Promise<ActionResult> {
@@ -192,6 +192,7 @@ function readCountries(formData: FormData): Settings["countries"] {
       name,
       priority: countries.length + 1,
       cities: jsonList(formData.get(`country.${index}.cities`)),
+      sponsorship: formData.get(`country.${index}.sponsorship`) === "on",
     });
   }
   return countries;
@@ -282,6 +283,11 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
         : current.schedule.dailyRunAt,
     },
     email: { sendingEnabled: formData.get("email.sendingEnabled") === "on" },
+    research: {
+      points: Object.fromEntries(RESEARCH_POINTS.map(({ key }) => [key, formData.get(`research.${key}`) === "on"])) as Settings["research"]["points"],
+      extraPoints: list(formData.get("research.extraPoints")).slice(0, 20),
+      rules: String(formData.get("research.rules") ?? "").replace(/\r\n/g, "\n").trim().slice(0, 5000),
+    },
     engines: {},
   };
 

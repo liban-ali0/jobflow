@@ -4,7 +4,7 @@ import { ActionButton } from "@/components/action-button";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { PageHeader } from "@/components/page-header";
 import { TextForm } from "@/components/text-form";
-import { getSettings, hasCv, listRuns, profileUpdatedAt, readFacts, readProfile } from "@/lib/data";
+import { getSettings, hasCv, listQuestions, listRuns, profileUpdatedAt, readFacts, readProfile } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
 
 const RULES_EXAMPLE = `Examples:
@@ -25,6 +25,7 @@ export default function ProfilePage() {
   const profile = readProfile();
   const facts = readFacts();
   const gaps = gapsOf(profile);
+  const cvQuestions = listQuestions("open").filter((question) => question.category === "cv").length;
   const lastBuild = listRuns(50).find((run) => run.stage === "build-profile");
   const cv = hasCv();
   const updatedAt = profileUpdatedAt();
@@ -56,34 +57,19 @@ export default function ProfilePage() {
         }
       />
 
-      {gaps.length > 0 && (
-        <section className="card mt-8 p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="card-title">CV improvements</h2>
-            <span className="font-mono text-xs text-slate">{gaps.length} found</span>
+      {(cvQuestions > 0 || gaps.length > 0) && (
+        <section className="card mt-8 flex flex-wrap items-center justify-between gap-4 p-5">
+          <div>
+            <h2 className="card-title">CV gaps</h2>
+            <p className="mt-1 text-sm text-slate">
+              {cvQuestions > 0
+                ? `${cvQuestions} ${cvQuestions === 1 ? "question" : "questions"} about your CV ${cvQuestions === 1 ? "is" : "are"} waiting in Questions. Your answers are added to the CVs Jobflow writes.`
+                : `Your profile lists ${gaps.length} gaps. Rebuild the profile to turn the ones you can help with into questions.`}
+            </p>
           </div>
-          <p className="mt-1 text-sm text-slate">
-            Things to fix or add in the CV itself. Questions only you can answer go to{" "}
-            <Link href="/questions" className="text-teal underline">
-              Questions
-            </Link>
-            .
-          </p>
-          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm">
-            {gaps.slice(0, 4).map((gap) => (
-              <li key={gap}>{gap}</li>
-            ))}
-          </ol>
-          {gaps.length > 4 && (
-            <details className="mt-2 text-sm">
-              <summary className="cursor-pointer text-slate hover:text-ink">Show {gaps.length - 4} more</summary>
-              <ol start={5} className="mt-2 list-decimal space-y-1.5 pl-5">
-                {gaps.slice(4).map((gap) => (
-                  <li key={gap}>{gap}</li>
-                ))}
-              </ol>
-            </details>
-          )}
+          <Link href="/questions" className="btn btn-quiet">
+            Open Questions
+          </Link>
         </section>
       )}
 

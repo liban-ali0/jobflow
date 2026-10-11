@@ -116,6 +116,7 @@ CREATE TABLE IF NOT EXISTS questions (
   options TEXT,
   job_id INTEGER,
   source TEXT,
+  category TEXT,
   status TEXT NOT NULL DEFAULT 'open',
   answer TEXT,
   created_at TEXT NOT NULL,
@@ -142,7 +143,12 @@ const ADDED_COLUMNS = [
   ["runs", "engine", "TEXT"],
   ["runs", "progress", "TEXT"],
   ["runs", "conversation_id", "INTEGER"],
+  ["questions", "category", "TEXT"],
 ];
+
+// What a question is about: the candidate in general, a gap in their CV, or
+// one job. Older questions without a category count by their job.
+export const QUESTION_CATEGORIES = ["you", "cv", "job"];
 
 function migrate(db) {
   for (const [table, column, type] of ADDED_COLUMNS) {
@@ -320,6 +326,23 @@ export function listDocuments(db, jobId) {
   return db.prepare("SELECT * FROM documents WHERE job_id = ? ORDER BY id").all(jobId);
 }
 
+export function getDocument(db, id) {
+  return db.prepare("SELECT * FROM documents WHERE id = ?").get(id) ?? null;
+}
+
+// Documents of the given types across all jobs, newest first, with the
+// job's title, company, role, and status.
+export function listAllDocuments(db, types = DOCUMENT_TYPES) {
+  const marks = types.map(() => "?").join(", ");
+  return db
+    .prepare(
+      `SELECT d.*, j.title AS job_title, j.company AS job_company, j.role AS job_role, j.status AS job_status
+       FROM documents d JOIN jobs j ON j.id = d.job_id
+       WHERE d.type IN (${marks}) ORDER BY d.updated_at DESC`,
+    )
+    .all(...types);
+}
+
 export function listEvents(db, jobId) {
   return db.prepare("SELECT * FROM events WHERE job_id = ? ORDER BY id DESC").all(jobId);
 }
@@ -385,8 +408,12 @@ export function addMessage(db, conversationId, { role, text, runId = null }) {
 
 // Questions an engine asks the user. Asking the same open question twice
 // returns the existing one.
-export function askQuestion(db, { text, why = null, options = null, job_id = null, source = null }) {
+export function askQuestion(db, { text, why = null, options = null, job_id = null, source = null, category = null }) {
   if (!text || !String(text).trim()) throw new Error("A question needs text");
+  if (category !== null && !QUESTION_CATEGORIES.includes(category)) {
+    throw new Error(`category must be one of: ${QUESTION_CATEGORIES.join(", ")}`);
+  }
+  const kind = category ?? (job_id ? "job" : "you");
   if (options !== null && (!Array.isArray(options) || options.length < 2)) {
     throw new Error("options must be a list of at least two answers, or left out");
   }
@@ -395,8 +422,8 @@ export function askQuestion(db, { text, why = null, options = null, job_id = nul
     .get(String(text).trim(), job_id);
   if (existing) return { id: existing.id, created: false };
   const result = db
-    .prepare("INSERT INTO questions (text, why, options, job_id, source, created_at) VALUES (?, ?, ?, ?, ?, ?)")
-    .run(String(text).trim(), why, options ? JSON.stringify(options.map(String)) : null, job_id, source, now());
+    .prepare("INSERT INTO questions (text, why, options, job_id, source, category, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)")
+    .run(String(text).trim(), why, options ? JSON.stringify(options.map(String)) : null, job_id, source, kind, now());
   return { id: Number(result.lastInsertRowid), created: true };
 }
 

@@ -6,7 +6,10 @@ import { Freshness } from "@/components/freshness";
 import { JobActionBar } from "@/components/job-actions";
 import { StatusSelect } from "@/components/status-select";
 import { getJob, getSettings, listContacts, listDocuments, listEvents } from "@/lib/data";
-import { stageReady } from "@/lib/engine";
+import { stageReady, stageRunning } from "@/lib/engine";
+import { PRINTABLE, readText } from "@/lib/documents";
+import { DocumentReview, type ReviewDoc } from "@/components/document-review";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { formatDateTime, formatPlace } from "@/lib/format";
 import { DOCUMENT_LABELS } from "@/lib/types";
 import { ASSESSED } from "@/core/score.mjs";
@@ -21,7 +24,8 @@ const SCORE_MAX: Record<string, number> = {
   Arabic: 3,
 };
 
-const REVIEW_LABELS ={ draft: "Waiting for review", approved: "Approved", changes_requested: "Changes requested" };
+// Tabs in this order; the research is read-only reference.
+const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "research", "interview_pack"];
 
 export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const { id } = await props.params;
@@ -32,11 +36,30 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const contacts = listContacts(job.id);
   const documents = listDocuments(job.id);
   const events = listEvents(job.id);
+  const researching = stageRunning("research-job", job.id);
+  const tailoring = stageRunning("tailor-job", job.id);
+  const working = researching ? "Researching this job…" : tailoring ? "Writing the documents…" : null;
+  const reviewDocs: ReviewDoc[] = documents
+    .filter((document) => DOCUMENT_ORDER.includes(document.type))
+    .sort((a, b) => DOCUMENT_ORDER.indexOf(a.type) - DOCUMENT_ORDER.indexOf(b.type))
+    .map((document) => ({
+      id: document.id,
+      type: document.type,
+      label: DOCUMENT_LABELS[document.type] ?? document.type,
+      review: document.review,
+      note: document.review_note,
+      text: readText(document.path) ?? "(The file is missing.)",
+      printable: PRINTABLE.has(document.type),
+      inPackage: document.type !== "research" && document.type !== "interview_pack",
+      version: document.updated_at,
+    }));
+  const hasResearch = documents.some((document) => document.type === "research");
   const researchReady = stageReady("research-job");
   const tailorReady = stageReady("tailor-job");
 
   return (
     <div className="max-w-5xl">
+      <AutoRefresh active={Boolean(working)} />
       <Link href="/" className="text-sm text-slate hover:text-ink">
         ← Today
       </Link>
@@ -117,38 +140,46 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
             )}
           </section>
 
-          <section className="card p-5">
+          <section id="documents" className="card scroll-mt-32 p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="card-title">Documents</h2>
               <div className="flex flex-wrap gap-2">
                 <ActionButton
+                  variant={hasResearch ? "quiet" : "primary"}
                   action={runStage.bind(null, "research-job", job.id)}
-                  disabled={!researchReady}
-                  title={researchReady ? undefined : "This step is built in phase 3"}
+                  disabled={!researchReady || Boolean(working)}
+                  title="Researches the company, the job, people to contact, and the salary; the documents follow automatically"
                 >
-                  Research
+                  {hasResearch ? "Research again" : "Research"}
                 </ActionButton>
-                <ActionButton
-                  action={runStage.bind(null, "tailor-job", job.id)}
-                  disabled={!tailorReady}
-                  title={tailorReady ? undefined : "This step is built in phase 3"}
-                >
-                  Tailor documents
-                </ActionButton>
+                {hasResearch && (
+                  <ActionButton
+                    action={runStage.bind(null, "tailor-job", job.id)}
+                    disabled={!tailorReady || Boolean(working)}
+                    title="Writes any missing documents and redoes those with changes requested; all of them when none is approved yet"
+                  >
+                    Write documents
+                  </ActionButton>
+                )}
               </div>
             </div>
-            {documents.length === 0 ? (
-              <p className="mt-3 text-sm text-slate">No documents yet. They are created by the research and tailoring steps.</p>
+            {working && (
+              <p className="mt-3 flex items-center gap-2 text-sm">
+                <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
+                {working}
+              </p>
+            )}
+            {reviewDocs.length === 0 ? (
+              !working && (
+                <p className="mt-3 text-sm text-slate">
+                  No documents yet. Research writes the research notes, then the tailored CV, cover letter, outreach email, and form answers follow
+                  automatically.
+                </p>
+              )
             ) : (
-              <ul className="mt-3 divide-y divide-line text-sm">
-                {documents.map((document) => (
-                  <li key={document.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span className="font-medium">{DOCUMENT_LABELS[document.type] ?? document.type}</span>
-                    <span className="font-mono text-xs text-slate">{document.path}</span>
-                    <span className="text-xs">{REVIEW_LABELS[document.review]}</span>
-                  </li>
-                ))}
-              </ul>
+              <div className="mt-4">
+                <DocumentReview jobId={job.id} docs={reviewDocs} rewriting={tailoring} />
+              </div>
             )}
           </section>
 

@@ -2,7 +2,7 @@ import "server-only";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, addMessage, addProgress, finishRun, getSettings, listRuns, startRun, updateConversation } from "./data";
+import { ROOT, addMessage, addProgress, finishRun, getJob, getSettings, listRuns, startRun, updateConversation } from "./data";
 import type { Conversation, EngineChoice } from "./types";
 
 // Skill stages follow .claude/skills/<key>/SKILL.md and run on the engine
@@ -17,6 +17,7 @@ export const STAGES = {
   "rank-jobs": { label: "Check and rank", perJob: false },
   "research-job": { label: "Research", perJob: true },
   "tailor-job": { label: "Tailor documents", perJob: true },
+  "design-template": { label: "Design CV template", perJob: false },
   assistant: { label: "Assistant message", perJob: false },
 } satisfies Record<string, StageDef>;
 
@@ -30,8 +31,11 @@ export const ENGINES = {
 export type EngineKey = keyof typeof ENGINES;
 
 const LOG_LIMIT = 200_000;
-const holder = globalThis as unknown as { jobflowRunning?: Set<number>; jobflowCleaned?: boolean };
+const holder = globalThis as unknown as { jobflowRunning?: Set<number>; jobflowCleaned?: boolean; jobflowQueue?: number[] };
 const running = (holder.jobflowRunning ??= new Set<number>());
+// Jobs waiting for research. They run one at a time (research, then its
+// tailoring), so several engine sessions never compete for the subscription.
+const queue = (holder.jobflowQueue ??= []);
 
 export function isStage(value: string): value is Stage {
   return value in STAGES;
@@ -45,6 +49,30 @@ export function stageReady(stage: Stage) {
   const script = scriptOf(stage);
   return fs.existsSync(script ? path.join(ROOT, script) : skillFile(stage));
 }
+
+const pipelineBusy = () => listRuns(50).some((run) => run.status === "running" && (run.stage === "research-job" || run.stage === "tailor-job"));
+
+function startNextQueued() {
+  while (queue.length && !pipelineBusy()) {
+    const jobId = queue.shift()!;
+    try {
+      launch("research-job", jobId);
+      return;
+    } catch {
+      // Not possible for this job any more; try the next one.
+    }
+  }
+}
+
+// Adds jobs to the research queue and starts it if nothing is running.
+export function queueResearch(jobIds: number[]) {
+  const added = jobIds.filter((id) => !queue.includes(id) && !stageRunning("research-job", id) && !stageRunning("tailor-job", id));
+  queue.push(...added);
+  startNextQueued();
+  return added.length;
+}
+
+export const queuedResearch = () => [...queue];
 
 export function stageRunning(stage: Stage, jobId: number | null = null) {
   return listRuns(50).some((run) => run.status === "running" && run.stage === stage && run.job_id === jobId);
@@ -386,6 +414,18 @@ function start({ stage, jobId = null, trigger = "manual", conversation, message,
   const finish = ({ status, summary, sessionId }: Outcome) => {
     if (!running.delete(runId)) return;
     finishRun(runId, { status, summary: summary.slice(0, 20000), log: errors });
+    // Research is followed straight away by tailoring, so the whole
+    // package for a job arrives in one go; not when research excluded the
+    // job (closed or not genuine).
+    if (stage === "research-job" && status === "done" && jobId !== null && stageReady("tailor-job") && getJob(jobId)?.status === "researched") {
+      try {
+        launch("tailor-job", jobId, trigger);
+      } catch {
+        // Already running or not possible now; it can be started by hand.
+      }
+    }
+    // When a job's research or tailoring ends, the next queued job starts.
+    if (stage === "research-job" || stage === "tailor-job") startNextQueued();
     if (conversation) {
       if (sessionId && sessionId !== conversation.session_id) updateConversation(conversation.id, { session_id: sessionId });
       addMessage(conversation.id, {

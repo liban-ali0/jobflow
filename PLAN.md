@@ -189,6 +189,22 @@ job-workflow/
 
 The workflow is usable from the end of phase 4.
 
+### Phase 3 plan (agreed 2026-10-11)
+
+| Part | What it does |
+|---|---|
+| `research-job` skill | Writes `research.md` in the job folder: company brief, job analysis (real requirements, ATS keywords, gaps against the profile), people from public sources (emails only when published, marked confirmed or not, saved with `jobs.mjs contact`), market salary estimate. Asks job-specific questions through Questions. Status becomes `researched`, then tailoring starts automatically. |
+| `tailor-job` skill | From the profile and the base CV of the job's role: tailored CV (one page, ATS-safe), cover letter for every job in the listing's language, outreach email to a named person, form answers (salary, notice, visa, relocation, why this company). Never adds anything that is not in the profile. Uses the review note when a document is redone. |
+| PDFs | Built in: the chosen template is filled with the document and printed to PDF with Playwright. Setup installs Playwright's Chromium (about 150 MB). |
+| CVs page (new) | Templates (three built in: Classic, Modern, Compact; editable with live preview: font, accent colour, margins, section order, spacing; new ones by duplicating or by describing them to the engine, checked against ATS-safe rules; default per user, override per role or job). Base CVs grouped by the roles in Settings. Tailored CVs and cover letters grouped by job with review state. Actions: download PDF, copy text, compare with the base CV, rebuild. |
+| Job page review | Read and edit each document, approve or request changes with a note, download, copy the email. All approved moves the job to `ready`. |
+| Questions as the single inbox | Grouped: About you, CV gaps, This job. CV gaps that need the user's input (projects, links, missing dates) and fixes Jobflow can apply itself (typos, after a yes) become questions; answers go to `facts.md` and the profile and CVs are rebuilt. The CV improvements list on Profile is retired. |
+| Bulk | "Research all selected", and a "Waiting for your review" list. |
+
+Out of scope for phase 3: sending emails, automated form submission (phase 6), the interview pack (when a job reaches interview).
+
+Build order: research skill, tailoring skill, PDF templates and the CVs page, job page review, questions grouping and CV-gap questions, bulk actions. Each part is tested on real selected jobs.
+
 ## 7. Decisions made
 
 | Decision | Choice |
@@ -245,4 +261,4 @@ Requirements on a new machine: Claude Code (logged in) and Node 22 or newer.
 
 ## 9. Open decisions
 
-1. Earliest start date for the form answers.
+1. Earliest start date for the form answers (asked through Questions).

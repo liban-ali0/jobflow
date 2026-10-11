@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionResult } from "@/app/actions";
 import { sendMessage } from "@/app/actions";
 import { createConversation, getJob, getSettings, listJobs, setSettings, updateJob } from "@/lib/data";
-import { engineFor, launch, stageRunning } from "@/lib/engine";
+import { engineFor, launch, queueResearch, stageRunning } from "@/lib/engine";
 import type { Job } from "@/lib/types";
 
 // Actions on one or many jobs, used by the departures board (bulk and row
@@ -121,4 +121,16 @@ export async function askAboutJob(id: number) {
   );
   await sendMessage(conversationId, null, data);
   redirect(`/assistant/${conversationId}`);
+}
+
+// Queues research (and the tailoring that follows) for selected jobs that
+// have none yet; they run one after another.
+export async function researchSelected(): Promise<ActionResult> {
+  const waiting = listJobs({ status: "selected" }).map((job) => job.id);
+  if (waiting.length === 0) return { ok: false, message: "No selected jobs are waiting for research." };
+  const added = queueResearch(waiting);
+  revalidatePath("/", "layout");
+  return added
+    ? { ok: true, message: `Researching ${added} ${added === 1 ? "job" : "jobs"}, one at a time. Each takes a few minutes; documents follow automatically.` }
+    : { ok: true, message: "These jobs are already being researched." };
 }

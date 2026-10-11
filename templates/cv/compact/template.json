@@ -1,0 +1,12 @@
+{
+  "name": "Compact",
+  "description": "Tighter spacing and a smaller size to fit more on one page, for longer careers.",
+  "options": {
+    "font": "arial",
+    "accent": "#111827",
+    "size": 9.5,
+    "margin": 12,
+    "spacing": "tight",
+    "sectionOrder": ["summary", "experience", "skills", "projects", "education", "certificates", "languages"]
+  }
+}

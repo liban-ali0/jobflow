@@ -18,6 +18,8 @@ Get the folder (clone it or unzip it), open a terminal in it, and run:
 npm run setup
 ```
 
+This also downloads a browser engine (about 150 MB) that turns your CVs and cover letters into PDF files.
+
 Then, once:
 
 ```
@@ -39,10 +41,11 @@ Stop the app with Ctrl+C in its terminal.
 | Screen | Purpose |
 |---|---|
 | Today | Fresh jobs, ranked, and the ones you picked |
-| Questions | Things Claude needs you to answer |
+| Questions | Gaps in your CV, facts about you, and questions about single jobs |
 | Board | Every application by status |
 | Assistant | Chat with Claude about your jobs |
 | Profile | Facts about you, extra ranking rules, the profile built from your CV |
+| CVs | CV templates, your base CV for each role, and the CVs and cover letters tailored to each job |
 | Activity | Every step that has run, with live progress |
 | Settings | Countries, roles, freshness, engines, colours |
 

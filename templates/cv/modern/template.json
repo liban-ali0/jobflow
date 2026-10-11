@@ -1,0 +1,12 @@
+{
+  "name": "Modern",
+  "description": "Clean sans-serif with a colour accent on the name and section titles. Still one column, so CV readers parse it.",
+  "options": {
+    "font": "calibri",
+    "accent": "#0f4c81",
+    "size": 10.5,
+    "margin": 15,
+    "spacing": "normal",
+    "sectionOrder": ["summary", "experience", "projects", "skills", "education", "certificates", "languages"]
+  }
+}

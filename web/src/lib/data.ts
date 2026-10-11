@@ -105,6 +105,9 @@ export const countByStatus = () => core.countByStatus(db()) as Record<Status, nu
 
 export const listContacts = (jobId: number) => core.listContacts(db(), jobId) as Contact[];
 export const listDocuments = (jobId: number) => core.listDocuments(db(), jobId) as JobDocument[];
+export const getDocument = (id: number) => core.getDocument(db(), id) as JobDocument | null;
+export type DocumentWithJob = JobDocument & { job_title: string; job_company: string; job_role: string | null; job_status: Status };
+export const listAllDocuments = (types?: string[]) => core.listAllDocuments(db(), types) as DocumentWithJob[];
 export const listEvents = (jobId: number) => core.listEvents(db(), jobId) as JobEvent[];
 export const reviewDocument = (id: number, review: JobDocument["review"], note: string | null = null) =>
   core.reviewDocument(db(), id, review, note);

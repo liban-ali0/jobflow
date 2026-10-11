@@ -51,7 +51,7 @@ When a job is excluded, the other fields can be 0.
 | `entry_fit` | 0 to 15 | Experience fit. 15 the level and years asked match the candidate's and the skills match the profile closely, 10 the level matches but the skills only partly, 5 level unclear or slightly off, 0 clearly needs much more experience or is far below the candidate's level |
 | `legitimacy` | 0 to 10 | 10 known company posting directly, 7 real company through a known agency, 4 thin details or a generic agency post, below 4 signs of a fake listing |
 | `company` | 0 to 10 | Reputation, size, stability, and how good a first job there would be |
-| `sponsorship` | 0 to 5 | 5 sponsorship or relocation stated, 3 the employer normally hires expats, 0 hints it will not sponsor |
+| `sponsorship` | 0 to 5 | 5 sponsorship or relocation stated, or the job's country does not need sponsorship for this candidate (its `sponsorship` in the settings' `countries` is `false`); 3 the employer normally hires expats; 0 hints it will not sponsor |
 | `language` | 0 to 3 | Advantage from the candidate's languages other than English (see the profile): 3 a language they speak well is required, 1 it is preferred or useful, 0 no mention or a language they lack |
 | `response` | 0 to 2 | 2 direct application with a named recruiter or small applicant pool, 0 mass posting or agency collecting CVs |
 | `reason` | one sentence | The main reasons behind the score, in plain words |

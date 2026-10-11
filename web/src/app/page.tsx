@@ -9,9 +9,10 @@ import { FilterBar } from "@/components/filter-bar";
 import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/pagination";
 import { QuestionCard } from "@/components/question-card";
-import { countByStatus, getJob, hasCv, listJobs, listQuestions, listRuns, readProfile } from "@/lib/data";
+import { researchSelected } from "@/app/job-actions";
+import { countByStatus, getJob, hasCv, listDocuments, listJobs, listQuestions, listRuns, readProfile } from "@/lib/data";
 import { SHOW_VIEWS, buildDepartures } from "@/lib/departures";
-import { ENGINES, STAGES, closeAbandonedRuns, engineFor, stageReady, type EngineKey } from "@/lib/engine";
+import { ENGINES, STAGES, closeAbandonedRuns, engineFor, queuedResearch, stageReady, type EngineKey } from "@/lib/engine";
 import { paginate } from "@/lib/filters";
 import { formatDateTime } from "@/lib/format";
 import { sortJobs } from "@/lib/sort";
@@ -137,11 +138,30 @@ export default async function TodayPage(props: PageProps<"/">) {
     !readProfile() && "build your profile",
   ].filter((item): item is string => Boolean(item));
 
+  // Research in progress or queued, for the bar above Selected.
+  const activeResearch = runs.find((run) => run.status === "running" && (run.stage === "research-job" || run.stage === "tailor-job"));
+  const queued = queuedResearch();
+  const activeJob = activeResearch?.job_id ? getJob(activeResearch.job_id) : null;
+  const pipeline = activeResearch
+    ? `${activeResearch.stage === "research-job" ? "Researching" : "Writing documents for"} ${activeJob?.title ?? "a job"}${queued.length ? `, ${queued.length} more in the queue` : ""}.`
+    : null;
+  // Researched jobs whose documents still need the user.
+  const toReview = listJobs({ status: "researched" })
+    .map((job) => {
+      const docs = listDocuments(job.id).filter((doc) => doc.type !== "research");
+      return {
+        job,
+        waiting: docs.filter((doc) => doc.review === "draft").length,
+        changes: docs.filter((doc) => doc.review === "changes_requested").length,
+      };
+    })
+    .filter((row) => row.waiting + row.changes > 0);
+
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
   return (
     <div>
-      <AutoRefresh active={active} />
+      <AutoRefresh active={active || Boolean(pipeline)} />
 
       <PageHeader
         eyebrow={today}
@@ -220,6 +240,59 @@ export default async function TodayPage(props: PageProps<"/">) {
               />
             ))}
           </div>
+        </section>
+      )}
+
+      {(selected.length > 0 || pipeline) && (
+        <div className="card mt-8 flex flex-wrap items-center justify-between gap-4 rounded-xl p-4">
+          <p className="flex items-center gap-2 text-sm">
+            {pipeline ? (
+              <>
+                <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
+                {pipeline}
+              </>
+            ) : (
+              <>
+                <span className="font-semibold">{selected.length} selected</span> and waiting for research. Research writes the CV, cover letter, email, and form
+                answers too.
+              </>
+            )}
+          </p>
+          {selected.length > 0 && (
+            <ActionButton variant="primary" action={researchSelected} disabled={!stageReady("research-job")}>
+              Research all selected
+            </ActionButton>
+          )}
+        </div>
+      )}
+
+      {toReview.length > 0 && (
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="section-title">Waiting for your review</h2>
+            <span className="font-mono text-xs text-slate">{toReview.length}</span>
+          </div>
+          <ul className="card mt-3 divide-y divide-line rounded-xl">
+            {toReview.map(({ job, waiting, changes }) => (
+              <li key={job.id}>
+                <Link href={`/jobs/${job.id}#documents`} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 hover:bg-mist/60">
+                  <span className="min-w-0">
+                    <span className="font-medium" dir="auto">
+                      {job.title}
+                    </span>
+                    <span className="text-sm text-slate" dir="auto">
+                      {" "}
+                      · {job.company}
+                    </span>
+                  </span>
+                  <span className="flex gap-2 text-xs">
+                    {waiting > 0 && <span className="rounded-full bg-teal-soft px-2 py-0.5 font-medium text-teal">{waiting} to review</span>}
+                    {changes > 0 && <span className="rounded-full bg-coral-soft px-2 py-0.5 font-medium text-coral">{changes} to rewrite</span>}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

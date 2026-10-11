@@ -106,6 +106,7 @@ export type Question = {
   options: string[] | null;
   job_id: number | null;
   source: string | null;
+  category: "you" | "cv" | "job" | null;
   status: "open" | "answered" | "dismissed";
   answer: string | null;
   created_at: string;
@@ -116,6 +117,16 @@ export type ProgressLine ={ at: string; text: string };
 
 export type EngineChoice ={ engine: "claude" | "codex"; model: string; effort: string };
 
+export type ResearchPoint = "company" | "job" | "people" | "salary" | "sponsorship";
+
+export const RESEARCH_POINTS: { key: ResearchPoint; label: string; hint: string }[] = [
+  { key: "company", label: "Company brief", hint: "What they do, size, ownership, stack, recent news, culture" },
+  { key: "job", label: "Job analysis", hint: "Real requirements, ATS keywords, fit against your profile" },
+  { key: "people", label: "People to contact", hint: "Hiring manager, team lead, or recruiter from public pages" },
+  { key: "salary", label: "Salary estimate", hint: "Market range for the role, level, and city" },
+  { key: "sponsorship", label: "Visa sponsorship check", hint: "Only for countries where you need sponsorship" },
+];
+
 export type Settings = {
   appearance: { mode: "system" | "light" | "dark"; primary: string; secondary: string };
   engines: Record<string, EngineChoice>;
@@ -123,7 +134,8 @@ export type Settings = {
   dailyCap: number;
   followUpDays: number;
   // code: ISO country code from the picker; name is what jobs are stored under.
-  countries: { code?: string; name: string; priority: number; cities: string[] }[];
+  // sponsorship: false when the user can already work there (missing means true).
+  countries: { code?: string; name: string; priority: number; cities: string[]; sponsorship?: boolean }[];
   roles: { key: string; label: string; priority: number; keywords: string[] }[];
   freshness: { maxHours: number; fastTrackMinutes: number };
   // levels: keys of EXPERIENCE_LEVELS in core/db.mjs. maxYears null means no limit.
@@ -134,6 +146,10 @@ export type Settings = {
   sources: { key: string; name: string; enabled: boolean; method: string }[];
   schedule: { enabled: boolean; fastTrackEveryMinutes: number; dailyRunAt: string };
   email: { sendingEnabled: boolean };
+  // What the research step covers, extra points to research, and free-text rules.
+  research: { points: Record<ResearchPoint, boolean>; extraPoints: string[]; rules: string };
+  // CV and cover letter templates: the default, and choices per role key.
+  cvTemplates?: { default: string; byRole: Record<string, string> };
   // The last engine check from the Setup screen.
   setupCheck?: { engine: string; ok: boolean; message: string; at: string };
 };

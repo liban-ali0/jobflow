@@ -1,0 +1,8 @@
+/* Modern: left-aligned header with an accent bar, coloured section titles. */
+.cv-header { border-left: 4px solid var(--cv-accent); padding-left: 10px; }
+.cv-header h1 { font-size: 2.2em; color: var(--cv-accent); font-weight: 700; }
+.cv-headline { font-weight: 600; color: #374151; }
+.cv-section h2 { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.95em; color: var(--cv-accent); font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.cv-section h2::after { content: ""; flex: 1; height: 1px; background: color-mix(in srgb, var(--cv-accent) 35%, white); }
+.cv-entry-title { font-weight: 700; }
+.cv-entry-org { color: var(--cv-accent); font-weight: 600; }

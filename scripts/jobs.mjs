@@ -22,7 +22,7 @@ const HELP = `Usage: node scripts/jobs.mjs <command>
 
   settings                         Print the current settings
   rules [--file <path>]            Print the extra ranking rules, or replace them with the file's text
-  ask                              Ask the user a question in the app (JSON: text, why, options, job_id)
+  ask                              Ask the user a question in the app (JSON: text, why, options, job_id, category: you | cv | job)
   questions [--status <s>]         List questions: open, answered, dismissed (default: all)
   list [--status a,b] [--since ISO]  List jobs
   get <id>                         One job with contacts, documents, history

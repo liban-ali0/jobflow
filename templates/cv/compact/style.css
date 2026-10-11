@@ -1,0 +1,6 @@
+/* Compact: name and contact on one band, small bold section labels. */
+.cv-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 16px; border-bottom: 1px solid var(--cv-accent); padding-bottom: 4px; }
+.cv-header h1 { font-size: 1.7em; color: var(--cv-accent); }
+.cv-headline { flex-basis: 100%; order: 3; }
+.cv-section h2 { font-size: 0.9em; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; color: var(--cv-accent); }
+.cv-entry-title { font-weight: 700; }

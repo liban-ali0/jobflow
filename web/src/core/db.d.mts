@@ -4,6 +4,7 @@ type Row = Record<string, unknown>;
 
 export const STATUSES: string[];
 export const DOCUMENT_TYPES: string[];
+export const QUESTION_CATEGORIES: string[];
 
 export function openDb(rootDir: string): Db;
 export function getSettings(db: Db): Row;
@@ -21,6 +22,8 @@ export function listContacts(db: Db, jobId: number): Row[];
 export function saveDocument(db: Db, jobId: number, type: string, filePath: string): void;
 export function reviewDocument(db: Db, id: number, review: string, note?: string | null): void;
 export function listDocuments(db: Db, jobId: number): Row[];
+export function getDocument(db: Db, id: number): Row | null;
+export function listAllDocuments(db: Db, types?: string[]): Row[];
 
 export function addEvent(db: Db, jobId: number, type: string, detail?: string | null): void;
 export function listEvents(db: Db, jobId: number): Row[];
@@ -44,7 +47,7 @@ export function listMessages(db: Db, conversationId: number): Row[];
 
 export function askQuestion(
   db: Db,
-  question: { text: string; why?: string | null; options?: string[] | null; job_id?: number | null; source?: string | null },
+  question: { text: string; why?: string | null; options?: string[] | null; job_id?: number | null; source?: string | null; category?: string | null },
 ): { id: number; created: boolean };
 export function listQuestions(db: Db, filter?: { status?: string }): Row[];
 export function getQuestion(db: Db, id: number): Row | null;

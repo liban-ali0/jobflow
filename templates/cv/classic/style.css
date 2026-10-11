@@ -1,0 +1,8 @@
+/* Classic: centred header, small-caps section rules, serif type. */
+.cv-header { text-align: center; padding-bottom: calc(var(--cv-gap) * 0.8); border-bottom: 1.5px solid var(--cv-accent); }
+.cv-header h1 { font-size: 2.1em; letter-spacing: 0.02em; color: var(--cv-accent); }
+.cv-headline { font-style: italic; }
+.cv-contact { justify-content: center; }
+.cv-section h2 { font-variant: small-caps; letter-spacing: 0.08em; font-size: 1.15em; color: var(--cv-accent); border-bottom: 0.75px solid #9ca3af; padding-bottom: 1px; }
+.cv-entry-title { font-weight: 700; }
+.cv-entry-org { font-style: italic; }

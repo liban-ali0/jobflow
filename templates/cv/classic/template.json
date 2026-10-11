@@ -1,0 +1,12 @@
+{
+  "name": "Classic",
+  "description": "Serif, black and white, centred name. The safest choice for any employer and any CV reader.",
+  "options": {
+    "font": "georgia",
+    "accent": "#1f2937",
+    "size": 10.5,
+    "margin": 16,
+    "spacing": "normal",
+    "sectionOrder": ["summary", "experience", "education", "projects", "skills", "certificates", "languages"]
+  }
+}

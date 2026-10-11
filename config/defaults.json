@@ -22,6 +22,17 @@
     "skipTitles": []
   },
   "customRules": "",
+  "research": {
+    "points": {
+      "company": true,
+      "job": true,
+      "people": true,
+      "salary": true,
+      "sponsorship": true
+    },
+    "extraPoints": [],
+    "rules": ""
+  },
   "workModes": [
     "remote",
     "onsite",

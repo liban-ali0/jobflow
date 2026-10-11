@@ -7,7 +7,7 @@ import { CityPicker } from "@/components/city-picker";
 import { TagInput } from "@/components/tag-input";
 import { useReorder } from "@/components/use-reorder";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
-import type { Settings } from "@/lib/types";
+import { RESEARCH_POINTS, type Settings } from "@/lib/types";
 
 export type CountryOption = { code: string; name: string };
 
@@ -258,6 +258,13 @@ function CountryList({ initial, options }: { initial: CountryRow[]; options: Cou
                     </option>
                   ))}
                 </select>
+                <label className="mt-2.5 flex cursor-pointer items-center justify-between gap-3 text-sm">
+                  <span>
+                    Needs visa sponsorship
+                    <span className="block text-xs text-slate">Off if you can already work here</span>
+                  </span>
+                  <input type="checkbox" role="switch" name={`country.${index}.sponsorship`} defaultChecked={value.sponsorship !== false} className="switch" />
+                </label>
               </div>
               <div className="min-w-0">
                 <span className="label">Cities, first is preferred</span>
@@ -316,6 +323,7 @@ const ENGINE_STAGES = [
   { key: "rank-jobs", label: "Check and rank" },
   { key: "research-job", label: "Research" },
   { key: "tailor-job", label: "Tailor documents" },
+  { key: "design-template", label: "Design CV template" },
 ];
 
 const EFFORTS = [
@@ -357,8 +365,9 @@ const GROUPS = [
   },
   {
     gate: "C",
-    title: "Engines and output",
+    title: "Research and output",
     sections: [
+      { id: "research", label: "Research" },
       { id: "engines", label: "Engines" },
       { id: "email", label: "Email" },
     ],
@@ -632,6 +641,39 @@ export function SettingsForm({ settings, countryOptions }: { settings: Settings;
         </Section>
 
         <GroupHeading gate="C" />
+
+        <Section id="research" title="Research" hint="What the research step looks into for each job you select, before the documents are written.">
+          <fieldset>
+            <legend className="label">What to research</legend>
+            <div className="-mx-5 divide-y divide-line/70 border-y border-line/70 md:-mx-6">
+              {RESEARCH_POINTS.map((point) => (
+                <SwitchRow key={point.key} name={`research.${point.key}`} label={point.label} hint={point.hint} checked={settings.research?.points?.[point.key] ?? true} />
+              ))}
+            </div>
+          </fieldset>
+          <div>
+            <label className="label" htmlFor="research-extra">
+              Extra points to research
+            </label>
+            <TagInput id="research-extra" name="research.extraPoints" initial={settings.research?.extraPoints ?? []} placeholder="e.g. Glassdoor rating, then Enter" />
+            <Help>Each becomes its own part of the research, for example remote work policy or Arabic-speaking team.</Help>
+          </div>
+          <div>
+            <label className="label" htmlFor="research-rules">
+              Research rules
+            </label>
+            <textarea
+              id="research-rules"
+              name="research.rules"
+              defaultValue={settings.research?.rules ?? ""}
+              rows={4}
+              placeholder={"Plain sentences, for example:\n- For government jobs, check whether nationals are preferred.\n- For Senior titles, look for the team lead rather than HR."}
+              className="field"
+              dir="auto"
+            />
+            <Help>Followed on top of the built-in research; they win when the two disagree.</Help>
+          </div>
+        </Section>
 
         <Section
           id="engines"

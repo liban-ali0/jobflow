@@ -7,7 +7,7 @@
     "node": ">=22.13"
   },
   "scripts": {
-    "setup": "npm install && npm install --prefix web && node scripts/jobs.mjs statuses",
+    "setup": "npm install && npm install --prefix web && npx playwright install chromium && node scripts/jobs.mjs statuses",
     "app": "npm run dev --prefix web",
     "jobs": "node scripts/jobs.mjs",
     "find": "node scripts/collect.mjs"
