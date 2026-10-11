@@ -44,7 +44,7 @@ export default function StatsPage() {
   const stats = getStats();
   return (
     <div>
-      <PageHeader eyebrow={`${stats.applied} applications · all time`} title="Statistics" description="See which sources, countries, and roles lead to replies and interviews." />
+      <PageHeader eyebrow={`${stats.applied} ${stats.applied === 1 ? "application" : "applications"} · all time`} title="Statistics" description="See which sources, countries, and roles lead to replies and interviews." />
 
       {stats.applied < 10 && (
         <div className="mt-8">

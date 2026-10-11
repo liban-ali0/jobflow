@@ -97,7 +97,9 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .map((document) => ({ type: document.type, approved: document.review === "approved" }));
   const afterApplying = ["applied", "replied", "interview", "offer"].includes(job.status);
   // The Apply section: once the package is written, until the job is applied to.
-  const pack = !afterApplying && documents.some((document) => document.type === "answers") ? applyPack(job.id) : null;
+  // Shown once every document is approved; before that, Documents is the next step.
+  const fullPack = !afterApplying && documents.some((document) => document.type === "answers") ? applyPack(job.id) : null;
+  const pack = fullPack?.approved ? fullPack : null;
   const filling = stageRunning("apply-job", job.id);
   const chrome = applyInChrome(job.url, pack?.approved ?? false);
   const breakdown = Object.entries(job.score_breakdown ?? {}).map(([name, value]) => {

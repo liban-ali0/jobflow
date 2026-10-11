@@ -63,31 +63,31 @@
       "key": "bayt",
       "name": "Bayt",
       "enabled": false,
-      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
+      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Jobflow extension below."
     },
     {
       "key": "gulftalent",
       "name": "GulfTalent",
       "enabled": false,
-      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
+      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Jobflow extension below."
     },
     {
       "key": "naukrigulf",
       "name": "Naukrigulf",
       "enabled": false,
-      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
+      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Jobflow extension below."
     },
     {
       "key": "indeed",
       "name": "Indeed",
       "enabled": false,
-      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
+      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Jobflow extension below."
     },
     {
       "key": "kariyer",
       "name": "Kariyer.net",
       "enabled": false,
-      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
+      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Jobflow extension below."
     },
     {
       "key": "careers",

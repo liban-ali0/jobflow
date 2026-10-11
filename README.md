@@ -42,16 +42,34 @@ Stop the app with Ctrl+C in its terminal.
 |---|---|
 | Today | Fresh jobs, ranked, and the ones you picked |
 | Questions | Gaps in your CV, facts about you, and questions about single jobs |
-| Board | Every application by status |
+| Board | Every job you picked, stage by stage, and the closed ones with the reason |
 | Assistant | Chat with Claude about your jobs |
 | Profile | Facts about you, extra ranking rules, the profile built from your CV |
 | CVs | CV templates, your base CV for each role, and the CVs and cover letters tailored to each job |
-| Activity | Every step that has run, with live progress |
-| Settings | Countries, roles, freshness, engines, colours |
+| Activity | Every step that has run, by day, with live progress |
+| Stats | Replies and interviews by source, country, and role |
+| Settings | Countries, roles, sources, schedule, engines, colours |
 
 ## Job sources
 
-Only LinkedIn's public job feed is searched automatically, without logging in. Other job sites block automated access.
+- **LinkedIn and Workable** are searched automatically, without logging in, country by country in your priority order.
+- **Indeed, Bayt, GulfTalent, Naukrigulf, Kariyer.net** block automated access, so they are read in your own browser:
+  - With Claude Code: switch them on in Settings → Sources. After **Find new jobs**, Claude in Chrome reads their search pages in your Chrome (install the Claude in Chrome extension and allow it on those sites).
+  - With any engine: the **Jobflow extension**. In Chrome open `chrome://extensions`, switch on Developer mode, choose **Load unpacked**, and pick the `extension` folder. Paste the key from Settings → Sources. On any job site press **Send this page to Jobflow**.
+
+## Applying
+
+When every document of a job is approved, its page shows **Apply**. Jobflow never submits for you:
+
+- **Fill it in Chrome** (Claude Code): fills the application form in your Chrome, attaches the CV and cover letter, and stops before Submit.
+- **The Jobflow extension**: on the form, choose the job and press **Fill this form**; then **I submitted it** marks it applied.
+- **Email draft**: when research found a confirmed email address, an `.eml` draft with both PDFs opens in your mail app.
+
+After applying, record replies and interviews on the job page. An interview gets an interview pack: likely questions with answers from your real experience, gaps, and questions to ask.
+
+## Schedule
+
+Settings → Schedule checks for fresh postings every few minutes during the hours you choose and ranks new ones at once (the fast track), and runs a full search once a day. It works while the app is running.
 
 ## Your data
 
