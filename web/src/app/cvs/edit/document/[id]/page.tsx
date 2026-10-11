@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { saveJobDocument } from "@/app/cv-actions";
 import { CvEditor } from "@/components/cv-editor";
 import { BackLink } from "@/components/back-link";
-import { PageHeader } from "@/components/page-header";
 import { getDocument, getJob, getSettings } from "@/lib/data";
 import { PRINTABLE, fileVersion, readText } from "@/lib/documents";
 import { stageRunning } from "@/lib/engine";
@@ -21,28 +20,29 @@ export default async function EditJobDocumentPage(props: PageProps<"/cvs/edit/do
 
   return (
     <div>
+      <AutoRefresh active={improving} />
       <BackLink fallbackHref={`/jobs/${job.id}#documents`} fallbackLabel="Job" />
       <div className="mt-3">
-      <PageHeader
-        eyebrow={kind === "cv" ? "Tailored CV" : "Cover letter"}
-        title={`${job.title} · ${job.company}`}
-        description="Saving puts it back to waiting for your review. Approve it on the job page when it is right."
-      />
-      <div className="mt-6">
-        <AutoRefresh active={improving} />
         <CvEditor
           key={fileVersion(doc.path)}
           kind={kind}
+          heading={{
+            code: `JF-${String(job.id).padStart(3, "0")}`,
+            kind: kind === "cv" ? "Tailored CV" : "Cover letter",
+            title: job.title,
+            subtitle: job.company,
+            note: "Saving sends it back for your review. Approve it on the job page when it is right.",
+            review: doc.review,
+          }}
           initial={markdown}
           templates={listTemplates()}
           initialTemplate={templateFor(job.role, getSettings().cvTemplates?.byJob?.[String(job.id)]).id}
           save={saveJobDocument.bind(null, doc.id)}
-          pdfHref={`/api/documents/${doc.id}?format=pdf`}
+          pdfSrc={`/api/documents/${doc.id}`}
           target={targetForJob(job.id)}
           improve={kind === "cv" ? { target: `doc:${doc.id}`, running: improving } : undefined}
           keywordSource="this job's keywords"
         />
-      </div>
       </div>
     </div>
   );

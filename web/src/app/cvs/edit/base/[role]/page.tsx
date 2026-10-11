@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { saveBaseCv } from "@/app/cv-actions";
 import { CvEditor } from "@/components/cv-editor";
 import { BackLink } from "@/components/back-link";
-import { PageHeader } from "@/components/page-header";
 import { getSettings } from "@/lib/data";
 import { baseCvPath, fileVersion, readText } from "@/lib/documents";
 import { stageRunning } from "@/lib/engine";
@@ -21,24 +20,26 @@ export default async function EditBaseCvPage(props: PageProps<"/cvs/edit/base/[r
 
   return (
     <div>
+      <AutoRefresh active={improving} />
       <BackLink fallbackHref="/cvs" fallbackLabel="CVs" />
       <div className="mt-3">
-      <PageHeader eyebrow="Base CV" title={found.label} description="Tailored CVs for this role start from this one. Your edits are kept when the profile is rebuilt." />
-      <div className="mt-6">
-        <AutoRefresh active={improving} />
         <CvEditor
           key={fileVersion(baseCvPath(role))}
           kind="cv"
+          heading={{
+            kind: "Base CV",
+            title: found.label,
+            note: "Tailored CVs for this role start from this one. Your edits are kept when the profile is rebuilt.",
+          }}
           initial={markdown}
           templates={listTemplates()}
           initialTemplate={templateFor(role).id}
           save={saveBaseCv.bind(null, role)}
-          pdfHref={`/api/cvs/${role}?format=pdf`}
+          pdfSrc={`/api/cvs/${role}`}
           target={targetForRole(role)}
           improve={{ target: `base:${role}`, running: improving }}
           keywordSource={`the ${found.label} search keywords`}
         />
-      </div>
       </div>
     </div>
   );
