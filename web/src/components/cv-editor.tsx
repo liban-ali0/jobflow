@@ -8,6 +8,7 @@ import { checkCv, type AtsTarget } from "@/lib/ats";
 import { AtsPanel, type KeywordState } from "@/components/ats-panel";
 import { PdfViewer } from "@/components/pdf-viewer";
 import { weaveKeyword, weaveResult } from "@/app/ats-actions";
+import type { TemplateCheck } from "@/lib/template-check";
 
 const PREVIEW_WIDTH = 520;
 const NEW_SECTIONS = ["Summary", "Experience", "Education", "Projects", "Skills", "Certificates", "Languages", "Awards", "Volunteering"];
@@ -298,6 +299,29 @@ function CvForm({ doc, onChange }: { doc: CvDocument; onChange: (doc: CvDocument
   );
 }
 
+// The template's layout check, under the preview.
+function LayoutCheck({ check }: { check: TemplateCheck }) {
+  return (
+    <div className="mt-2 text-xs">
+      <p>
+        <span className={`font-semibold ${check.score >= 85 ? "text-go" : check.score >= 70 ? "text-teal" : "text-coral"}`}>
+          Layout check {check.score}/100 ({check.grade})
+        </span>
+        <span className="text-slate"> · single column, real text, safe fonts, contact in the page body. Same for every CV in this template.</span>
+      </p>
+      {check.issues.length > 0 && (
+        <ul className="mt-1 list-disc space-y-0.5 pl-5">
+          {check.issues.map((issue) => (
+            <li key={issue.message} className={issue.severity === "critical" ? "text-coral" : "text-slate"}>
+              {issue.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 // The top of the page, drawn like the job's boarding pass: what this document
 // is on the pass, and how it scores right now on the stub.
 function Pass({ heading, stub }: { heading: EditorHeading; stub: React.ReactNode }) {
@@ -338,9 +362,12 @@ export function CvEditor({
   target = { text: "", keywords: [] },
   keywordSource = "the keywords",
   improve,
+  templateChecks,
 }: {
   kind: "cv" | "cover_letter";
   heading: EditorHeading;
+  // How readable each template's layout is for an ATS (see lib/template-check).
+  templateChecks?: Record<string, TemplateCheck>;
   initial: string;
   templates: CvTemplate[];
   initialTemplate: string;
@@ -682,6 +709,7 @@ export function CvEditor({
                   <p className="mt-2 text-xs text-slate">
                     {template.name} template · {dirty ? "showing your unsaved changes" : "as saved"}
                   </p>
+                  {templateChecks?.[template.id] && <LayoutCheck check={templateChecks[template.id]} />}
                 </>
               )}
             </div>

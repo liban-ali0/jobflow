@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
 import { improveCv } from "@/app/ats-actions";
-import type { AtsResult } from "@/lib/ats";
+import type { AtsRequirement, AtsResult } from "@/lib/ats";
 
 export type KeywordState = { state: "working" | "added" | "skipped" | "failed"; note?: string };
 
@@ -81,7 +81,7 @@ export function AtsPanel({
   const [menu, setMenu] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [evidence, setEvidence] = useState("");
-  const { score, systems, keywords, suggestions, checks } = result;
+  const { score, systems, keywords, suggestions, checks, review } = result;
   const passing = systems.filter((system) => system.passes).length;
   const failing = checks.filter((check) => !check.ok);
   const isMust = (term: string) => keywords.must.includes(term.toLowerCase());
@@ -103,8 +103,10 @@ export function AtsPanel({
           </p>
           <p className="text-xs text-slate">
             {keywords.percent === null
-              ? `How six ATS systems read it: ${result.systemsScore}. No keyword list to compare with yet.`
-              : `Half how six ATS systems read it (${result.systemsScore}), half keyword match with ${source} (${keywords.percent}%).`}
+              ? `60% how six ATS systems read it (${result.systemsScore}), 40% the CV review (${review.readiness}). No keyword list to compare with yet.`
+              : `35% how six ATS systems read it (${result.systemsScore}), 35% keyword match with ${source} (${keywords.percent}%), 30% the CV review (${review.score}${
+                  review.jobMatch === null ? "" : `: readiness ${review.readiness}, requirements ${review.jobMatch}`
+                }).`}
           </p>
         </div>
       </div>
@@ -150,6 +152,8 @@ export function AtsPanel({
       ) : (
         <p className="rounded-lg bg-go-soft px-3 py-2 text-sm font-medium text-go">Nothing to fix: full marks.</p>
       )}
+
+      {review.requirements.length > 0 && <Requirements requirements={review.requirements} />}
 
       <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
         {systems.map((system) => (
@@ -327,13 +331,95 @@ export function AtsPanel({
           ))}
         </ul>
       </div>
+
+      <details>
+        <summary className="cursor-pointer text-xs font-semibold text-slate">What an ATS reads from this CV</summary>
+        <dl className="mt-2 grid grid-cols-[6rem_minmax(0,1fr)] gap-x-3 gap-y-1 text-sm">
+          {review.parsed.map((row, index) => (
+            <div key={index} className="contents">
+              <dt className="text-xs text-slate">{row.label}</dt>
+              <dd dir="auto">{row.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p className="mt-3 text-xs font-semibold text-slate">CV review by area</p>
+        <ul className="mt-1 flex flex-wrap gap-1.5">
+          {review.categories.map((category) => (
+            <li key={category.label} className={`rounded-full px-2 py-0.5 text-xs ${category.lost > 0 ? "bg-coral-soft text-coral" : "bg-go-soft text-go"}`}>
+              {category.label} {category.score}
+            </li>
+          ))}
+        </ul>
+        {review.strengths.length > 0 && (
+          <>
+            <p className="mt-3 text-xs font-semibold text-slate">Already right</p>
+            <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
+              {review.strengths.map((strength) => (
+                <li key={strength}>{strength}</li>
+              ))}
+            </ul>
+          </>
+        )}
+      </details>
+
       <p className="text-[11px] text-slate">
         Scores by the open-source{" "}
         <a href="https://github.com/sunnypatell/ats-screener" target="_blank" rel="noreferrer" className="underline">
           ATS Screener
         </a>{" "}
-        engine, which approximates how each system parses and filters; not the vendors&apos; own algorithms.
+        (six systems) and{" "}
+        <a href="https://github.com/VeriWorkly/ats-engine" target="_blank" rel="noreferrer" className="underline">
+          VeriWorkly ats-engine
+        </a>{" "}
+        (CV review and requirements). They approximate how ATS platforms parse and filter; not the vendors&apos; own algorithms.
       </p>
     </section>
+  );
+}
+
+const STATUS = {
+  met: { icon: "✓", label: "Shown", tone: "text-go" },
+  partial: { icon: "◐", label: "Partly shown", tone: "text-teal" },
+  missing: { icon: "✗", label: "Not shown", tone: "text-coral" },
+  unverifiable: { icon: "?", label: "Cannot tell from a CV", tone: "text-slate" },
+} as const;
+
+// The listing's requirements one by one: what the CV shows, and what it does not.
+function Requirements({ requirements }: { requirements: AtsRequirement[] }) {
+  const met = requirements.filter((requirement) => requirement.status === "met");
+  const open = requirements.filter((requirement) => requirement.status !== "met");
+  const row = (requirement: AtsRequirement, index: number) => {
+    const status = STATUS[requirement.status];
+    return (
+      <li key={index} className="flex gap-2 text-sm">
+        <span aria-hidden className={`w-4 shrink-0 text-center font-semibold ${status.tone}`}>
+          {status.icon}
+        </span>
+        <span className="min-w-0">
+          <span className="sr-only">{status.label}: </span>
+          <span dir="auto">{requirement.text}</span>
+          {!requirement.required && <span className="ml-1.5 rounded-full bg-mist px-1.5 text-[10px] font-semibold text-slate uppercase">preferred</span>}
+          {(requirement.detail || requirement.evidence) && (
+            <span className="block text-xs text-slate" dir="auto">
+              {requirement.detail || `From your CV: ${requirement.evidence}`}
+            </span>
+          )}
+        </span>
+      </li>
+    );
+  };
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-semibold text-slate">
+        The listing&apos;s requirements · {met.length} of {requirements.length} shown in your CV
+      </p>
+      {open.length > 0 && <ul className="space-y-1.5">{open.map(row)}</ul>}
+      {met.length > 0 && (
+        <details className="mt-2">
+          <summary className="cursor-pointer text-xs font-semibold text-go">Shown ({met.length})</summary>
+          <ul className="mt-1.5 space-y-1.5">{met.map(row)}</ul>
+        </details>
+      )}
+    </div>
   );
 }

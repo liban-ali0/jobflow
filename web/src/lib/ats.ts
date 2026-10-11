@@ -1,17 +1,30 @@
-// ATS (applicant tracking system) check of a CV, combining two parts:
+// ATS (applicant tracking system) check of a CV, combining three parts:
 // - How six real ATS platforms would read and score it, from the open-source
 //   ATS Screener engine (src/vendor/ats-screener, MIT). Its own keyword step
 //   counts every word of a listing, so it is given research's clean keyword
 //   list instead of the raw listing text when there is one.
 // - Jobflow's keyword match: the job's keywords as phrases, with close
 //   variants and must-haves, which judges the fit to this job.
-// The score is half of each. Deterministic and instant, so the CV editor can
-// re-check on every keystroke and the same CV always gets the same score.
+// - The CV review from the open-source VeriWorkly ats-engine (npm, MIT): how an
+//   ATS parses it (roles, dates, degree, languages), a rubric of readiness
+//   checks with evidence and a fix each, and the listing's requirements one by
+//   one (years, degree, languages compared as values), met or missing.
+// The score weighs them by WEIGHTS. Deterministic and quick (about 15 ms), so
+// the CV editor can re-check as you type and the same CV gets the same score.
 import { parseCv, type CvDocument } from "./cv-format";
 import { scoreResume } from "@/vendor/ats-screener/scorer/engine";
 import { ALL_PROFILES } from "@/vendor/ats-screener/scorer/profiles";
 import type { ScoringInput, Suggestion } from "@/vendor/ats-screener/scorer/types";
 import { QUANTIFICATION_PATTERNS, STRONG_ACTION_VERBS } from "@/vendor/ats-screener/scorer/experience-scorer";
+import { check as reviewCv, type AtsReport } from "@veriworkly/ats-engine";
+import { categoryLabel, formatRoleDates, formatSpokenLanguage, formatTenure, DEGREE_LABELS } from "@veriworkly/ats-engine/format";
+
+// How much each part counts. "keyed": a keyword list exists (a job's research
+// or a role's search keywords); "plain": none yet.
+const WEIGHTS = {
+  keyed: { systems: 0.35, keywords: 0.35, review: 0.3 },
+  plain: { systems: 0.6, review: 0.4 },
+};
 
 export type AtsKeyword = { term: string; must: boolean };
 export type AtsCheck = { id: string; label: string; ok: boolean; detail: string };
@@ -30,6 +43,20 @@ export type AtsResult = {
   keywords: { matched: string[]; missing: string[]; must: string[]; percent: number | null };
   suggestions: string[];
   checks: AtsCheck[];
+  review: AtsReview;
+};
+// The VeriWorkly review, trimmed to what the panel shows.
+export type AtsRequirement = { text: string; status: "met" | "partial" | "missing" | "unverifiable"; required: boolean; detail: string; evidence: string };
+export type AtsReview = {
+  // The review's part of the score: readiness, averaged with the job match when there is a listing.
+  score: number;
+  readiness: number;
+  jobMatch: number | null;
+  categories: { label: string; score: number; lost: number }[];
+  strengths: string[];
+  requirements: AtsRequirement[];
+  // What an ATS would store from this CV.
+  parsed: { label: string; value: string }[];
 };
 // What a CV is checked against: the listing text and research's keywords.
 export type AtsTarget = { text: string; keywords: AtsKeyword[]; title?: string };
@@ -244,7 +271,7 @@ const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1
 // averaged and halved, since the systems make up half the overall score.
 function systemFixes(results: EngineResult[], input: ScoringInput, hasKeywordList: boolean): AtsFix[] {
   const share = (lost: (result: EngineResult, index: number) => number) =>
-    (results.reduce((sum, result, index) => sum + lost(result, index), 0) / results.length) * (hasKeywordList ? 0.5 : 1);
+    (results.reduce((sum, result, index) => sum + lost(result, index), 0) / results.length) * (hasKeywordList ? WEIGHTS.keyed.systems : WEIGHTS.plain.systems);
   const weights = (index: number) => ALL_PROFILES[index].weights;
   const fixes: AtsFix[] = [];
   const first = results[0]?.breakdown;
@@ -334,7 +361,7 @@ function systemFixes(results: EngineResult[], input: ScoringInput, hasKeywordLis
     }
   });
   for (const [message, penalty] of quirks) {
-    fixes.push({ label: capitalize(message.split(". ")[0]), detail: capitalize(message), points: (penalty / results.length) * (hasKeywordList ? 0.5 : 1), kind: "fix" });
+    fixes.push({ label: capitalize(message.split(". ")[0]), detail: capitalize(message), points: (penalty / results.length) * (hasKeywordList ? WEIGHTS.keyed.systems : WEIGHTS.plain.systems), kind: "fix" });
   }
   return fixes;
 }
@@ -350,8 +377,8 @@ function keywordFixes(results: EngineResult[], target: AtsTarget, matched: AtsKe
   const total = weight(target.keywords);
   // The engine's keyword part, spread over the missing keywords by weight.
   const engineLost =
-    (results.reduce((sum, result, index) => sum + (100 - result.breakdown.keywordMatch.score) * ALL_PROFILES[index].weights.keywordMatch, 0) / results.length) * 0.5;
-  const worth = (list: AtsKeyword[]) => (weight(list) / total) * 50 + (missing.length ? (weight(list) / weight(missing)) * engineLost : 0);
+    (results.reduce((sum, result, index) => sum + (100 - result.breakdown.keywordMatch.score) * ALL_PROFILES[index].weights.keywordMatch, 0) / results.length) * WEIGHTS.keyed.systems;
+  const worth = (list: AtsKeyword[]) => (weight(list) / total) * WEIGHTS.keyed.keywords * 100 + (missing.length ? (weight(list) / weight(missing)) * engineLost : 0);
   const must = missing.filter((keyword) => keyword.must);
   const other = missing.filter((keyword) => !keyword.must);
   const fixes: AtsFix[] = [];
@@ -396,6 +423,114 @@ function contextFix(doc: CvDocument, matched: AtsKeyword[]): AtsFix[] {
   ];
 }
 
+// ---------- the VeriWorkly review ----------
+
+// Its rules that Jobflow's own fixes already cover, so the advice is not given
+// twice: the review's points go to Jobflow's fix instead.
+const COVERED: Record<string, string> = {
+  "ats-v2.content.metrics": "Put numbers in more experience bullets",
+  "ats-v2.content.verbs": "Start more bullets with a strong action verb",
+};
+// Its rules that match one of Jobflow's checks, which names the exact bullets.
+const SAME_CHECK: Record<string, string> = {
+  "ats-v2.writing.firstPerson": "voice",
+  "ats-v2.writing.weakOpeners": "filler",
+  "ats-v2.writing.bulletLength": "length",
+  "ats-v2.writing.repeatedOpeners": "variety",
+  "ats-v2.writing.bulletsPerRole": "bullets",
+  "ats-v2.format.length": "size",
+};
+
+// Below this, the target is only a role's name, not a listing to match.
+const LISTING_MIN = 200;
+
+// Listings' sub-headings ("Strongly Preferred", "We will want to understand:")
+// are read as requirements too; a requirement says something.
+const isRequirement = (requirement: { text: string }) => {
+  const text = requirement.text.trim();
+  return text.split(/\s+/).length >= 3 && !text.endsWith(":") && !/^(evidence|strongly preferred|nice to have|requirements|qualifications)\b/i.test(text);
+};
+
+function runReview(markdown: string, target: AtsTarget): AtsReport {
+  const text = markdown.replace(/\*\*/g, "");
+  const listing = target.text.length >= LISTING_MIN ? target.text : undefined;
+  return reviewCv(text, undefined, { jobDescription: listing, now: new Date() });
+}
+
+function summarize(report: AtsReport): AtsReview {
+  const parsed = report.parsed;
+  const rows: { label: string; value: string }[] = [];
+  if (parsed.name) rows.push({ label: "Name", value: parsed.name });
+  rows.push({ label: "Contact", value: [parsed.email, parsed.phone].filter(Boolean).join(" · ") || "Not found" });
+  for (const role of parsed.roles.slice(0, 6)) {
+    rows.push({ label: "Role", value: [`${role.title}${role.employer ? `, ${role.employer}` : ""}`, formatRoleDates(role)].filter(Boolean).join(" · ") });
+  }
+  if (parsed.monthsOfExperience !== null) rows.push({ label: "Experience", value: formatTenure(parsed.monthsOfExperience) });
+  if (parsed.highestDegree) rows.push({ label: "Degree", value: DEGREE_LABELS[parsed.highestDegree] });
+  if (parsed.skills.length) rows.push({ label: "Skills", value: `${parsed.skills.length}: ${parsed.skills.slice(0, 10).join(", ")}${parsed.skills.length > 10 ? ", …" : ""}` });
+  if (parsed.spokenLanguages.length) rows.push({ label: "Languages", value: parsed.spokenLanguages.map(formatSpokenLanguage).join(", ") });
+  return {
+    score: report.jobMatchScore === null ? report.readinessScore : Math.round((report.readinessScore + report.jobMatchScore) / 2),
+    readiness: report.readinessScore,
+    jobMatch: report.jobMatchScore,
+    categories: report.categories.filter((category) => category.possible > 0).map((category) => ({ label: categoryLabel(category.category), score: category.score, lost: category.lost })),
+    strengths: report.strengths,
+    requirements: report.requirements.filter(isRequirement).map((requirement) => ({
+      text: requirement.text,
+      status: requirement.status,
+      required: requirement.importance === "required",
+      detail: requirement.detail ?? "",
+      evidence: requirement.evidence.slice(0, 2).join(" · "),
+    })),
+    parsed: rows,
+  };
+}
+
+// The review's failed checks and unmet requirements as fixes. Points are what
+// each costs in the overall score.
+function reviewFixes(report: AtsReport, weight: number, fixes: AtsFix[], checks: AtsCheck[]): AtsFix[] {
+  const share = report.jobMatchScore === null ? 1 : 0.5;
+  const out: AtsFix[] = [];
+  for (const failed of report.failedChecks) {
+    const points = failed.scoreImpact * share * weight;
+    const covered = COVERED[failed.id] ? fixes.find((fix) => fix.label === COVERED[failed.id]) : undefined;
+    if (covered) {
+      covered.points += points;
+      continue;
+    }
+    const sameCheck = SAME_CHECK[failed.id] ? checks.find((item) => item.id === SAME_CHECK[failed.id] && !item.ok) : undefined;
+    if (sameCheck) {
+      out.push({ label: sameCheck.label, detail: `${sameCheck.detail} ${failed.fix}`.trim(), points, kind: "fix" });
+      continue;
+    }
+    if (failed.id === "ats-v2.content.skillEvidence") {
+      const context = fixes.find((fix) => fix.label.startsWith("Show "));
+      if (context) {
+        context.points += points;
+        continue;
+      }
+    }
+    out.push({ label: failed.fix.split(/(?<=\.)\s/)[0], detail: failed.evidence, points, kind: "fix" });
+  }
+  if (report.jobMatchScore !== null) {
+    const unmet = report.requirements.filter(isRequirement).filter((requirement) => requirement.status === "missing" || requirement.status === "partial");
+    if (unmet.length) {
+      const required = unmet.filter((requirement) => requirement.importance === "required");
+      const listed = unmet
+        .slice(0, 5)
+        .map((requirement) => `“${requirement.text.replace(/\.\s*$/, "")}”${requirement.detail ? ` (${requirement.detail})` : requirement.status === "partial" ? " (partly shown)" : ""}`)
+        .join("; ");
+      out.push({
+        label: `Show the listing's requirements you meet (${unmet.length} not shown${required.length ? `, ${required.length} required` : ""})`,
+        detail: `${listed}${unmet.length > 5 ? "; …" : ""}. Where it is true, say it in the listing's words: years in the role, the degree, the skill in a bullet.`,
+        points: (100 - report.jobMatchScore) * 0.5 * weight,
+        kind: "if-true",
+      });
+    }
+  }
+  return out;
+}
+
 export function checkCv(markdown: string, target: AtsTarget): AtsResult {
   const doc = parseCv(markdown);
   const input = scoringInput(doc, markdown, target);
@@ -411,18 +546,24 @@ export function checkCv(markdown: string, target: AtsTarget): AtsResult {
     // Keyword advice comes from Jobflow's keyword list instead.
     .filter((text) => !/missing keywords|keyword matching|exact terms/i.test(text))
     .slice(0, 5);
+  const report = runReview(markdown, target);
+  const review = summarize(report);
   const base = {
+    review,
     systemsScore,
     systems: results.map((result) => ({ name: result.system, vendor: result.vendor, score: result.overallScore, passes: result.passesFilter })),
     suggestions,
     checks,
   };
 
+  // A Jobflow check the review's fixes already carry is not listed twice.
+  const merge = (fixes: AtsFix[], fromReview: AtsFix[]) => [...fixes, ...fromReview, ...checkFixes.filter((fix) => !fromReview.some((item) => item.label === fix.label))];
   if (!hasKeywordList) {
+    const fixes = systemFixes(results, input, false);
     return {
       ...base,
-      score: systemsScore,
-      fixes: sortFixes([...systemFixes(results, input, false), ...checkFixes]),
+      score: Math.round(systemsScore * WEIGHTS.plain.systems + review.score * WEIGHTS.plain.review),
+      fixes: sortFixes(merge(fixes, reviewFixes(report, WEIGHTS.plain.review, fixes, checks))),
       keywords: { matched: [], missing: [], must: [], percent: null },
     };
   }
@@ -432,10 +573,11 @@ export function checkCv(markdown: string, target: AtsTarget): AtsResult {
   // Must-have keywords count double.
   const weight = (list: AtsKeyword[]) => list.reduce((sum, keyword) => sum + (keyword.must ? 2 : 1), 0);
   const percent = Math.round((weight(matched) / weight(target.keywords)) * 100);
+  const fixes = [...keywordFixes(results, target, matched, missing), ...systemFixes(results, input, true), ...contextFix(doc, matched)];
   return {
     ...base,
-    score: Math.round((systemsScore + percent) / 2),
-    fixes: sortFixes([...keywordFixes(results, target, matched, missing), ...systemFixes(results, input, true), ...contextFix(doc, matched), ...checkFixes]),
+    score: Math.round(systemsScore * WEIGHTS.keyed.systems + percent * WEIGHTS.keyed.keywords + review.score * WEIGHTS.keyed.review),
+    fixes: sortFixes(merge(fixes, reviewFixes(report, WEIGHTS.keyed.review, fixes, checks))),
     keywords: {
       matched: matched.map((keyword) => keyword.term),
       missing: missing.map((keyword) => keyword.term),

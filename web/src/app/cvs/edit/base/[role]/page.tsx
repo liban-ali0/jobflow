@@ -7,6 +7,7 @@ import { baseCvPath, fileVersion, readText } from "@/lib/documents";
 import { stageRunning } from "@/lib/engine";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { listTemplates, templateFor } from "@/lib/templates";
+import { checkTemplates } from "@/lib/template-check";
 import { targetForRole } from "@/lib/ats-keywords";
 
 export default async function EditBaseCvPage(props: PageProps<"/cvs/edit/base/[role]">) {
@@ -33,6 +34,7 @@ export default async function EditBaseCvPage(props: PageProps<"/cvs/edit/base/[r
           }}
           initial={markdown}
           templates={listTemplates()}
+          templateChecks={checkTemplates(markdown, listTemplates())}
           initialTemplate={templateFor(role).id}
           save={saveBaseCv.bind(null, role)}
           pdfSrc={`/api/cvs/${role}`}

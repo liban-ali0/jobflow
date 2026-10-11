@@ -86,9 +86,10 @@ function page(title: string, body: string, template: CvTemplate, rtl: boolean, e
 }
 
 function headerHtml(name: string, headline: string, contact: string[]) {
-  return `<header class="cv-header"><h1>${escape(name)}</h1>${headline ? `<p class="cv-headline">${escape(headline)}</p>` : ""}${
+  // A plain div: some ATS skip text inside <header> and <footer> elements.
+  return `<div class="cv-header"><h1>${escape(name)}</h1>${headline ? `<p class="cv-headline">${escape(headline)}</p>` : ""}${
     contact.length ? `<p class="cv-contact">${contact.map((item) => `<span>${escape(item)}</span>`).join("")}</p>` : ""
-  }</header>`;
+  }</div>`;
 }
 
 // Sections appear in the CV's own order, which the user controls in the editor.

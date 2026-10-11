@@ -7,6 +7,7 @@ import { PRINTABLE, fileVersion, readText } from "@/lib/documents";
 import { stageRunning } from "@/lib/engine";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { listTemplates, templateFor } from "@/lib/templates";
+import { checkTemplates } from "@/lib/template-check";
 import { targetForJob } from "@/lib/ats-keywords";
 
 export default async function EditJobDocumentPage(props: PageProps<"/cvs/edit/document/[id]">) {
@@ -36,6 +37,7 @@ export default async function EditJobDocumentPage(props: PageProps<"/cvs/edit/do
           }}
           initial={markdown}
           templates={listTemplates()}
+          templateChecks={kind === "cv" ? checkTemplates(markdown, listTemplates()) : undefined}
           initialTemplate={templateFor(job.role, getSettings().cvTemplates?.byJob?.[String(job.id)]).id}
           save={saveJobDocument.bind(null, doc.id)}
           pdfSrc={`/api/documents/${doc.id}`}

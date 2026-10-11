@@ -44,6 +44,8 @@ export async function improveCv(target: string): Promise<ActionResult> {
     score: result.score,
     missingKeywords: found.ats.keywords.filter((keyword) => missing.has(keyword.term)),
     fixes: result.fixes.filter((fix) => fix.kind === "fix").map(({ label, detail }) => ({ label, detail })),
+    // The listing's requirements the CV does not show yet (the CV review).
+    requirements: result.review.requirements.filter((item) => item.status === "missing" || item.status === "partial").map(({ text, status, required, detail }) => ({ text, status, required, detail })),
   };
   // The file name comes from the checked parts only, never the raw target.
   const work = path.join(ROOT, "jobs", "_work");

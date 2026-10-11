@@ -12,7 +12,8 @@ The app checked this CV with its ATS scorer and wrote what to fix in `jobs/_work
 - `file`: the CV to edit (a path under `jobs/` or `candidate/`).
 - `jobId`: the job, for a tailored CV (absent for a base CV).
 - `missingKeywords`: keywords the CV lacks, each with `term` and `must` (required by the listing).
-- `fixes`: the other points lost, each with `label` and `detail` (numbers in bullets, action verbs, sections, layout).
+- `fixes`: the other points lost, each with `label` and `detail` (numbers in bullets, action verbs, writing, sections, layout).
+- `requirements`: the listing's requirements the CV does not show yet (`missing`) or only partly (`partial`), with `required` and the checker's `detail` (for example "0 years in roles naming python, 3 asked").
 
 ## Steps
 
@@ -24,6 +25,7 @@ The app checked this CV with its ATS scorer and wrote what to fix in `jobs/_work
 ## How to fix
 
 - **Missing keywords**: add a keyword only when the profile, `facts.md`, or the job's notes show the candidate has that skill or did that work. Put it where the evidence is: in the relevant job's bullet, the summary, or the Skills section, using the listing's exact words. Required (`must`) keywords first. Never add a keyword without evidence, even a required one; list it as left out instead.
+- **Requirements**: for each one the profile supports, make the CV show it in the listing's words: the years in the summary or the role ("3 years building Java back ends"), the degree with its field as written in the profile, the skill in the bullet where it was used, a language with its level. Required ones first. If the profile does not support it, leave it and list it as not shown.
 - **Numbers in bullets**: surface figures that are already in the profile (users, transactions, percentages, time saved, team size). Never invent or estimate a number.
 - **Action verbs**: start bullets with a strong verb (Built, Led, Reduced, Automated, Integrated, Designed) without changing what the bullet says.
 - **Sections and layout**: rename or add sections the fix list names, using the standard names (Summary, Experience, Education, Skills).
