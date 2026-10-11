@@ -35,9 +35,9 @@ Apply the switches in the settings' `exclusions`; skip a rule whose switch is of
 
 - `nationalsOnly`: it is open only to citizens of the country and the candidate is not one (for example UAE nationals, Saudization or Qatarization roles).
 - `transferableIqamaRequired`: it requires a residence or work permit the candidate does not have, such as a transferable iqama or an existing local visa.
-- It requires more than the maximum years of experience in the settings (`experience.maxYears`), or it is clearly a senior, lead, or management role. LinkedIn's "Mid-Senior level" label alone is not a reason: judge the years and duties in the description.
+- It asks for more years of experience than `experience.maxYears` in the settings (skip this rule when it is null), or its level is clearly outside the levels chosen in `experience.levels` (internship, entry, associate, mid-senior, director, executive). Judge the years and duties in the description, not LinkedIn's label alone.
 - It does not fit any of the target roles in the settings (`roles`), judged from the duties, not only the title. Job fairs and generic recruitment posts never fit.
-- It is an internship, or a programme the candidate is not eligible for according to the profile (for example, one limited to recent graduates when they graduated too long ago).
+- It is a programme the candidate is not eligible for according to the profile (for example, one limited to recent graduates when they graduated too long ago).
 - `payToApply`: it asks for a fee, deposit, or payment to apply or to be processed.
 - The work location is outside the target countries.
 
@@ -48,7 +48,7 @@ When a job is excluded, the other fields can be 0.
 | Field | Values | How to judge |
 |---|---|---|
 | `role` | a role `key` from the settings | The target role the job really belongs to, judged from the description, not only its title |
-| `entry_fit` | 0 to 15 | Experience fit. 15 the years asked match the candidate's and the stack matches the profile closely, 10 the years match but the stack only partly, 5 years unclear or slightly above, 0 clearly needs more experience |
+| `entry_fit` | 0 to 15 | Experience fit. 15 the level and years asked match the candidate's and the skills match the profile closely, 10 the level matches but the skills only partly, 5 level unclear or slightly off, 0 clearly needs much more experience or is far below the candidate's level |
 | `legitimacy` | 0 to 10 | 10 known company posting directly, 7 real company through a known agency, 4 thin details or a generic agency post, below 4 signs of a fake listing |
 | `company` | 0 to 10 | Reputation, size, stability, and how good a first job there would be |
 | `sponsorship` | 0 to 5 | 5 sponsorship or relocation stated, 3 the employer normally hires expats, 0 hints it will not sponsor |
@@ -80,7 +80,7 @@ Example file:
 
 - Use what you already know about well-known companies without searching.
 - For unknown companies, one or two web searches at most: does the company exist, does it have a real website, is the role plausible for it.
-- Warning signs: no company name, free email addresses for applications, payment requests, pay far above the market for a junior role, vague duties, the same text posted by many unrelated agencies.
+- Warning signs: no company name, free email addresses for applications, payment requests, pay far above the market for the level, vague duties, the same text posted by many unrelated agencies.
 - A company that appears several times in this run only needs to be checked once.
 
 ## Rules

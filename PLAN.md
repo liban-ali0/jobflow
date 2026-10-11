@@ -4,7 +4,7 @@ Status (2026-10-11): phases 1 and 2 are built (LinkedIn only; email-alert source
 
 ## 1. Candidate profile
 
-Each user's own details live in `candidate/` (CV, `facts.md`, the generated `profile.md`), which is private and never shared. Jobflow is built for people early in their career: entry-level experience filters, junior title words, and sponsorship checks for working abroad.
+Each user's own details live in `candidate/` (CV, `facts.md`, the generated `profile.md`), which is private and never shared. Jobflow works for any field and any level, from internships to executive roles; each user sets their levels, roles, and countries, and ranking judges every job against their own profile.
 
 ## 2. Targeting rules
 
@@ -15,7 +15,7 @@ Set per user on the Setup and Settings screens and stored in their own database.
 | Countries | Any number, in priority order, with preferred cities |
 | Roles | Any number, each with a label, priority, and search keywords in any language |
 | Freshness | Maximum posting age, and a shorter high-priority window |
-| Experience | Most years a listing may require, entry-level title words |
+| Experience | Levels to search (internship to executive), most years a listing may ask for (or no limit), title words to skip |
 
 Hard exclusions (switches in Settings): nationals-only listings, listings requiring a residence or work permit the candidate lacks, pay-to-apply listings. Always excluded: too much experience required, duplicates, suspected fake listings.
 

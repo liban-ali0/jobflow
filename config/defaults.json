@@ -13,14 +13,13 @@
     "fastTrackMinutes": 60
   },
   "experience": {
-    "maxYears": 3,
-    "titles": [
-      "junior",
-      "graduate",
-      "trainee",
+    "levels": [
+      "entry",
       "associate",
-      "entry level"
-    ]
+      "mid-senior"
+    ],
+    "maxYears": null,
+    "skipTitles": []
   },
   "customRules": "",
   "workModes": [

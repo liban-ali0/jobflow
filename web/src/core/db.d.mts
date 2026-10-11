@@ -57,3 +57,4 @@ export function finishRun(
 ): void;
 export function listRuns(db: Db, limit?: number): Row[];
 export function getRun(db: Db, id: number): Row | undefined;
+export { EXPERIENCE_LEVELS } from "./levels.mjs";

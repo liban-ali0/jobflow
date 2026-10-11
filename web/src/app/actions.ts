@@ -20,6 +20,7 @@ import {
 } from "@/lib/data";
 import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssistant } from "@/lib/engine";
 import { isHex } from "@/lib/theme";
+import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
 import type { Settings, Status } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/types";
 
@@ -168,26 +169,42 @@ const list = (value: FormDataEntryValue | null) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
+// A missing or empty field (for example a disabled one, which forms do not
+// send) keeps the fallback rather than counting as 0.
 const number = (value: FormDataEntryValue | null, fallback: number, min: number, max: number) => {
+  if (value === null || String(value).trim() === "") return fallback;
   const parsed = Number(value);
   return Number.isFinite(parsed) ? Math.min(max, Math.max(min, Math.round(parsed))) : fallback;
 };
 
 const rowCount = (formData: FormData, name: string) => number(formData.get(name), 0, 0, 50);
 
-// Countries and roles arrive as numbered rows; blank rows are dropped.
+// Countries and roles arrive as numbered rows in the order shown, which is
+// their priority; blank rows are dropped.
 function readCountries(formData: FormData): Settings["countries"] {
   const countries: Settings["countries"] = [];
   for (let index = 0; index < rowCount(formData, "countryCount"); index++) {
+    const code = String(formData.get(`country.${index}.code`) ?? "");
     const name = String(formData.get(`country.${index}.name`) ?? "").trim().slice(0, 60);
     if (!name) continue;
     countries.push({
+      ...(/^[A-Z]{2}$/.test(code) ? { code } : {}),
       name,
-      priority: number(formData.get(`country.${index}.priority`), index + 1, 1, 9),
-      cities: list(formData.get(`country.${index}.cities`)),
+      priority: countries.length + 1,
+      cities: jsonList(formData.get(`country.${index}.cities`)),
     });
   }
-  return countries.sort((a, b) => a.priority - b.priority);
+  return countries;
+}
+
+// A list sent as JSON, such as the chosen cities.
+function jsonList(value: FormDataEntryValue | null) {
+  try {
+    const parsed = JSON.parse(String(value ?? "[]"));
+    return Array.isArray(parsed) ? parsed.map((item) => String(item).trim().slice(0, 80)).filter(Boolean).slice(0, 50) : [];
+  } catch {
+    return [];
+  }
 }
 
 const slug = (text: string) =>
@@ -212,11 +229,11 @@ function readRoles(formData: FormData): Settings["roles"] {
     roles.push({
       key,
       label,
-      priority: number(formData.get(`role.${index}.priority`), index + 1, 1, 9),
+      priority: roles.length + 1,
       keywords: list(formData.get(`role.${index}.keywords`)),
     });
   }
-  return roles.sort((a, b) => a.priority - b.priority);
+  return roles;
 }
 
 function targetProblem(countries: Settings["countries"], roles: Settings["roles"]) {
@@ -243,8 +260,10 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
       fastTrackMinutes: number(formData.get("fastTrackMinutes"), current.freshness.fastTrackMinutes, 5, 720),
     },
     experience: {
-      maxYears: number(formData.get("maxYears"), current.experience.maxYears, 0, 10),
-      titles: list(formData.get("titles")),
+      levels: EXPERIENCE_LEVELS.map((level) => level.key).filter((key) => formData.get(`level.${key}`) === "on"),
+      // Left empty, there is no limit.
+      maxYears: String(formData.get("maxYears") ?? "").trim() === "" ? null : number(formData.get("maxYears"), 0, 0, 50),
+      skipTitles: list(formData.get("skipTitles")),
     },
     countries: readCountries(formData),
     roles: readRoles(formData),
@@ -267,6 +286,7 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
   };
 
   if (patch.workModes!.length === 0) return { ok: false, message: "Choose at least one work mode." };
+  if (patch.experience!.levels.length === 0) return { ok: false, message: "Choose at least one experience level." };
   const problem = targetProblem(patch.countries!, patch.roles!);
   if (problem) return { ok: false, message: problem };
 

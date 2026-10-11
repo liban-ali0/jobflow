@@ -27,10 +27,6 @@ const MAX_REQUESTS = 120;
 const KEYWORDS_PER_ROLE = 3;
 const DESCRIPTION_LIMIT = 20000;
 
-// Titles that signal more experience than a new graduate has.
-const SENIOR_TITLE =
-  /\b(senior|snr|sr\.?|lead|principal|head|manager|director|architect|staff|chief|vp|vice president|expert)\b/i;
-
 // LinkedIn's location search takes most country names as written; these are
 // the short or older names it does not recognise.
 const LINKEDIN_NAMES = {
@@ -109,13 +105,12 @@ function splitLocation(location, country) {
 
 const linkedin = {
   key: "linkedin",
-  async search({ keyword, country, maxHours }) {
+  async search({ keyword, country, maxHours, levels }) {
     const params = new URLSearchParams({
       keywords: keyword,
       location: linkedinLocation(country),
       f_TPR: `r${maxHours * 3600}`,
-      // 2 entry level, 3 associate, 4 mid-senior
-      f_E: "2,3,4",
+      f_E: levels,
       sortBy: "DD",
       start: "0",
     });
@@ -156,12 +151,20 @@ const linkedin = {
 
 const SOURCES = { linkedin };
 
-const tooSenior = (job) => SENIOR_TITLE.test(job.title);
+const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-// LinkedIn's experience filter lets some senior postings through; their
-// detail page still states the level. "Mid-Senior level" often covers 2-5
-// years, so those are left for the ranking step to judge.
-const SENIOR_LEVEL = /^Seniority level: (Director|Executive)$/m;
+// Title words the user wants skipped, as whole words: "lead" skips
+// "Team Lead" but not "Leadership Academy".
+function titleFilter(words) {
+  const clean = words.map((word) => word.trim()).filter(Boolean);
+  if (!clean.length) return () => false;
+  const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])(${clean.map(escape).join("|")})\\.?($|[^\\p{L}\\p{N}])`, "iu");
+  return (title) => pattern.test(title);
+}
+
+// LinkedIn's level filter lets other levels through; their detail page still
+// states the level, which is checked against the chosen ones.
+const LISTED_LEVEL = /^Seniority level: (.+)$/m;
 
 async function main() {
   const db = core.openDb(ROOT);
@@ -173,9 +176,15 @@ async function main() {
   const countries = [...settings.countries].sort((a, b) => a.priority - b.priority);
   const roles = [...settings.roles].sort((a, b) => a.priority - b.priority);
   const sources = settings.sources.filter((source) => source.enabled && SOURCES[source.key]);
+  const chosen = core.EXPERIENCE_LEVELS.filter((level) => settings.experience.levels.includes(level.key));
+  if (!chosen.length) throw new Error("Choose at least one experience level in Settings first.");
+  const levels = chosen.map((level) => level.linkedin).join(",");
+  const outsideLevels = (listed) =>
+    core.EXPERIENCE_LEVELS.some((level) => level.listed === listed) && !chosen.some((level) => level.listed === listed);
+  const skipTitle = titleFilter(settings.experience.skipTitles);
 
   const seen = new Set();
-  const stats = { listings: 0, tooOld: 0, senior: 0, duplicate: 0, added: [] };
+  const stats = { listings: 0, tooOld: 0, skipped: 0, duplicate: 0, added: [] };
   let stopped = null;
 
   try {
@@ -184,7 +193,7 @@ async function main() {
       for (const country of countries) {
         for (const keyword of keywords) {
           for (const source of sources) {
-            const found = await SOURCES[source.key].search({ keyword, country: country.name, maxHours });
+            const found = await SOURCES[source.key].search({ keyword, country: country.name, maxHours, levels });
             for (const job of found) {
               stats.listings++;
               if (seen.has(job.url)) continue;
@@ -193,8 +202,8 @@ async function main() {
                 stats.tooOld++;
                 continue;
               }
-              if (tooSenior(job)) {
-                stats.senior++;
+              if (skipTitle(job.title)) {
+                stats.skipped++;
                 continue;
               }
               const ageMinutes = job.posted_at ? (Date.now() - Date.parse(job.posted_at)) / 60000 : Infinity;
@@ -220,10 +229,10 @@ async function main() {
                 continue;
               }
               const description = await SOURCES[source.key].details(job);
-              const level = description?.match(SENIOR_LEVEL)?.[1];
-              if (level) {
+              const level = description?.match(LISTED_LEVEL)?.[1]?.trim();
+              if (level && outsideLevels(level)) {
                 core.updateJob(db, id, { description, status: "excluded", excluded_reason: `Listed as ${level}` });
-                stats.senior++;
+                stats.skipped++;
                 continue;
               }
               if (description) core.updateJob(db, id, { description });
@@ -240,7 +249,7 @@ async function main() {
   const fast = stats.added.filter((job) => job.track === "fast");
   const lines = [
     `${stats.added.length} new jobs${fast.length ? `, ${fast.length} posted within ${fastTrackMinutes} minutes` : ""}.`,
-    `Checked ${stats.listings} listings in ${requests} requests: ${stats.duplicate} already stored, ${stats.senior} too senior, ${stats.tooOld} older than ${maxHours} hours.`,
+    `Checked ${stats.listings} listings in ${requests} requests: ${stats.duplicate} already stored, ${stats.skipped} outside your levels or skipped titles, ${stats.tooOld} older than ${maxHours} hours.`,
   ];
   if (blocked.size) lines.push(`Blocked by: ${[...blocked].join(", ")}. Try again later.`);
   if (stopped) lines.push(`Stopped early: ${stopped}.`);

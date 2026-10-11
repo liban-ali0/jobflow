@@ -122,10 +122,12 @@ export type Settings = {
   customRules: string;
   dailyCap: number;
   followUpDays: number;
-  countries: { name: string; priority: number; cities: string[] }[];
+  // code: ISO country code from the picker; name is what jobs are stored under.
+  countries: { code?: string; name: string; priority: number; cities: string[] }[];
   roles: { key: string; label: string; priority: number; keywords: string[] }[];
   freshness: { maxHours: number; fastTrackMinutes: number };
-  experience: { maxYears: number; titles: string[] };
+  // levels: keys of EXPERIENCE_LEVELS in core/db.mjs. maxYears null means no limit.
+  experience: { levels: string[]; maxYears: number | null; skipTitles: string[] };
   workModes: string[];
   searchLanguages: string[];
   exclusions: { nationalsOnly: boolean; transferableIqamaRequired: boolean; payToApply: boolean };

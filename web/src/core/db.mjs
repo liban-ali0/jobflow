@@ -3,6 +3,9 @@
 import { DatabaseSync } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
+import { EXPERIENCE_LEVELS } from "./levels.mjs";
+
+export { EXPERIENCE_LEVELS };
 
 export const STATUSES = [
   "found",
@@ -159,6 +162,19 @@ export function openDb(rootDir) {
   return db;
 }
 
+// Settings saved before levels existed described a junior search: these are
+// the levels and title words its collector used.
+const JUNIOR_SEARCH = {
+  levels: ["entry", "associate", "mid-senior"],
+  skipTitles: ["senior", "snr", "sr", "lead", "principal", "head", "manager", "director", "architect", "staff", "chief", "vp", "vice president", "expert"],
+};
+
+function normalizeExperience(experience = {}) {
+  if (Array.isArray(experience.levels)) return { maxYears: null, skipTitles: [], ...experience };
+  const { maxYears = null } = experience;
+  return { maxYears, ...JUNIOR_SEARCH };
+}
+
 function readDefaults(rootDir) {
   return JSON.parse(fs.readFileSync(path.join(rootDir, "config", "defaults.json"), "utf8"));
 }
@@ -168,6 +184,7 @@ export function getSettings(db) {
   for (const row of db.prepare("SELECT key, value FROM settings").all()) {
     settings[row.key] = JSON.parse(row.value);
   }
+  settings.experience = normalizeExperience(settings.experience);
   return settings;
 }
 
