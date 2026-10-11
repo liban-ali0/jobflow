@@ -3,7 +3,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { Markdown } from "@/components/markdown";
 import { PageHeader } from "@/components/page-header";
 import { ProgressList, parseProgress } from "@/components/progress-list";
-import { listRuns } from "@/lib/data";
+import { listConversations, listRuns } from "@/lib/data";
 import { ENGINES, STAGES, closeAbandonedRuns, isStage, type EngineKey } from "@/lib/engine";
 import { dayLabel, firstLine, timeOf } from "@/lib/format";
 import type { Run } from "@/lib/types";
@@ -29,7 +29,7 @@ function engineLabel(run: Run) {
   return ENGINES[run.engine as EngineKey]?.label ?? run.engine;
 }
 
-function RunRow({ run }: { run: Run }) {
+function RunRow({ run, conversationExists }: { run: Run; conversationExists: boolean }) {
   const steps = parseProgress(run.progress);
   const took = duration(run);
   const status = STATUS[run.status];
@@ -64,7 +64,7 @@ function RunRow({ run }: { run: Run }) {
               Open the job
             </Link>
           )}
-          {run.conversation_id !== null && (
+          {run.conversation_id !== null && conversationExists && (
             <Link href={`/assistant/${run.conversation_id}`} className="text-teal underline">
               Open the conversation
             </Link>
@@ -101,6 +101,8 @@ export default async function ActivityPage(props: PageProps<"/activity">) {
   const { show } = await props.searchParams;
   closeAbandonedRuns();
   const all = listRuns(100);
+  // A deleted conversation keeps its runs, but there is nothing to open.
+  const conversations = new Set(listConversations().map((conversation) => conversation.id));
   const failedOnly = show === "failed";
   const runs = failedOnly ? all.filter((run) => run.status === "failed") : all;
   const active = all.filter((run) => run.status === "running").length;
@@ -144,7 +146,7 @@ export default async function ActivityPage(props: PageProps<"/activity">) {
               </h2>
               <div className="card overflow-hidden rounded-xl shadow-sm">
                 {list.map((run) => (
-                  <RunRow key={run.id} run={run} />
+                  <RunRow key={run.id} run={run} conversationExists={run.conversation_id !== null && conversations.has(run.conversation_id)} />
                 ))}
               </div>
             </section>
