@@ -72,7 +72,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const researching = stageRunning("research-job", job.id);
   const tailoring = stageRunning("tailor-job", job.id);
   const improving = stageRunning("improve-cv", job.id);
-  const working = researching ? "Researching this job…" : tailoring ? "Writing the documents…" : improving ? "Improving the CV for ATS…" : null;
+  const packing = stageRunning("interview-pack", job.id);
+  const working = researching ? "Researching this job…" : tailoring ? "Writing the documents…" : improving ? "Improving the CV for ATS…" : packing ? "Writing the interview pack…" : null;
   const atsTarget = targetForJob(job.id);
   const reviewDocs: ReviewDoc[] = documents
     .filter((document) => DOCUMENT_ORDER.includes(document.type))
@@ -125,6 +126,9 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
               status={job.status}
               applied={job.applied_at ? `Applied ${formatDateTime(job.applied_at)}` : null}
               followUp={followUpState(job)}
+              interviewPack={
+                job.status === "interview" ? { exists: documents.some((document) => document.type === "interview_pack"), running: stageRunning("interview-pack", job.id) } : null
+              }
             />
           )}
 

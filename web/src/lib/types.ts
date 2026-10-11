@@ -144,7 +144,8 @@ export type Settings = {
   searchLanguages: string[];
   exclusions: { nationalsOnly: boolean; transferableIqamaRequired: boolean; payToApply: boolean };
   sources: { key: string; name: string; enabled: boolean; method: string }[];
-  schedule: { enabled: boolean; fastTrackEveryMinutes: number; dailyRunAt: string };
+  // activeFrom/activeTo: the hours fast-track checks run (HH:MM, local time).
+  schedule: { enabled: boolean; fastTrackEveryMinutes: number; dailyRunAt: string; activeFrom?: string; activeTo?: string };
   email: { sendingEnabled: boolean };
   // What the research step covers, extra points to research, and free-text rules.
   research: { points: Record<ResearchPoint, boolean>; extraPoints: string[]; rules: string };

@@ -329,6 +329,7 @@ const ENGINE_STAGES = [
   { key: "improve-cv", label: "Improve CV for ATS" },
   { key: "weave-keyword", label: "Work keyword into CV" },
   { key: "import-jobs", label: "Import jobs from the browser" },
+  { key: "interview-pack", label: "Interview pack" },
 ];
 
 const EFFORTS = [
@@ -629,20 +630,35 @@ export function SettingsForm({ settings, countryOptions, extension }: { settings
           <ExtensionSetup {...extension} />
         </Section>
 
-        <Section id="schedule" title="Schedule" hint="Not available yet. For now, steps run when you start them from Today.">
+        <Section
+          id="schedule"
+          title="Schedule"
+          hint="While Jobflow is open on this computer: a quick check for fresh postings every few minutes (the fast track), and one full run a day. New fast-track jobs are ranked straight away."
+        >
           <div className="-mx-5 -mt-5 border-b border-line/70 md:-mx-6">
-            <SwitchRow name="schedule.enabled" label="Run on a schedule" checked={settings.schedule.enabled} disabled badge="Coming later" />
+            <SwitchRow
+              name="schedule.enabled"
+              label="Run on a schedule"
+              hint="Fast track: LinkedIn and Workable. Daily run: every source, then ranking. Uses your engine's usage only to rank."
+              checked={settings.schedule.enabled}
+            />
           </div>
           <div className="flex flex-wrap gap-x-10 gap-y-5">
-            <fieldset disabled className="contents opacity-60">
             <NumberField name="schedule.every" label="Check for new postings every" value={settings.schedule.fastTrackEveryMinutes} unit="minutes" min={15} max={720} />
+            <div>
+              <span className="label">Between</span>
+              <span className="flex items-center gap-2">
+                <input aria-label="Checks start at" name="schedule.activeFrom" type="time" defaultValue={settings.schedule.activeFrom ?? "07:00"} className="field w-32 font-mono" />
+                <span className="text-sm text-slate">and</span>
+                <input aria-label="Checks stop at" name="schedule.activeTo" type="time" defaultValue={settings.schedule.activeTo ?? "23:00"} className="field w-32 font-mono" />
+              </span>
+            </div>
             <div>
               <label className="label" htmlFor="dailyRunAt">
                 Build the daily list at
               </label>
               <input id="dailyRunAt" name="schedule.dailyRunAt" type="time" defaultValue={settings.schedule.dailyRunAt} className="field w-36 font-mono" />
             </div>
-            </fieldset>
           </div>
         </Section>
 

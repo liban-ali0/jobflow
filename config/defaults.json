@@ -121,7 +121,9 @@
   "schedule": {
     "enabled": false,
     "fastTrackEveryMinutes": 45,
-    "dailyRunAt": "09:00"
+    "dailyRunAt": "09:00",
+    "activeFrom": "07:00",
+    "activeTo": "23:00"
   },
   "email": {
     "sendingEnabled": false

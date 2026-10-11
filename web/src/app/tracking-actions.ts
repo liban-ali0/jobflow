@@ -2,8 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/app/actions";
-import { addEvent, getJob, updateJob } from "@/lib/data";
-import { launch } from "@/lib/engine";
+import { addEvent, getJob, listDocuments, updateJob } from "@/lib/data";
+import { launch, stageRunning } from "@/lib/engine";
 import { FOLLOW_UP_SENT, nextFollowUpDate } from "@/lib/followups";
 import { STATUS_LABELS, type Status } from "@/lib/types";
 
@@ -29,8 +29,18 @@ export async function recordOutcome(jobId: number, status: string, note: string)
     follow_up_due: null,
     ...(text ? { notes: `${job.notes ? `${job.notes}\n\n` : ""}${day} ${label}: ${text}` } : {}),
   });
+  // An interview: the pack is written straight away.
+  let extra = "";
+  if (status === "interview" && !listDocuments(jobId).some((document) => document.type === "interview_pack") && !stageRunning("interview-pack", jobId)) {
+    try {
+      launch("interview-pack", jobId);
+      extra = " Writing your interview pack now; it appears under Documents.";
+    } catch {
+      // It can be started from the job page.
+    }
+  }
   refresh(jobId);
-  return { ok: true, message: `Marked as ${label}.` };
+  return { ok: true, message: `Marked as ${label}.${extra}` };
 }
 
 export async function writeFollowUp(jobId: number): Promise<ActionResult> {
@@ -58,4 +68,15 @@ export async function waitLonger(jobId: number): Promise<ActionResult> {
   updateJob(jobId, { follow_up_due: nextFollowUpDate() });
   refresh(jobId);
   return { ok: true, message: "Snoozed." };
+}
+
+// The interview pack, written again or for the first time.
+export async function writeInterviewPack(jobId: number): Promise<ActionResult> {
+  try {
+    launch("interview-pack", jobId);
+  } catch (error) {
+    return { ok: false, message: (error as Error).message };
+  }
+  refresh(jobId);
+  return { ok: true, message: "Writing it now. It appears under Documents in a few minutes." };
 }

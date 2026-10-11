@@ -14,6 +14,7 @@ import { FollowUpRow } from "@/components/tracking";
 import { followUpsDue } from "@/lib/followups";
 import { countByStatus, getJob, hasCv, listDocuments, listJobs, listQuestions, listRuns, readProfile } from "@/lib/data";
 import { SHOW_VIEWS, buildDepartures } from "@/lib/departures";
+import { scheduleStatus } from "@/lib/scheduler";
 import { ENGINES, STAGES, closeAbandonedRuns, engineFor, queuedResearch, stageReady, type EngineKey } from "@/lib/engine";
 import { paginate } from "@/lib/filters";
 import { formatDateTime } from "@/lib/format";
@@ -160,6 +161,9 @@ export default async function TodayPage(props: PageProps<"/">) {
     .filter((row) => row.waiting + row.changes > 0);
 
   const followUps = followUpsDue();
+  const schedule = scheduleStatus();
+  const time = (date: Date | null) => (date ? date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
+  const scheduleLine = schedule.enabled ? ` Next check for fresh postings at ${time(schedule.nextFast)}; full run at ${time(schedule.nextDaily)}.` : "";
 
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
@@ -170,7 +174,7 @@ export default async function TodayPage(props: PageProps<"/">) {
       <PageHeader
         eyebrow={today}
         title="Today"
-        description={`Fresh postings from the last ${settings.freshness.maxHours} hours, best matches first.`}
+        description={`Fresh postings from the last ${settings.freshness.maxHours} hours, best matches first.${scheduleLine}`}
         actions={
           <>
             <ActionButton

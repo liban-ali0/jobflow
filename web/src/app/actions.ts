@@ -27,7 +27,7 @@ import { RESEARCH_POINTS, STATUS_LABELS } from "@/lib/types";
 
 export type ActionResult = { ok: boolean; message: string };
 
-const ENGINE_STAGES = ["build-profile", "rank-jobs", "research-job", "tailor-job", "design-template", "follow-up", "improve-cv", "weave-keyword", "import-jobs"];
+const ENGINE_STAGES = ["build-profile", "rank-jobs", "research-job", "tailor-job", "design-template", "follow-up", "improve-cv", "weave-keyword", "import-jobs", "interview-pack"];
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
 
 export async function runStage(stage: string, jobId: number | null = null): Promise<ActionResult> {
@@ -285,6 +285,8 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
       dailyRunAt: /^\d{2}:\d{2}$/.test(String(formData.get("schedule.dailyRunAt")))
         ? String(formData.get("schedule.dailyRunAt"))
         : current.schedule.dailyRunAt,
+      activeFrom: /^\d{2}:\d{2}$/.test(String(formData.get("schedule.activeFrom"))) ? String(formData.get("schedule.activeFrom")) : (current.schedule.activeFrom ?? "07:00"),
+      activeTo: /^\d{2}:\d{2}$/.test(String(formData.get("schedule.activeTo"))) ? String(formData.get("schedule.activeTo")) : (current.schedule.activeTo ?? "23:00"),
     },
     email: { sendingEnabled: formData.get("email.sendingEnabled") === "on" },
     research: {

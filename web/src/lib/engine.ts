@@ -19,6 +19,7 @@ export const STAGES = {
   "browse-jobs": { label: "Find jobs in Chrome", perJob: false, chrome: true },
   "import-jobs": { label: "Import jobs from the browser", perJob: false },
   "apply-job": { label: "Fill application in Chrome", perJob: true, chrome: true },
+  "interview-pack": { label: "Interview pack", perJob: true },
   "rank-jobs": { label: "Check and rank", perJob: false },
   "research-job": { label: "Research", perJob: true },
   "tailor-job": { label: "Tailor documents", perJob: true },
@@ -348,14 +349,17 @@ function codexInvocation(prompt: string, choice: EngineChoice, resume?: string):
 type LaunchOptions = {
   stage: Stage;
   jobId?: number | null;
-  trigger?: "manual" | "schedule";
+  trigger?: Trigger;
   conversation?: Conversation;
   message?: string;
   // Overrides the step's argument, for example "ids:12,34" for rank-jobs.
   argument?: string;
 };
 
-export function launch(stage: Stage, jobId: number | null, trigger: "manual" | "schedule" = "manual", argument?: string) {
+// "schedule": a fast-track check; "daily": the daily run (see lib/scheduler.ts).
+export type Trigger = "manual" | "schedule" | "daily";
+
+export function launch(stage: Stage, jobId: number | null, trigger: Trigger = "manual", argument?: string) {
   return start({ stage, jobId, trigger, argument });
 }
 
@@ -439,8 +443,9 @@ function start({ stage, jobId = null, trigger = "manual", conversation, message,
         // Already running or not possible now; it can be started by hand.
       }
     }
-    // The open sites are searched first; the Chrome sources follow.
-    if (stage === "find-jobs" && status === "done" && chromeSourcesOn() && stageReady("browse-jobs")) {
+    // The open sites are searched first; the Chrome sources follow. On a
+    // schedule, the scheduler decides what follows.
+    if (stage === "find-jobs" && trigger === "manual" && status === "done" && chromeSourcesOn() && stageReady("browse-jobs")) {
       try {
         launch("browse-jobs", null, trigger);
       } catch {

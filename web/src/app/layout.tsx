@@ -27,6 +27,7 @@ const RUNNING_LABELS: Record<string, string> = {
   "browse-jobs": "Searching in Chrome…",
   "import-jobs": "Importing jobs…",
   "apply-job": "Filling an application…",
+  "interview-pack": "Writing the interview pack…",
   "rank-jobs": "Ranking…",
   "build-profile": "Rebuilding profile…",
   "research-job": "Researching…",

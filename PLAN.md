@@ -1,6 +1,6 @@
 # Job Application Workflow: Plan
 
-Status (2026-10-12): phases 1 to 4 built; phase 6 apply stage built (form filling in Chrome or with the Jobflow extension, email drafts, statistics), tested on demo forms. Sources: LinkedIn, Workable, and the blocked sites through the user's browser. Next: phase 5 (schedule and fast track), the interview pack.
+Status (2026-10-12): all phases built. Phase 5: schedule (fast-track checks every N minutes within active hours, ranked at once; daily full run). Phase 6: apply stage (form filling in Chrome or with the Jobflow extension, email drafts), statistics, interview pack. Sources: LinkedIn, Workable, and the blocked sites through the user's browser. Everything was tested on demo jobs and demo forms.
 
 ## 1. Candidate profile
 

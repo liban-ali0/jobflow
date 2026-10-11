@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
-import { markFollowUpSent, recordOutcome, waitLonger, writeFollowUp } from "@/app/tracking-actions";
+import { markFollowUpSent, recordOutcome, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
 import { STATUS_LABELS, type Status } from "@/lib/types";
 
 const OUTCOMES: { status: Status; label: string; tone: string }[] = [
@@ -49,12 +49,15 @@ export function OutcomeBar({
   status,
   applied,
   followUp,
+  interviewPack = null,
 }: {
   jobId: number;
   status: Status;
   // For example "Applied 11 Oct", formatted on the server.
   applied: string | null;
   followUp: { due: boolean; sent: boolean; draft: boolean } | null;
+  // At the interview stage: whether the pack exists or is being written.
+  interviewPack?: { exists: boolean; running: boolean } | null;
 }) {
   const [choice, setChoice] = useState<Status | null>(null);
   const [note, setNote] = useState("");
@@ -68,6 +71,28 @@ export function OutcomeBar({
         <h2 className="card-title">What happened?</h2>
         {applied && <span className="text-xs text-slate">{applied}</span>}
       </div>
+      {interviewPack && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-saffron-soft px-3 py-2.5">
+          <p className="text-sm">
+            <span className="font-medium">Interview coming up. </span>
+            {interviewPack.running
+              ? "Writing your interview pack…"
+              : interviewPack.exists
+                ? "Your interview pack is under Documents: likely questions with answers from your experience, gaps, and questions to ask."
+                : "Get a pack with the likely questions, answers from your real experience, and questions to ask them."}
+          </p>
+          <span className="flex gap-2">
+            {interviewPack.exists && (
+              <a href="#documents" className="btn btn-quiet px-3 py-1.5 text-xs">
+                Open the pack
+              </a>
+            )}
+            <button type="button" disabled={pending || interviewPack.running} onClick={() => run(() => writeInterviewPack(jobId))} className="btn btn-primary px-3 py-1.5 text-xs">
+              {interviewPack.exists ? "Write it again" : "Write the interview pack"}
+            </button>
+          </span>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         {OUTCOMES.filter((outcome) => next.includes(outcome.status)).map((outcome) => (
           <button
