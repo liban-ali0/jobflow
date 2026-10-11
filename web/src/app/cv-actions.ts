@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/app/actions";
 import type { TemplateOptions } from "@/lib/cv-render";
-import { getSettings, setSettings } from "@/lib/data";
+import { getDocument, getSettings, setSettings } from "@/lib/data";
+import { baseCvPath, writeText } from "@/lib/documents";
+import { saveDocumentText } from "@/app/document-actions";
 import { launch } from "@/lib/engine";
 import { DEFAULT_TEMPLATE, cleanOptions, deleteTemplate, freeId, getTemplate, saveTemplate } from "@/lib/templates";
 
@@ -75,4 +77,45 @@ export async function designTemplate(_: ActionResult | null, formData: FormData)
   }
   revalidatePath("/", "layout");
   return { ok: true, message: "Designing it now. It appears here in a minute or two; progress is on Activity." };
+}
+
+const MARKDOWN_LIMIT = 30000;
+
+// Saves the user's edit of a base CV. It is then locked, so rebuilding the
+// profile does not overwrite it.
+export async function saveBaseCv(role: string, markdown: string, templateId: string): Promise<ActionResult> {
+  const settings = getSettings();
+  if (!settings.roles.some((item) => item.key === role)) return { ok: false, message: "That role is no longer in Settings." };
+  if (markdown.length > MARKDOWN_LIMIT) return { ok: false, message: "This CV is too long." };
+  writeText(baseCvPath(role), markdown);
+  const current = choices();
+  const byRole = { ...current.byRole };
+  if (templateId && getTemplate(templateId)) byRole[role] = templateId;
+  setSettings({ cvTemplates: { ...current, byRole }, cvLocked: [...new Set([...(settings.cvLocked ?? []), role])] });
+  revalidatePath("/cvs");
+  return { ok: true, message: "Saved. AI updates on rebuild are now off for this CV, so your edits stay (switch it back on in CVs)." };
+}
+
+// Whether rebuilding the profile may rewrite a base CV.
+export async function setAutoUpdate(role: string, allowed: boolean): Promise<ActionResult> {
+  const locked = new Set(getSettings().cvLocked ?? []);
+  if (allowed) locked.delete(role);
+  else locked.add(role);
+  setSettings({ cvLocked: [...locked] });
+  revalidatePath("/cvs");
+  return { ok: true, message: allowed ? "Rebuilds will update this CV." : "Rebuilds will leave this CV alone." };
+}
+
+// Saves the user's edit of a job's CV or cover letter, and its template.
+export async function saveJobDocument(documentId: number, markdown: string, templateId: string): Promise<ActionResult> {
+  const doc = getDocument(documentId);
+  if (!doc) return { ok: false, message: "This document no longer exists." };
+  const outcome = await saveDocumentText(documentId, markdown);
+  if (!outcome.ok) return outcome;
+  const current = choices();
+  const byJob = { ...(current.byJob ?? {}) };
+  if (templateId && getTemplate(templateId)) byJob[String(doc.job_id)] = templateId;
+  setSettings({ cvTemplates: { ...current, byJob } });
+  revalidatePath("/cvs");
+  return { ok: true, message: "Saved. It is waiting for your review on the job page." };
 }

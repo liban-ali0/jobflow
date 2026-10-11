@@ -156,7 +156,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
                   <ActionButton
                     action={runStage.bind(null, "tailor-job", job.id)}
                     disabled={!tailorReady || Boolean(working)}
-                    title="Writes any missing documents and redoes those with changes requested; all of them when none is approved yet"
+                    title="Writes any missing documents and redoes those with changes requested. Your edits and approved documents are left alone."
                   >
                     Write documents
                   </ActionButton>

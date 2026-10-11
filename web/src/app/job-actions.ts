@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/app/actions";
 import { sendMessage } from "@/app/actions";
-import { createConversation, getJob, getSettings, listJobs, setSettings, updateJob } from "@/lib/data";
+import { createConversation, getJob, getSettings, listJobs, setSettings, unapprovedDocuments, updateJob } from "@/lib/data";
 import { engineFor, launch, queueResearch, stageRunning } from "@/lib/engine";
 import type { Job } from "@/lib/types";
 
@@ -89,6 +89,14 @@ export async function rankJobs(ids: number[]): Promise<ActionResult> {
 export async function markApplied(id: number): Promise<ActionResult> {
   const job = getJob(id);
   if (!job) return { ok: false, message: "This job no longer exists." };
+  // Nothing goes to an employer before the user has approved it.
+  const unapproved = unapprovedDocuments(id);
+  if (unapproved.length) {
+    return {
+      ok: false,
+      message: `Review the documents first: ${unapproved.length} of them ${unapproved.length === 1 ? "is" : "are"} not approved yet (Documents on the job page).`,
+    };
+  }
   const { followUpDays } = getSettings();
   updateJob(id, { status: "applied", follow_up_due: new Date(Date.now() + followUpDays * 86400000).toISOString() });
   return done(`Marked as applied. Follow-up reminder in ${followUpDays} days.`);

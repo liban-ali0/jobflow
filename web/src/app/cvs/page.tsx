@@ -4,7 +4,7 @@ import Link from "next/link";
 import { runStage } from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { DesignTemplateForm, PagePreview, RoleTemplateSelect, TemplateActions } from "@/components/cv-actions";
+import { AutoUpdateSwitch, DesignTemplateForm, PagePreview, RoleTemplateSelect, TemplateActions } from "@/components/cv-actions";
 import { PageHeader } from "@/components/page-header";
 import { ROOT, getSettings, hasCv, listAllDocuments, listRuns } from "@/lib/data";
 import { baseCvPath } from "@/lib/documents";
@@ -47,6 +47,7 @@ export default function CvsPage() {
   const defaultTemplate = getTemplate(choice.default) ?? getTemplate(DEFAULT_TEMPLATE);
   const designing = listRuns(20).some((run) => run.stage === "design-template" && run.status === "running");
   const building = listRuns(20).some((run) => run.stage === "build-profile" && run.status === "running");
+  const locked = new Set(settings.cvLocked ?? []);
 
   // Tailored CVs and cover letters, one row per job.
   const byJob = new Map<number, { title: string; company: string; status: string; docs: ReturnType<typeof listAllDocuments> }>();
@@ -147,9 +148,13 @@ export default function CvsPage() {
                       options={templates.map((template) => ({ id: template.id, name: template.name }))}
                       defaultName={defaultTemplate?.name ?? "Classic"}
                     />
+                    {built && <AutoUpdateSwitch role={role.key} allowed={!locked.has(role.key)} />}
                     {built && (
                       <div className="mt-auto flex flex-wrap gap-2">
-                        <a href={`/api/cvs/${role.key}?format=pdf`} className="btn btn-primary px-3 py-1.5 text-xs">
+                        <Link href={`/cvs/edit/base/${role.key}`} className="btn btn-primary px-3 py-1.5 text-xs">
+                          Edit
+                        </Link>
+                        <a href={`/api/cvs/${role.key}?format=pdf`} className="btn btn-quiet px-3 py-1.5 text-xs">
                           Download PDF
                         </a>
                         <a href={`/api/cvs/${role.key}`} target="_blank" rel="noreferrer" className="btn btn-quiet px-3 py-1.5 text-xs">
@@ -200,6 +205,9 @@ export default function CvsPage() {
                             <div className="space-y-1.5">
                               <ReviewChip review={doc.review} />
                               <div className="flex gap-3 text-xs">
+                                <Link href={`/cvs/edit/document/${doc.id}`} className="text-teal underline">
+                                  Edit
+                                </Link>
                                 <a href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer" className="text-teal underline">
                                   Open
                                 </a>

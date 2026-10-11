@@ -5,7 +5,6 @@ import type { ActionResult } from "@/app/actions";
 import { saveTemplateOptions } from "@/app/cv-actions";
 import { parseCv } from "@/lib/cv-format";
 import { FONTS, renderCv, type CvTemplate, type TemplateOptions } from "@/lib/cv-render";
-import { useReorder } from "@/components/use-reorder";
 
 const SPACING: { value: TemplateOptions["spacing"]; label: string }[] = [
   { value: "tight", label: "Tight" },
@@ -43,12 +42,6 @@ export function TemplateEditor({ template, sample }: { template: CvTemplate; sam
   const set = <K extends keyof TemplateOptions>(key: K, value: TemplateOptions[K]) => setOptions((current) => ({ ...current, [key]: value }));
 
   const doc = useMemo(() => parseCv(sample), [sample]);
-  // Sections in the preview CV, in the order the template puts them.
-  const known = new Set(doc.sections.map((section) => section.key));
-  const order = [...options.sectionOrder.filter((key) => known.has(key)), ...doc.sections.map((section) => section.key).filter((key) => !options.sectionOrder.includes(key))];
-  const titles = new Map(doc.sections.map((section) => [section.key, section.title]));
-  const setOrder = (next: string[]) => set("sectionOrder", [...next, ...options.sectionOrder.filter((key) => !next.includes(key))]);
-  const { itemProps, handleProps } = useReorder(order, setOrder, (key) => key);
 
   const html = useMemo(() => renderCv(doc, { ...template, name, options }), [doc, template, name, options]);
   const dirty = JSON.stringify({ name, options }) !== saved;
@@ -123,20 +116,6 @@ export function TemplateEditor({ template, sample }: { template: CvTemplate; sam
             ))}
           </div>
         </fieldset>
-        <div>
-          <span className="label">Section order</span>
-          <ol className="space-y-1">
-            {order.map((key) => (
-              <li key={key} {...itemProps(key)} className="flex items-center gap-2 rounded-md border border-line bg-surface px-2 py-1 text-sm data-[dragging]:opacity-50">
-                <button type="button" {...handleProps(key, titles.get(key) ?? key)} className="cursor-grab px-1 text-slate">
-                  <span aria-hidden>⠿</span>
-                </button>
-                {titles.get(key) ?? key}
-              </li>
-            ))}
-          </ol>
-          <p className="mt-1 text-xs text-slate">Drag, or use the arrow keys on the handle.</p>
-        </div>
         <div className="flex flex-wrap items-center gap-3 border-t border-line pt-4">
           <button type="submit" disabled={pending || !dirty} className="btn btn-primary">
             {pending ? "Saving…" : "Save template"}

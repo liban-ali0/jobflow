@@ -1,6 +1,6 @@
 ---
 name: tailor-job
-description: Write the application documents for one researched job - tailored CV, cover letter, outreach email, and form answers - from the candidate's profile and the job's research. Redoes only documents marked "changes requested" when some are already approved. Argument - the job id.
+description: Write the application documents for one researched job - tailored CV, cover letter, outreach email, and form answers - from the candidate's profile and the job's research. Once written, redoes only documents marked "changes requested" (and missing ones). Argument - the job id.
 ---
 
 # Tailor the application for one job
@@ -15,8 +15,8 @@ These documents go to a real employer under the candidate's name. They must be t
 2. Get the folder with `node scripts/jobs.mjs folder <id>` and read `<folder>/research.md`. If there is no research, stop and report: "Run Research for this job first."
 3. Read `candidate/profile.md`, `candidate/facts.md`, the base CV for the job's role, `candidate/base-cv-<role>.md` (if missing, use the closest base CV), and the format rules in `templates/CV-FORMAT.md`.
 4. Decide what to write:
-   - No documents yet, or none approved: write all four.
-   - Some documents exist: rewrite only those whose review is `changes_requested`, following their `review_note` exactly, and any that are missing. Leave approved and draft documents untouched.
+   - No documents yet: write all four.
+   - Some documents exist: rewrite only those whose review is `changes_requested`, following their `review_note` exactly, and any that are missing. Leave approved and draft documents untouched; the candidate may have edited them by hand.
 5. Write the files in the job folder, and register each one:
    - `cv.md`, then `node scripts/jobs.mjs document <id> cv <folder>/cv.md`
    - `cover-letter.md`, then `node scripts/jobs.mjs document <id> cover_letter <folder>/cover-letter.md`

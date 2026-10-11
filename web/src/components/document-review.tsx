@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
 import { approveDocument, requestChanges, rewriteDocuments, saveDocumentText } from "@/app/document-actions";
@@ -97,18 +98,23 @@ export function DocumentReview({ jobId, docs, rewriting }: { jobId: number; docs
                 Request changes
               </button>
             )}
-            {mode === "read" && (
-              <button
-                type="button"
-                onClick={() => {
-                  setDraft(doc.text);
-                  setMode("edit");
-                }}
-                className="btn btn-quiet px-3 py-1.5 text-xs"
-              >
-                Edit
-              </button>
-            )}
+            {mode === "read" &&
+              (doc.printable ? (
+                <Link href={`/cvs/edit/document/${doc.id}`} className="btn btn-quiet px-3 py-1.5 text-xs">
+                  Edit
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDraft(doc.text);
+                    setMode("edit");
+                  }}
+                  className="btn btn-quiet px-3 py-1.5 text-xs"
+                >
+                  Edit
+                </button>
+              ))}
             {doc.printable && (
               <a href={`/api/documents/${doc.id}?format=pdf`} className="btn btn-quiet px-3 py-1.5 text-xs">
                 Download PDF

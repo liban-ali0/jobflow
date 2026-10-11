@@ -42,7 +42,7 @@ export function jobDocumentPage(id: number, templateId?: string | null) {
   const job = getJob(document.job_id);
   const markdown = readText(document.path);
   if (!job || markdown === null) return null;
-  const template = templateFor(job.role, templateId);
+  const template = templateFor(job.role, templateId ?? getSettings().cvTemplates?.byJob?.[String(job.id)]);
   const html = renderMarkdown(document.type, markdown, template);
   const name = parseCv(markdown).name || "CV";
   const label = document.type === "cv" ? "CV" : "Cover letter";

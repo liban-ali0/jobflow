@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
-import { designTemplate, duplicateTemplate, removeTemplate, setDefaultTemplate, setRoleTemplate } from "@/app/cv-actions";
+import { designTemplate, duplicateTemplate, removeTemplate, setAutoUpdate, setDefaultTemplate, setRoleTemplate } from "@/app/cv-actions";
 
 // A document page shrunk into a card: an A4 page (794 × 1123 px) scaled to fit.
 export function PagePreview({ src, title, width = 220 }: { src: string; title: string; width?: number }) {
@@ -126,5 +126,34 @@ export function DesignTemplateForm() {
       </div>
       <Status result={result} />
     </form>
+  );
+}
+
+// Whether the AI rewrites this base CV when the profile is rebuilt.
+export function AutoUpdateSwitch({ role, allowed }: { role: string; allowed: boolean }) {
+  const [on, setOn] = useState(allowed);
+  const [pending, start] = useTransition();
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-line px-3 py-2 text-sm">
+      <span>
+        AI updates it on rebuild
+        <span className="block text-xs text-slate">{on ? "Rebuild profile rewrites this CV from your profile." : "Only your edits change this CV."}</span>
+      </span>
+      <input
+        type="checkbox"
+        role="switch"
+        checked={on}
+        disabled={pending}
+        onChange={(event) => {
+          const next = event.target.checked;
+          setOn(next);
+          start(async () => {
+            const result = await setAutoUpdate(role, next);
+            if (!result.ok) setOn(!next);
+          });
+        }}
+        className="switch"
+      />
+    </label>
   );
 }

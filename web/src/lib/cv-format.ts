@@ -116,3 +116,24 @@ export function inline(text: string) {
   const escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   return escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
+
+// Writes a CV back in the format of templates/CV-FORMAT.md. Older base CVs
+// come out in the current format.
+export function serializeCv(doc: CvDocument) {
+  const lines = [`# ${doc.name.trim()}`];
+  if (doc.headline.trim()) lines.push(doc.headline.trim());
+  const contact = doc.contact.map((item) => item.trim()).filter(Boolean);
+  if (contact.length) lines.push(contact.join(" | "));
+  const bullets = (items: string[]) => items.map((item) => item.trim()).filter(Boolean).map((item) => `- ${item}`);
+  const text = (items: string[]) => items.map((item) => item.trim()).filter(Boolean);
+  for (const section of doc.sections) {
+    if (!section.title.trim()) continue;
+    lines.push("", `## ${section.title.trim()}`, ...text(section.text), ...bullets(section.bullets));
+    for (const entry of section.entries) {
+      const fields = [entry.title, entry.org, entry.place, entry.dates].map((field) => field.replace(/\|/g, "/").trim());
+      if (!fields.some(Boolean)) continue;
+      lines.push("", `### ${fields.join(" | ")}`, ...bullets(entry.bullets), ...text(entry.text));
+    }
+  }
+  return `${lines.join("\n")}\n`;
+}

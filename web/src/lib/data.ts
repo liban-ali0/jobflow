@@ -106,6 +106,9 @@ export const countByStatus = () => core.countByStatus(db()) as Record<Status, nu
 export const listContacts = (jobId: number) => core.listContacts(db(), jobId) as Contact[];
 export const listDocuments = (jobId: number) => core.listDocuments(db(), jobId) as JobDocument[];
 export const getDocument = (id: number) => core.getDocument(db(), id) as JobDocument | null;
+// Application documents (not the research) the user has not approved yet.
+export const unapprovedDocuments = (jobId: number) =>
+  listDocuments(jobId).filter((doc) => doc.type !== "research" && doc.type !== "interview_pack" && doc.review !== "approved");
 export type DocumentWithJob = JobDocument & { job_title: string; job_company: string; job_role: string | null; job_status: Status };
 export const listAllDocuments = (types?: string[]) => core.listAllDocuments(db(), types) as DocumentWithJob[];
 export const listEvents = (jobId: number) => core.listEvents(db(), jobId) as JobEvent[];

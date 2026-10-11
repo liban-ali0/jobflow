@@ -149,7 +149,9 @@ export type Settings = {
   // What the research step covers, extra points to research, and free-text rules.
   research: { points: Record<ResearchPoint, boolean>; extraPoints: string[]; rules: string };
   // CV and cover letter templates: the default, and choices per role key.
-  cvTemplates?: { default: string; byRole: Record<string, string> };
+  cvTemplates?: { default: string; byRole: Record<string, string>; byJob?: Record<string, string> };
+  // Base CVs (by role key) the user edited; rebuilding the profile leaves them alone.
+  cvLocked?: string[];
   // The last engine check from the Setup screen.
   setupCheck?: { engine: string; ok: boolean; message: string; at: string };
 };

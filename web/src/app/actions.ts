@@ -14,6 +14,7 @@ import {
   listMessages,
   saveCv,
   setSettings,
+  unapprovedDocuments,
   updateConversation,
   updateJob,
   writeFacts,
@@ -149,6 +150,9 @@ export async function setStatus(jobId: number, status: string): Promise<ActionRe
   }
 
   const patch: { status: Status; follow_up_due?: string } = { status: status as Status };
+  if (status === "applied" && unapprovedDocuments(jobId).length) {
+    return { ok: false, message: "Approve this job's documents first (Documents on the job page)." };
+  }
   if (status === "applied") {
     const { followUpDays } = getSettings();
     patch.follow_up_due = new Date(Date.now() + followUpDays * 86400000).toISOString();

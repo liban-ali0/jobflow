@@ -91,13 +91,9 @@ function headerHtml(name: string, headline: string, contact: string[]) {
   }</header>`;
 }
 
+// Sections appear in the CV's own order, which the user controls in the editor.
 export function renderCv(doc: CvDocument, template: CvTemplate) {
-  const order = template.options.sectionOrder;
-  const rank = (key: string) => {
-    const at = order.indexOf(key);
-    return at < 0 ? order.length : at;
-  };
-  const sections = [...doc.sections].sort((a, b) => rank(a.key) - rank(b.key));
+  const sections = doc.sections;
   const body =
     headerHtml(doc.name, doc.headline, doc.contact) +
     sections

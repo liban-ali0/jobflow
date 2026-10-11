@@ -13,7 +13,7 @@ Every document the workflow produces is generated from `candidate/profile.md`. N
 2. Read the whole CV.
 3. Read the targeting rules with `node scripts/jobs.mjs settings`.
 4. Write `candidate/profile.md` using the structure below.
-5. Write one base CV per role in the settings' `roles`: `candidate/base-cv-<role key>.md`.
+5. Write one base CV per role in the settings' `roles`: `candidate/base-cv-<role key>.md`. Skip every role listed in the settings' `cvLocked`: the user edited that CV by hand, so leave the file exactly as it is and mention it in the report.
 6. Turn gaps into questions for the user (see "Asking the user").
 7. Report what was written, the questions asked, and the gaps left.
 
