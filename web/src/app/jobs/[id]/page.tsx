@@ -1,20 +1,24 @@
 import { notFound } from "next/navigation";
 import { runStage, saveNotes } from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
-import { Freshness } from "@/components/freshness";
-import { JobActionBar } from "@/components/job-actions";
+import { AutoRefresh } from "@/components/auto-refresh";
 import { BackLink } from "@/components/back-link";
+import { BoardingPass } from "@/components/boarding-pass";
+import { DocumentReview, type ReviewDoc } from "@/components/document-review";
+import { ExpandableText } from "@/components/expandable-text";
+import { JobActionBar } from "@/components/job-actions";
+import { Panel } from "@/components/panel";
+import { RewriteDocuments } from "@/components/rewrite-documents";
+import { StatusSelect } from "@/components/status-select";
 import { OutcomeBar } from "@/components/tracking";
-import { followUpState } from "@/lib/followups";
 import { checkCv } from "@/lib/ats";
 import { targetForJob } from "@/lib/ats-keywords";
-import { StatusSelect } from "@/components/status-select";
 import { getJob, getSettings, listContacts, listDocuments, listEvents } from "@/lib/data";
-import { stageReady, stageRunning } from "@/lib/engine";
 import { PRINTABLE, readText } from "@/lib/documents";
-import { DocumentReview, type ReviewDoc } from "@/components/document-review";
-import { AutoRefresh } from "@/components/auto-refresh";
-import { formatDateTime, formatPlace } from "@/lib/format";
+import { stageReady, stageRunning } from "@/lib/engine";
+import { followUpState } from "@/lib/followups";
+import { formatDateTime } from "@/lib/format";
+import { describeEvent } from "@/lib/history";
 import { DOCUMENT_LABELS } from "@/lib/types";
 import { ASSESSED } from "@/core/score.mjs";
 
@@ -24,12 +28,24 @@ const SCORE_MAX: Record<string, number> = {
   Country: 15,
   Freshness: 15,
   ...Object.fromEntries(Object.values(ASSESSED).map(({ label, max }) => [label, max])),
-  // Jobs ranked before the language criterion was renamed.
-  Arabic: 3,
 };
+// Names used by jobs ranked before the score parts were renamed.
+const OLD_NAMES: Record<string, string> = { Arabic: "Language", "Entry-level fit": "Experience fit" };
 
 // Tabs in this order; the research is read-only reference.
 const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "follow_up", "research", "interview_pack"];
+
+// A label and value in the sidebar's details list.
+function Detail({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="text-xs text-slate">{label}</dt>
+      <dd className="mt-0.5 text-sm" dir="auto">
+        {children}
+      </dd>
+    </div>
+  );
+}
 
 export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const { id } = await props.params;
@@ -61,215 +77,202 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     }))
     .map((doc) => (doc.type === "cv" ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc));
   const hasResearch = documents.some((document) => document.type === "research");
-  const researchReady = stageReady("research-job");
-  const tailorReady = stageReady("tailor-job");
+  // The application documents, for "Rewrite documents".
+  const packageDocs = documents
+    .filter((document) => ["cv", "cover_letter", "email", "answers"].includes(document.type))
+    .map((document) => ({ type: document.type, approved: document.review === "approved" }));
+  const afterApplying = ["applied", "replied", "interview", "offer"].includes(job.status);
+  const breakdown = Object.entries(job.score_breakdown ?? {}).map(([name, value]) => {
+    const shown = OLD_NAMES[name] ?? name;
+    return { name: shown, value, max: SCORE_MAX[shown] ?? SCORE_MAX[name] ?? 15 };
+  });
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-6xl">
       <AutoRefresh active={Boolean(working)} />
       <BackLink fallbackHref="/" fallbackLabel="Today" />
 
-      <header className="mt-3 flex flex-wrap items-start justify-between gap-6">
-        <div className="min-w-0">
-          <h1 className="page-title" dir="auto">
-            {job.title}
-          </h1>
-          <p className="mt-1 text-slate" dir="auto">
-            {job.company}
-            {formatPlace(job) && ` · ${formatPlace(job)}`}
-          </p>
-          {job.url && (
-            <a href={job.url} target="_blank" rel="noreferrer" className="mt-1 inline-block text-sm text-teal underline">
-              Open the listing
-            </a>
-          )}
-        </div>
-        <Freshness postedAt={job.posted_at} {...settings.freshness} />
-      </header>
-
-      <div className="mt-6">
-        <JobActionBar job={{ id: job.id, status: job.status, url: job.url, ranked: job.score !== null }} />
+      <div className="mt-3">
+        <BoardingPass job={job} settings={settings} />
       </div>
 
-      {["applied", "replied", "interview", "offer"].includes(job.status) && (
-        <div className="mt-6">
-          <OutcomeBar
-            jobId={job.id}
-            status={job.status}
-            applied={job.applied_at ? `Applied ${formatDateTime(job.applied_at)}` : null}
-            followUp={followUpState(job)}
-          />
-        </div>
-      )}
+      <div className="mt-5">
+        <JobActionBar job={{ id: job.id, status: job.status, url: job.url, ranked: job.score !== null }} hasResearch={hasResearch} working={Boolean(working)} />
+      </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_18rem]">
+      <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="min-w-0 space-y-6">
-          <section className="card p-5">
-            <h2 className="card-title">Score</h2>
-            {job.score === null ? (
-              <p className="mt-2 text-sm text-slate">Not ranked yet.</p>
-            ) : (
-              <>
-                <p className="mt-2 text-sm">
-                  <span className="font-display text-2xl font-semibold">{Math.round(job.score)}</span>
-                  <span className="text-slate"> / 100</span>
-                  {job.score_reason && ` · ${job.score_reason}`}
-                </p>
-                {job.score_breakdown && (
-                  <dl className="mt-4 grid gap-x-8 gap-y-2.5 text-sm sm:grid-cols-2">
-                    {Object.entries(job.score_breakdown).map(([name, value]) => {
-                      const max = SCORE_MAX[name] ?? 15;
-                      const share = Math.min(1, value / max);
-                      return (
-                        <div key={name}>
-                          <div className="flex justify-between gap-2">
-                            <dt className="text-slate">{name}</dt>
-                            <dd className="font-mono text-xs">
-                              {value}
-                              <span className="text-slate">/{max}</span>
-                            </dd>
-                          </div>
-                          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-mist">
-                            <div
-                              className={`h-full rounded-full ${share >= 0.7 ? "bg-go" : share >= 0.4 ? "bg-saffron" : "bg-coral"}`}
-                              style={{ width: `${Math.max(share * 100, value > 0 ? 4 : 0)}%` }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </dl>
-                )}
-              </>
-            )}
-            {job.legitimacy && (
-              <p className="mt-3 text-sm">
-                <span className="text-slate">Legitimacy check: </span>
-                {job.legitimacy}
-              </p>
-            )}
-            {job.salary_estimate && (
-              <p className="mt-1 text-sm">
-                <span className="text-slate">Market salary: </span>
-                {job.salary_estimate}
-              </p>
-            )}
-          </section>
+          {afterApplying && (
+            <OutcomeBar
+              jobId={job.id}
+              status={job.status}
+              applied={job.applied_at ? `Applied ${formatDateTime(job.applied_at)}` : null}
+              followUp={followUpState(job)}
+            />
+          )}
 
-          <section id="documents" className="card scroll-mt-32 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h2 className="card-title">Documents</h2>
-              <div className="flex flex-wrap gap-2">
+          <Panel
+            id="documents"
+            title="Documents"
+            hint={
+              reviewDocs.length === 0
+                ? "Research writes the notes, then the tailored CV, cover letter, outreach email, and form answers follow."
+                : "Read, edit, and approve each one before you apply."
+            }
+            actions={
+              <>
                 <ActionButton
                   variant={hasResearch ? "quiet" : "primary"}
                   action={runStage.bind(null, "research-job", job.id)}
-                  disabled={!researchReady || Boolean(working)}
+                  disabled={!stageReady("research-job") || Boolean(working)}
                   title="Researches the company, the job, people to contact, and the salary; the documents follow automatically"
                 >
                   {hasResearch ? "Research again" : "Research"}
                 </ActionButton>
-                {hasResearch && (
-                  <ActionButton
-                    action={runStage.bind(null, "tailor-job", job.id)}
-                    disabled={!tailorReady || Boolean(working)}
-                    title="Writes any missing documents and redoes those with changes requested. Your edits and approved documents are left alone."
-                  >
-                    Write documents
-                  </ActionButton>
-                )}
-              </div>
-            </div>
+                {hasResearch &&
+                  (packageDocs.length > 0 ? (
+                    <RewriteDocuments jobId={job.id} docs={packageDocs} disabled={!stageReady("tailor-job") || Boolean(working)} />
+                  ) : (
+                    <ActionButton
+                      action={runStage.bind(null, "tailor-job", job.id)}
+                      disabled={!stageReady("tailor-job") || Boolean(working)}
+                      title="Writes the tailored CV, cover letter, outreach email, and form answers"
+                    >
+                      Write documents
+                    </ActionButton>
+                  ))}
+              </>
+            }
+          >
             {working && (
-              <p className="mt-3 flex items-center gap-2 text-sm">
+              <p className="mb-4 flex items-center gap-2 rounded-md bg-saffron-soft px-3 py-2 text-sm">
                 <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
                 {working}
               </p>
             )}
             {reviewDocs.length === 0 ? (
-              !working && (
-                <p className="mt-3 text-sm text-slate">
-                  No documents yet. Research writes the research notes, then the tailored CV, cover letter, outreach email, and form answers follow
-                  automatically.
-                </p>
-              )
+              !working && <p className="text-sm text-slate">No documents yet.</p>
             ) : (
-              <div className="mt-4">
-                <DocumentReview jobId={job.id} docs={reviewDocs} rewriting={tailoring} improving={improving} />
-              </div>
+              <DocumentReview jobId={job.id} docs={reviewDocs} rewriting={tailoring} improving={improving} />
             )}
-          </section>
+          </Panel>
 
-          <section className="card p-5">
-            <h2 className="card-title">Contacts</h2>
-            {contacts.length === 0 ? (
-              <p className="mt-3 text-sm text-slate">No contacts found yet.</p>
+          <Panel id="score" title="Why this score" hint={job.score === null ? undefined : job.score_reason}>
+            {job.score === null ? (
+              <p className="text-sm text-slate">Not ranked yet. Rank it to see how well it fits your profile and settings.</p>
             ) : (
-              <ul className="mt-3 divide-y divide-line text-sm">
-                {contacts.map((contact) => (
-                  <li key={contact.id} className="py-2">
-                    <span className="font-medium" dir="auto">{contact.name}</span>
-                    {contact.role && <span className="text-slate"> · {contact.role}</span>}
-                    <div className="text-slate">
-                      {contact.email && (
-                        <span>
-                          {contact.email} ({contact.email_verified ? "confirmed" : "not confirmed"})
-                        </span>
-                      )}
-                      {contact.linkedin && (
-                        <a href={contact.linkedin} target="_blank" rel="noreferrer" className="ml-2 text-teal underline">
-                          LinkedIn
-                        </a>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <>
+                <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+                  {breakdown.map(({ name, value, max }) => {
+                    const share = Math.min(1, value / max);
+                    return (
+                      <div key={name}>
+                        <div className="flex justify-between gap-2">
+                          <dt className="text-slate">{name}</dt>
+                          <dd className="font-mono text-xs">
+                            {value}
+                            <span className="text-slate">/{max}</span>
+                          </dd>
+                        </div>
+                        <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-mist">
+                          <div
+                            className={`h-full rounded-full ${share >= 0.7 ? "bg-go" : share >= 0.4 ? "bg-teal" : "bg-coral"}`}
+                            style={{ width: `${Math.max(share * 100, value > 0 ? 4 : 0)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </dl>
+                {job.legitimacy && (
+                  <p className="mt-4 border-t border-line/70 pt-3 text-sm">
+                    <span className="font-medium">Is it genuine? </span>
+                    <span className="text-slate">{job.legitimacy}</span>
+                  </p>
+                )}
+              </>
             )}
-          </section>
+          </Panel>
 
           {job.description && (
-            <section className="card p-5">
-              <h2 className="card-title">Listing</h2>
-              <p className="mt-3 text-sm leading-relaxed whitespace-pre-wrap" dir="auto">
-                {job.description}
-              </p>
-            </section>
+            <Panel id="listing" title="The listing">
+              <ExpandableText text={job.description} />
+            </Panel>
           )}
         </div>
 
         <aside className="space-y-6">
-          <div className="card p-5">
+          <Panel title="Details">
             <StatusSelect jobId={job.id} status={job.status} />
-            {job.follow_up_due && job.status === "applied" && (
-              <p className="mt-3 text-xs text-slate">Follow up on {formatDateTime(job.follow_up_due)}</p>
+            <dl className="mt-4 space-y-3">
+              {job.salary_estimate && <Detail label="Market salary">{job.salary_estimate}</Detail>}
+              {job.applied_at && <Detail label="Applied">{formatDateTime(job.applied_at)}</Detail>}
+              {job.follow_up_due && job.status === "applied" && <Detail label="Follow up">{formatDateTime(job.follow_up_due)}</Detail>}
+              {job.excluded_reason && job.status === "excluded" && <Detail label="Not interested because">{job.excluded_reason}</Detail>}
+              <Detail label="Found">
+                {formatDateTime(job.found_at)}
+                {job.source && ` on ${job.source === "linkedin" ? "LinkedIn" : job.source}`}
+              </Detail>
+            </dl>
+          </Panel>
+
+          <Panel title="People" hint={contacts.length ? undefined : "Research looks for the hiring manager or recruiter."}>
+            {contacts.length === 0 ? (
+              <p className="text-sm text-slate">No one found yet.</p>
+            ) : (
+              <ul className="space-y-3 text-sm">
+                {contacts.map((contact) => (
+                  <li key={contact.id}>
+                    <p className="font-medium" dir="auto">
+                      {contact.name}
+                    </p>
+                    {contact.role && (
+                      <p className="text-xs text-slate" dir="auto">
+                        {contact.role}
+                      </p>
+                    )}
+                    <p className="mt-0.5 flex flex-wrap gap-x-3 text-xs">
+                      {contact.email && (
+                        <span>
+                          {contact.email}
+                          <span className={contact.email_verified ? "text-go" : "text-slate"}>{contact.email_verified ? " · confirmed" : " · not confirmed"}</span>
+                        </span>
+                      )}
+                      {contact.linkedin && (
+                        <a href={contact.linkedin} target="_blank" rel="noreferrer" className="text-teal underline">
+                          LinkedIn
+                        </a>
+                      )}
+                    </p>
+                  </li>
+                ))}
+              </ul>
             )}
-            {job.folder && <p className="mt-3 font-mono text-xs break-all text-slate">{job.folder}</p>}
-          </div>
+          </Panel>
 
-          <form action={saveNotes.bind(null, job.id)} className="card p-5">
-            <label className="label" htmlFor="notes">
-              Notes
-            </label>
-            <textarea id="notes" name="notes" rows={5} defaultValue={job.notes ?? ""} className="field" dir="auto" />
-            <button type="submit" className="btn btn-quiet mt-3">
-              Save notes
-            </button>
-          </form>
+          <Panel title="Notes">
+            <form action={saveNotes.bind(null, job.id)}>
+              <label className="sr-only" htmlFor="notes">
+                Notes
+              </label>
+              <textarea id="notes" name="notes" rows={6} defaultValue={job.notes ?? ""} placeholder="Anything to remember about this job." className="field text-sm" dir="auto" />
+              <button type="submit" className="btn btn-quiet mt-3 px-3 py-1.5 text-xs">
+                Save notes
+              </button>
+            </form>
+          </Panel>
 
-          <div className="card p-5">
-            <h2 className="label">History</h2>
-            <ol className="space-y-2 text-sm">
+          <Panel title="History">
+            <ol className="relative space-y-3 border-l border-line pl-4">
               {events.map((event) => (
-                <li key={event.id}>
-                  <span className="font-mono text-xs text-slate">{formatDateTime(event.at)}</span>
-                  <div>
-                    {event.type}
-                    {event.detail && `: ${event.detail}`}
-                  </div>
+                <li key={event.id} className="relative text-sm">
+                  <span aria-hidden className="absolute top-1.5 -left-[21px] size-2 rounded-full border-2 border-surface bg-field" />
+                  <p>{describeEvent(event)}</p>
+                  <p className="font-mono text-[11px] text-slate">{formatDateTime(event.at)}</p>
                 </li>
               ))}
             </ol>
-          </div>
+          </Panel>
         </aside>
       </div>
     </div>

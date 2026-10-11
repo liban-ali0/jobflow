@@ -85,14 +85,15 @@ export async function htmlToPdf(html: string, { fitOnePage = false } = {}) {
 }
 
 // The page itself, or a PDF download of it.
-export async function pageResponse(page: { html: string; fileName: string; fitOnePage?: boolean }, pdf: boolean) {
+// "inline" shows the PDF in the browser (the viewer); otherwise it downloads.
+export async function pageResponse(page: { html: string; fileName: string; fitOnePage?: boolean }, pdf: boolean, inline = false) {
   if (!pdf) return new Response(page.html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
   try {
     const bytes = await htmlToPdf(page.html, { fitOnePage: page.fitOnePage });
     return new Response(Buffer.from(bytes), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(page.fileName)}`,
+        "Content-Disposition": `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(page.fileName)}`,
       },
     });
   } catch (error) {

@@ -6,6 +6,7 @@ import { ageMinutes, formatAgeShort } from "@/lib/format";
 import { boarding, placeCode, type Boarding } from "@/lib/places";
 import { SORT_KEYS, SORT_LABELS, type SortDir, type SortKey } from "@/lib/sort";
 import { STATUS_LABELS, type Job, type Settings } from "@/lib/types";
+import { Flap } from "@/components/flap";
 
 const TONES: Record<Boarding["tone"], string> = {
   boarding: "bg-saffron text-on-saffron",
@@ -15,15 +16,6 @@ const TONES: Record<Boarding["tone"], string> = {
   unknown: "bg-board-row text-board-dim",
 };
 
-function Flap({ code }: { code: string }) {
-  return (
-    <span className="flap text-lg" aria-label={code}>
-      {code.split("").map((letter, index) => (
-        <span key={index}>{letter}</span>
-      ))}
-    </span>
-  );
-}
 
 function clock(iso: string | null) {
   if (!iso) return "--:--";

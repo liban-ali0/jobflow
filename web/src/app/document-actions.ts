@@ -73,3 +73,22 @@ export async function rewriteDocuments(jobId: number): Promise<ActionResult> {
   refresh(jobId);
   return { ok: true, message: "Rewriting. Progress is on Activity." };
 }
+
+// Rewrites the chosen documents from scratch: each is marked "changes
+// requested" with the user's note (or a plain rewrite), which the tailoring
+// step redoes. The user's own edits to them are replaced.
+export async function rewriteChosen(jobId: number, types: string[], note: string): Promise<ActionResult> {
+  if (stageRunning("tailor-job", jobId)) return { ok: false, message: "The documents are already being written." };
+  const chosen = listDocuments(jobId).filter((doc) => PACKAGE.includes(doc.type) && types.includes(doc.type));
+  if (chosen.length === 0) return { ok: false, message: "Choose at least one document." };
+  const text = note.trim().slice(0, 2000) || "Rewrite this document from scratch, from the profile and the research.";
+  for (const doc of chosen) reviewDocument(doc.id, "changes_requested", text);
+  updateReadiness(jobId);
+  try {
+    launch("tailor-job", jobId);
+  } catch (error) {
+    return { ok: false, message: (error as Error).message };
+  }
+  refresh(jobId);
+  return { ok: true, message: `Rewriting ${chosen.length} ${chosen.length === 1 ? "document" : "documents"}. They come back for your review.` };
+}

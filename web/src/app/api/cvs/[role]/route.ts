@@ -8,5 +8,5 @@ export async function GET(request: Request, ctx: RouteContext<"/api/cvs/[role]">
   const url = new URL(request.url);
   const page = baseCvPage(role, url.searchParams.get("template"));
   if (!page) return new Response("No base CV for this role yet", { status: 404 });
-  return pageResponse(page, url.searchParams.get("format") === "pdf");
+  return pageResponse(page, url.searchParams.get("format") === "pdf", url.searchParams.get("view") === "1");
 }

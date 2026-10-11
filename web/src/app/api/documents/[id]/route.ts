@@ -8,5 +8,5 @@ export async function GET(request: Request, ctx: RouteContext<"/api/documents/[i
   const url = new URL(request.url);
   const page = jobDocumentPage(Number(id), url.searchParams.get("template"));
   if (!page) return new Response("Document not found", { status: 404 });
-  return pageResponse(page, url.searchParams.get("format") === "pdf");
+  return pageResponse(page, url.searchParams.get("format") === "pdf", url.searchParams.get("view") === "1");
 }

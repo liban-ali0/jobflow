@@ -63,6 +63,7 @@ export function AtsPanel({
   onKeyword,
   keywordState,
   improve,
+  flat = false,
 }: {
   result: AtsResult;
   source: string;
@@ -74,6 +75,8 @@ export function AtsPanel({
   keywordState?: Record<string, KeywordState>;
   // "Fix with AI" for this CV ("doc:<id>" or "base:<role>").
   improve?: { target: string; running: boolean; blocked?: string };
+  // Inside another section: a tinted area instead of a second card.
+  flat?: boolean;
 }) {
   const [menu, setMenu] = useState<string | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export function AtsPanel({
   const isMust = (term: string) => keywords.must.includes(term.toLowerCase());
 
   return (
-    <section className="card space-y-4 rounded-xl p-4" aria-label="ATS check">
+    <section className={`space-y-4 rounded-xl p-4 ${flat ? "bg-mist/50" : "card"}`} aria-label="ATS check">
       <div className="flex items-center gap-4">
         <div
           className="grid size-16 shrink-0 place-items-center rounded-full"

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
-import type { ActionResult } from "@/app/actions";
+import { runStage, type ActionResult } from "@/app/actions";
 import {
   addJobNote,
   askAboutJob,
@@ -215,48 +215,72 @@ export function RowMenu({ job }: { job: JobSummary }) {
   );
 }
 
-// Buttons on the job page, the same actions as the row menu.
-export function JobActionBar({ job }: { job: JobSummary }) {
+// The job page's actions: one primary button for the next step at this
+// stage, then the other actions in the same quiet style.
+export function JobActionBar({ job, hasResearch, working }: { job: JobSummary; hasResearch: boolean; working: boolean }) {
   const [excluding, setExcluding] = useState(false);
   const { pending, result, run } = useRunner();
   const excluded = job.status === "excluded";
   const selected = job.status === "selected";
+  const applied = ["applied", "replied", "interview", "offer", "rejected", "no_response"].includes(job.status);
+  const busy = pending || working;
+  const quiet = "btn btn-quiet px-3 py-1.5 text-xs";
+
+  const primary = (() => {
+    if (excluded) return { label: "Restore", act: () => run(() => restoreJobs([job.id])) };
+    if (job.status === "found" && !job.ranked) return { label: "Rank this job", act: () => run(() => rankJobs([job.id])) };
+    if (job.status === "ranked" || (job.status === "found" && job.ranked)) return { label: "Select for research", act: () => run(() => selectJobs([job.id])) };
+    if (selected && !hasResearch) return { label: "Research this job", act: () => run(() => runStage("research-job", job.id)) };
+    if (job.status === "researched" || (selected && hasResearch)) return { label: "Review documents", href: "#documents" };
+    if (job.status === "ready") return { label: "Mark as applied", act: () => run(() => markApplied(job.id)) };
+    return null;
+  })();
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        {selected ? (
-          <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => removeFromSelected([job.id]))}>
+      <div className="flex flex-wrap items-center gap-2">
+        {primary &&
+          (primary.href ? (
+            <a href={primary.href} className="btn btn-primary">
+              {primary.label}
+            </a>
+          ) : (
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={primary.act}>
+              {pending && <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />}
+              {primary.label}
+            </button>
+          ))}
+        {selected && (
+          <button type="button" className={quiet} disabled={busy} onClick={() => run(() => removeFromSelected([job.id]))}>
             Remove from selected
           </button>
-        ) : (
-          job.status === "ranked" && (
-            <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => selectJobs([job.id]))}>
-              Select for research
-            </button>
-          )
         )}
-        <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => rankJobs([job.id]))}>
-          {job.ranked || excluded ? "Re-rank" : "Rank"}
-        </button>
-        <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => askAboutJob(job.id))}>
+        {job.ranked && !applied && (
+          <button type="button" className={quiet} disabled={busy} onClick={() => run(() => rankJobs([job.id]))}>
+            Re-rank
+          </button>
+        )}
+        <button type="button" className={quiet} disabled={busy} onClick={() => run(() => askAboutJob(job.id))}>
           Ask the Assistant
         </button>
-        <button type="button" className="btn btn-quiet" disabled={pending || job.status === "applied"} onClick={() => run(() => markApplied(job.id))}>
-          Mark as applied
-        </button>
-        {excluded ? (
-          <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => restoreJobs([job.id]))}>
-            Restore
+        {!applied && job.status !== "ready" && !excluded && (
+          <button type="button" className={quiet} disabled={busy} onClick={() => run(() => markApplied(job.id))}>
+            Mark as applied
           </button>
-        ) : (
-          <button type="button" className="btn btn-quiet text-coral" disabled={pending} onClick={() => setExcluding(true)}>
+        )}
+        {job.url && (
+          <a href={job.url} target="_blank" rel="noreferrer" className={quiet}>
+            Open listing ↗
+          </a>
+        )}
+        {!excluded && !applied && (
+          <button type="button" className={`${quiet} text-coral`} disabled={busy} onClick={() => setExcluding(true)}>
             Not interested
           </button>
         )}
       </div>
       {excluding && (
-        <div className="card max-w-md p-4">
+        <div className="card max-w-md rounded-xl p-4">
           <ExcludeForm
             onSubmit={(reason, asRule) => run(() => excludeJobs([job.id], reason, asRule), () => setExcluding(false))}
             onCancel={() => setExcluding(false)}

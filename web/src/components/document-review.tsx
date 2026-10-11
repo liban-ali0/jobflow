@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
 import { approveDocument, requestChanges, rewriteDocuments, saveDocumentText } from "@/app/document-actions";
 import { PagePreview } from "@/components/cv-actions";
+import { PdfViewer } from "@/components/pdf-viewer";
 import { Markdown } from "@/components/markdown";
 import { AtsPanel } from "@/components/ats-panel";
 import type { AtsResult } from "@/lib/ats";
@@ -24,6 +25,10 @@ export type ReviewDoc = {
   ats?: AtsResult;
 };
 
+// The page preview, and the scrolling column beside it, share this height.
+const PREVIEW_WIDTH = 340;
+const PREVIEW_HEIGHT = Math.round((1123 * PREVIEW_WIDTH) / 794);
+
 const REVIEW = {
   draft: { label: "Waiting for review", dot: "bg-teal", chip: "bg-teal-soft text-teal" },
   approved: { label: "Approved", dot: "bg-go", chip: "bg-go-soft text-go" },
@@ -36,6 +41,7 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
   const [draft, setDraft] = useState("");
   const [note, setNote] = useState("");
   const [copied, setCopied] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
 
@@ -51,6 +57,7 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
       if (outcome.ok) after?.();
     });
   const open = (id: number) => {
+    setViewing(false);
     setCurrent(id);
     setMode("read");
     setResult(null);
@@ -121,9 +128,9 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
                 </button>
               ))}
             {doc.printable && (
-              <a href={`/api/documents/${doc.id}?format=pdf`} className="btn btn-quiet px-3 py-1.5 text-xs">
-                Download PDF
-              </a>
+              <button type="button" onClick={() => setViewing(true)} className="btn btn-quiet px-3 py-1.5 text-xs">
+                View as PDF
+              </button>
             )}
             {!doc.printable && (
               <button
@@ -210,15 +217,31 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
             </div>
           </form>
         ) : doc.printable ? (
-          <div className="flex flex-wrap items-start gap-5">
-            <a href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer" className="block w-fit" title="Open the full page">
-              <PagePreview src={`/api/documents/${doc.id}?v=${doc.version}`} title={doc.label} width={doc.ats ? 440 : 560} />
-            </a>
-            {doc.ats && (
-              <div className="min-w-64 flex-1">
-                <AtsPanel result={doc.ats} source="this job's keywords" improve={{ target: `doc:${doc.id}`, running: improving }} />
-              </div>
-            )}
+          // The page and, beside it, a column of the same height that scrolls:
+          // the ATS check for the CV, the text for the cover letter.
+          <div className="grid gap-5 md:grid-cols-[auto_minmax(0,1fr)]">
+            <button
+              type="button"
+              onClick={() => setViewing(true)}
+              className="group relative block w-fit cursor-zoom-in self-start rounded-md focus-visible:ring-3 focus-visible:ring-teal/40"
+              aria-label={`View the ${doc.label} as PDF`}
+            >
+              <PagePreview src={`/api/documents/${doc.id}?v=${doc.version}`} title={doc.label} width={PREVIEW_WIDTH} />
+              <span className="absolute inset-0 grid place-items-center rounded-md bg-[oklch(0.2_0.02_260/0.55)] opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+                <span className="rounded-full bg-surface px-3 py-1.5 text-sm font-medium text-ink shadow">View as PDF</span>
+              </span>
+            </button>
+            <div className="min-w-0 overflow-y-auto pr-1" style={{ maxHeight: PREVIEW_HEIGHT }}>
+              {doc.ats ? (
+                <AtsPanel result={doc.ats} source="this job's keywords" improve={{ target: `doc:${doc.id}`, running: improving }} flat />
+              ) : (
+                // The letter's text, line by line as written (its name and
+                // contact header are on the page beside it).
+                <p className="rounded-xl bg-mist/50 p-4 text-sm leading-relaxed whitespace-pre-line" dir="auto">
+                  {doc.text.replace(/^#\s.*\n.*\n+/, "").trim()}
+                </p>
+              )}
+            </div>
           </div>
         ) : (
           <div className="max-h-[36rem] overflow-auto rounded-lg border border-line bg-surface p-4">
@@ -233,6 +256,7 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
           </p>
         )}
       </div>
+      {doc.printable && <PdfViewer open={viewing} onClose={() => setViewing(false)} src={`/api/documents/${doc.id}`} title={doc.label} />}
     </div>
   );
 }
