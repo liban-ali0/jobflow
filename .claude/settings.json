@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Read",
+      "WebSearch",
+      "WebFetch",
+      "Bash(node scripts/jobs.mjs)",
+      "Bash(node scripts/jobs.mjs *)",
+      "Bash(node scripts/collect.mjs)",
+      "Bash(node scripts/collect.mjs *)",
+      "PowerShell(node scripts/jobs.mjs)",
+      "PowerShell(node scripts/jobs.mjs *)",
+      "PowerShell(node scripts/collect.mjs)",
+      "PowerShell(node scripts/collect.mjs *)",
+      "Edit(/candidate/**)",
+      "Edit(/jobs/**)"
+    ]
+  }
+}

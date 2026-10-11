@@ -1,0 +1,221 @@
+@import "tailwindcss";
+
+/* Airport signage. Brand colours (--primary, --secondary and everything
+   derived from them, including the dark departures board) are generated from
+   Settings in lib/theme.ts and injected by the layout. Below are the neutral
+   colours for light and dark mode. Every text pair meets WCAG AA. */
+:root {
+  color-scheme: light;
+  --page: #eef1f5;
+  --surface: #ffffff;
+  --text: #12203a;
+  --muted: #5a6a80;
+  --line: #b9c3d0;
+  /* Borders of things you type in or click (3:1 against the card). */
+  --field: #7d8aa0;
+  --link: #1c5fc4;
+  --link-soft: #e2ebf9;
+  --go: #147048;
+  --go-soft: #dcf1e6;
+  --stop: #ad2f28;
+  --stop-soft: #f9dfdc;
+  --secondary-soft: color-mix(in srgb, var(--secondary) 22%, white);
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0b1220;
+  --surface: #141d2f;
+  --text: #e6ebf3;
+  --muted: #a3b0c4;
+  --line: #2e3c58;
+  --field: #6f809c;
+  --link: #86aeff;
+  --link-soft: #172742;
+  --go: #5fd39b;
+  --go-soft: #10291f;
+  --stop: #ff9189;
+  --stop-soft: #331817;
+  --secondary-soft: color-mix(in srgb, var(--secondary) 16%, var(--surface));
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] {
+    color-scheme: dark;
+    --page: #0b1220;
+    --surface: #141d2f;
+    --text: #e6ebf3;
+    --muted: #a3b0c4;
+    --line: #2e3c58;
+    --field: #6f809c;
+    --link: #86aeff;
+    --link-soft: #172742;
+    --go: #5fd39b;
+    --go-soft: #10291f;
+    --stop: #ff9189;
+    --stop-soft: #331817;
+    --secondary-soft: color-mix(in srgb, var(--secondary) 16%, var(--surface));
+  }
+}
+
+@theme inline {
+  --color-mist: var(--page);
+  --color-surface: var(--surface);
+  --color-ink: var(--text);
+  --color-slate: var(--muted);
+  --color-line: var(--line);
+  --color-field: var(--field);
+  /* "teal" is the link and focus colour: wayfinding blue. */
+  --color-teal: var(--link);
+  --color-teal-soft: var(--link-soft);
+  --color-go: var(--go);
+  --color-go-soft: var(--go-soft);
+  --color-coral: var(--stop);
+  --color-coral-soft: var(--stop-soft);
+
+  /* Brand: primary surfaces and the secondary (signal) colour. */
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-accent: var(--primary-accent);
+  --color-saffron: var(--secondary);
+  --color-on-saffron: var(--on-secondary);
+  --color-saffron-soft: var(--secondary-soft);
+  --color-signal: var(--signal);
+  --color-board: var(--board);
+  --color-board-row: var(--board-row);
+  --color-board-line: var(--board-line);
+  --color-board-control: var(--board-control);
+  --color-board-text: var(--board-text);
+  --color-board-dim: var(--board-dim);
+  --color-chrome: var(--chrome);
+  --color-chrome-line: var(--chrome-line);
+  --color-chrome-text: var(--chrome-text);
+  --color-chrome-dim: var(--chrome-dim);
+  --color-chrome-signal: var(--chrome-signal);
+
+  --font-display: var(--font-barlow), "Arial Narrow", system-ui, sans-serif;
+  --font-sans: var(--font-plex), var(--font-plex-arabic), system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--color-mist);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-teal);
+  outline-offset: 2px;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-9 items-center justify-center gap-2 rounded-md px-3.5 py-2 text-sm font-medium transition-colors duration-150 active:translate-y-px disabled:cursor-not-allowed disabled:opacity-40 disabled:active:translate-y-0;
+  }
+  .btn-primary {
+    @apply bg-primary text-on-primary hover:brightness-125;
+  }
+  .btn-signal {
+    @apply bg-saffron text-on-saffron hover:bg-primary hover:text-primary-accent;
+  }
+  .btn-quiet {
+    @apply border border-field bg-surface text-ink hover:border-ink;
+  }
+  .card {
+    @apply rounded-lg border border-line bg-surface;
+  }
+  .field {
+    @apply w-full rounded-md border border-field bg-surface px-3 py-2 text-sm text-ink placeholder:text-slate;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium tracking-wide text-slate uppercase;
+  }
+  .page-title {
+    @apply font-display text-4xl font-semibold tracking-tight uppercase;
+  }
+  .section-title {
+    @apply font-display text-xl font-semibold tracking-wide uppercase;
+  }
+  .card-title {
+    @apply font-display text-lg font-semibold tracking-wide uppercase;
+  }
+  .btn-board {
+    @apply border border-board-control bg-transparent text-board-text hover:border-signal hover:text-signal disabled:hover:border-board-control disabled:hover:text-board-text;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-field bg-surface px-3 py-1 text-xs font-medium text-ink hover:border-ink;
+  }
+  .chip-on {
+    @apply border-primary bg-primary text-on-primary hover:border-primary;
+  }
+}
+
+/* Engine replies on the Assistant screen. */
+.markdown > * + * { margin-top: 0.6rem; }
+.markdown h1, .markdown h2, .markdown h3 { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.02em; }
+.markdown h1 { font-size: 1.25rem; }
+.markdown h2 { font-size: 1.15rem; }
+.markdown ul { list-style: disc; padding-left: 1.25rem; }
+.markdown ol { list-style: decimal; padding-left: 1.25rem; }
+.markdown li + li { margin-top: 0.2rem; }
+.markdown code { font-family: var(--font-mono); font-size: 0.85em; background: var(--color-mist); padding: 0.1em 0.3em; border-radius: 3px; }
+.markdown pre { background: var(--color-mist); padding: 0.75rem; border-radius: 6px; overflow-x: auto; }
+.markdown pre code { background: none; padding: 0; }
+.markdown th, .markdown td { border-bottom: 1px solid var(--color-line); padding: 0.35rem 0.6rem 0.35rem 0; vertical-align: top; }
+.markdown th { font-weight: 600; }
+
+/* Departures board: each code sits in its own "flap" cell. */
+.flap {
+  display: inline-flex;
+  gap: 2px;
+}
+.flap > span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.05em;
+  height: 1.45em;
+  border-radius: 2px;
+  background: linear-gradient(to bottom, var(--flap-top) 49%, var(--flap-bottom) 51%);
+  color: var(--flap-text);
+  font-family: var(--font-mono);
+  font-weight: 500;
+}
+
+/* Something time-sensitive gets a slow pulse on its marker. */
+@keyframes fresh-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--secondary) 60%, transparent); }
+  50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--secondary) 0%, transparent); }
+}
+.fresh-dot {
+  animation: fresh-pulse 2.2s ease-out infinite;
+}
+
+/* Sections the workflow strip links to: land below the sticky bars, then
+   flash a signal-yellow ring so it is clear where you arrived. */
+.anchor {
+  scroll-margin-top: 8.5rem;
+}
+@keyframes arrived {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--secondary) 0%, transparent); }
+  20% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--secondary) 90%, transparent); }
+  100% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--secondary) 0%, transparent); }
+}
+.anchor:target {
+  animation: arrived 1.6s ease-out;
+  border-radius: 0.75rem;
+}
+
+/* Board rows arrive one after another when the page loads. */
+@keyframes board-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.board-row {
+  animation: board-in 0.35s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fresh-dot, .board-row, .anchor:target { animation: none; }
+  .anchor:target { box-shadow: 0 0 0 4px var(--secondary); }
+}

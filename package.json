@@ -1,0 +1,18 @@
+{
+  "name": "job-workflow",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "setup": "npm install && npm install --prefix web && node scripts/jobs.mjs statuses",
+    "app": "npm run dev --prefix web",
+    "jobs": "node scripts/jobs.mjs",
+    "find": "node scripts/collect.mjs"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}

@@ -1,0 +1,107 @@
+{
+  "dailyCap": 5,
+  "appearance": {
+    "mode": "system",
+    "primary": "#12203a",
+    "secondary": "#ffc20e"
+  },
+  "followUpDays": 6,
+  "countries": [],
+  "roles": [],
+  "freshness": {
+    "maxHours": 24,
+    "fastTrackMinutes": 60
+  },
+  "experience": {
+    "maxYears": 3,
+    "titles": [
+      "junior",
+      "graduate",
+      "trainee",
+      "associate",
+      "entry level"
+    ]
+  },
+  "customRules": "",
+  "workModes": [
+    "remote",
+    "onsite",
+    "hybrid"
+  ],
+  "searchLanguages": [
+    "en"
+  ],
+  "exclusions": {
+    "nationalsOnly": true,
+    "transferableIqamaRequired": true,
+    "payToApply": true
+  },
+  "sources": [
+    {
+      "key": "linkedin",
+      "name": "LinkedIn",
+      "enabled": true,
+      "method": "Public job feed, no login, a few dozen requests per search"
+    },
+    {
+      "key": "bayt",
+      "name": "Bayt",
+      "enabled": false,
+      "method": "Job alert emails (blocks automated access)"
+    },
+    {
+      "key": "gulftalent",
+      "name": "GulfTalent",
+      "enabled": false,
+      "method": "Job alert emails (blocks automated access)"
+    },
+    {
+      "key": "naukrigulf",
+      "name": "Naukrigulf",
+      "enabled": false,
+      "method": "Job alert emails (blocks automated access)"
+    },
+    {
+      "key": "indeed",
+      "name": "Indeed (Gulf domains)",
+      "enabled": false,
+      "method": "Job alert emails (blocks automated access)"
+    },
+    {
+      "key": "careers",
+      "name": "Company career pages",
+      "enabled": false,
+      "method": "Not built yet"
+    }
+  ],
+  "engines": {
+    "build-profile": {
+      "engine": "claude",
+      "model": "",
+      "effort": ""
+    },
+    "rank-jobs": {
+      "engine": "claude",
+      "model": "",
+      "effort": ""
+    },
+    "research-job": {
+      "engine": "claude",
+      "model": "",
+      "effort": ""
+    },
+    "tailor-job": {
+      "engine": "claude",
+      "model": "",
+      "effort": ""
+    }
+  },
+  "schedule": {
+    "enabled": false,
+    "fastTrackEveryMinutes": 45,
+    "dailyRunAt": "09:00"
+  },
+  "email": {
+    "sendingEnabled": false
+  }
+}

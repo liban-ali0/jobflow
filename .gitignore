@@ -1,0 +1,17 @@
+# Personal data stays on the machine it belongs to
+candidate/*
+jobs/*
+data/*
+!candidate/README.md
+!jobs/.gitkeep
+!data/.gitkeep
+
+node_modules/
+.next/
+.claude/settings.local.json
+*.log
+
+# Local tool state
+.claude-flow/
+.claude/proven-config.json
+.claude/.proven-config-version
