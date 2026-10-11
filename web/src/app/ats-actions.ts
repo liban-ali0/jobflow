@@ -11,17 +11,20 @@ import { baseCvPath, readText } from "@/lib/documents";
 import { launch, stageRunning } from "@/lib/engine";
 
 // "doc:<id>" for a job's tailored CV, "base:<role key>" for a base CV.
+// Anything else is refused, since the target names a file and reaches the engine.
+const TARGET = /^(doc):(\d{1,9})$|^(base):([a-z0-9-]{1,40})$/;
+
 function resolve(target: string) {
-  const [kind, value] = target.split(":");
-  if (kind === "doc") {
-    const doc = getDocument(Number(value));
+  const match = TARGET.exec(target);
+  if (!match) return null;
+  if (match[1] === "doc") {
+    const doc = getDocument(Number(match[2]));
     if (!doc || doc.type !== "cv") return null;
-    return { file: doc.path, jobId: doc.job_id, ats: targetForJob(doc.job_id) };
+    return { name: `doc-${doc.id}`, argument: `doc:${doc.id}`, file: doc.path, jobId: doc.job_id, ats: targetForJob(doc.job_id) };
   }
-  if (kind === "base" && getSettings().roles.some((role) => role.key === value)) {
-    return { file: baseCvPath(value), jobId: null, ats: targetForRole(value) };
-  }
-  return null;
+  const role = getSettings().roles.find((item) => item.key === match[4]);
+  if (!role) return null;
+  return { name: `base-${role.key}`, argument: `base:${role.key}`, file: baseCvPath(role.key), jobId: null, ats: targetForRole(role.key) };
 }
 
 // Asks the engine to apply the ATS fix list to a CV, using only facts from the
@@ -42,12 +45,15 @@ export async function improveCv(target: string): Promise<ActionResult> {
     missingKeywords: found.ats.keywords.filter((keyword) => missing.has(keyword.term)),
     fixes: result.fixes.filter((fix) => fix.kind === "fix").map(({ label, detail }) => ({ label, detail })),
   };
+  // The file name comes from the checked parts only, never the raw target.
   const work = path.join(ROOT, "jobs", "_work");
+  const file = path.join(work, `ats-${found.name}.json`);
+  if (!path.resolve(file).startsWith(path.resolve(work) + path.sep)) return { ok: false, message: "That CV cannot be improved here." };
   fs.mkdirSync(work, { recursive: true });
-  fs.writeFileSync(path.join(work, `ats-${target.replace(":", "-")}.json`), `${JSON.stringify(brief, null, 2)}\n`);
+  fs.writeFileSync(file, `${JSON.stringify(brief, null, 2)}\n`);
 
   try {
-    launch("improve-cv", found.jobId, "manual", target);
+    launch("improve-cv", found.jobId, "manual", found.argument);
   } catch (error) {
     return { ok: false, message: (error as Error).message };
   }
