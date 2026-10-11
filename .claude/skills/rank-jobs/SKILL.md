@@ -35,7 +35,7 @@ Apply the switches in the settings' `exclusions`; skip a rule whose switch is of
 
 - `nationalsOnly`: it is open only to citizens of the country and the candidate is not one (for example UAE nationals, Saudization or Qatarization roles).
 - `transferableIqamaRequired`: it requires a residence or work permit the candidate does not have, such as a transferable iqama or an existing local visa.
-- It asks for more years of experience than `experience.maxYears` in the settings (skip this rule when it is null), or its level is clearly outside the levels chosen in `experience.levels` (internship, entry, associate, mid-senior, director, executive). Judge the years and duties in the description, not LinkedIn's label alone.
+- It asks for more years of experience than `experience.maxYears` in the settings (skip this rule when it is null). Compare the minimum the listing asks for: "3–5 years" and "3+ years" ask for 3, so they pass a maximum of 3; "5+ years" or "4–6 years" do not. Preferred years ("ideally 5") are not a requirement, or its level is clearly outside the levels chosen in `experience.levels` (internship, entry, associate, mid-senior, director, executive). Judge the years and duties in the description, not LinkedIn's label alone.
 - It does not fit any of the target roles in the settings (`roles`), judged from the duties, not only the title. Job fairs and generic recruitment posts never fit.
 - It is a programme the candidate is not eligible for according to the profile (for example, one limited to recent graduates when they graduated too long ago).
 - `payToApply`: it asks for a fee, deposit, or payment to apply or to be processed.

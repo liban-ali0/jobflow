@@ -44,12 +44,14 @@ const Code = ({ children }: { children: React.ReactNode }) => (
 
 export default function SetupPage() {
   const settings = getSettings();
-  const check = settings.setupCheck;
+  const savedCheck = settings.setupCheck;
   const cv = cvName();
   const facts = readFacts();
   const profile = readProfile();
   const build = listRuns(50).find((run) => run.stage === "build-profile");
   const engine: EngineKey = settings.engines?.["build-profile"]?.engine ?? "claude";
+  // A check counts only for the engine it tested.
+  const check = savedCheck && savedCheck.engine === engine ? savedCheck : null;
   const targets = settings.countries.length > 0 && settings.roles.length > 0;
 
   const done = {
@@ -71,14 +73,17 @@ export default function SetupPage() {
       />
 
       <div className="mt-8 space-y-6">
-        <Step number={1} title="Connect Claude Code" done={done.engine}>
-          <p>Jobflow does its work through Claude Code on this computer, using your Claude subscription. Once per computer:</p>
+        <Step number={1} title={`Connect ${ENGINES[engine].label}`} done={done.engine}>
+          <p>
+            Jobflow does its work through {ENGINES[engine].label} on this computer, using your {engine === "claude" ? "Claude" : "ChatGPT"} subscription. You can choose the engine for
+            each step in Settings. Once per computer:
+          </p>
           <ol className="list-decimal space-y-1.5 pl-5">
             <li>
-              Install it: <Code>npm install -g @anthropic-ai/claude-code</Code>
+              Install it: <Code>{engine === "claude" ? "npm install -g @anthropic-ai/claude-code" : "npm install -g @openai/codex"}</Code>
             </li>
             <li>
-              Open a terminal in this folder and run <Code>claude</Code>. Sign in with your Claude account and accept the prompt to trust the folder.
+              Open a terminal in this folder and run <Code>{engine}</Code>. Sign in with your {engine === "claude" ? "Claude" : "ChatGPT"} account and accept the prompt to trust the folder.
               <span className="mt-1 block font-mono text-xs break-all text-slate">{ROOT}</span>
             </li>
             <li>Close it, then check the connection here.</li>
