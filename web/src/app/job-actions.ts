@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import type { ActionResult } from "@/app/actions";
 import { sendMessage } from "@/app/actions";
 import { createConversation, getJob, getSettings, listJobs, setSettings, unapprovedDocuments, updateJob } from "@/lib/data";
+import { exportPdfs } from "@/lib/apply";
 import { engineFor, launch, queueResearch, stageRunning } from "@/lib/engine";
 import type { Job } from "@/lib/types";
 
@@ -141,4 +142,21 @@ export async function researchSelected(): Promise<ActionResult> {
   return added
     ? { ok: true, message: `Researching ${added} ${added === 1 ? "job" : "jobs"}, one at a time. Each takes a few minutes; documents follow automatically.` }
     : { ok: true, message: "These jobs are already being researched." };
+}
+
+// "Fill it in Chrome": the apply-job step fills the application form in the
+// user's Chrome and stops before submitting. The PDFs it attaches are written
+// to the job's folder first.
+export async function fillInChrome(id: number): Promise<ActionResult> {
+  const job = getJob(id);
+  if (!job) return { ok: false, message: "This job no longer exists." };
+  if (unapprovedDocuments(id).length) return { ok: false, message: "Approve all of this job's documents first." };
+  if (stageRunning("apply-job", id)) return { ok: false, message: "Already filling this application." };
+  try {
+    await exportPdfs(id);
+    launch("apply-job", id);
+  } catch (error) {
+    return { ok: false, message: (error as Error).message };
+  }
+  return done("Filling the form in Chrome. It stops before Submit: check it there and submit it yourself.");
 }

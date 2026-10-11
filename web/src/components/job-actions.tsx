@@ -232,7 +232,7 @@ export function JobActionBar({ job, hasResearch, working }: { job: JobSummary; h
     if (job.status === "ranked" || (job.status === "found" && job.ranked)) return { label: "Select for research", act: () => run(() => selectJobs([job.id])) };
     if (selected && !hasResearch) return { label: "Research this job", act: () => run(() => runStage("research-job", job.id)) };
     if (job.status === "researched" || (selected && hasResearch)) return { label: "Review documents", href: "#documents" };
-    if (job.status === "ready") return { label: "Mark as applied", act: () => run(() => markApplied(job.id)) };
+    if (job.status === "ready") return { label: "Apply", href: "#apply" };
     return null;
   })();
 
@@ -263,7 +263,7 @@ export function JobActionBar({ job, hasResearch, working }: { job: JobSummary; h
         <button type="button" className={quiet} disabled={busy} onClick={() => run(() => askAboutJob(job.id))}>
           Ask the Assistant
         </button>
-        {!applied && job.status !== "ready" && !excluded && (
+        {!applied && !excluded && (
           <button type="button" className={quiet} disabled={busy} onClick={() => run(() => markApplied(job.id))}>
             Mark as applied
           </button>

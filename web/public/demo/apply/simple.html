@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Apply: Backend Engineer · Demo Company</title>
+  <link rel="stylesheet" href="demo.css">
+  <script src="guard.js"></script>
+</head>
+<body>
+<main>
+  <h1>Backend Engineer</h1>
+  <p class="lede">Demo Company · Dubai, UAE · A single-page application form (Jobflow test page).</p>
+  <form>
+    <div class="row">
+      <div><label for="first">First name *</label><input id="first" name="first_name" required></div>
+      <div><label for="last">Last name *</label><input id="last" name="last_name" required></div>
+    </div>
+    <label for="email">Email *</label><input id="email" name="email" type="email" required>
+    <label for="phone">Phone number *</label><input id="phone" name="phone" type="tel" required>
+    <label for="city">Current location</label><input id="city" name="location">
+    <label for="li">LinkedIn profile</label><input id="li" name="linkedin" type="url">
+    <label for="cv">Resume / CV *</label><input id="cv" name="resume" type="file" accept=".pdf,.doc,.docx" required>
+    <label for="cl">Cover letter (optional)</label><input id="cl" name="cover_letter_file" type="file" accept=".pdf">
+    <label for="salary">Expected salary (monthly)</label><input id="salary" name="salary">
+    <label for="notice">Notice period</label><input id="notice" name="notice">
+    <label for="visa">Will you now or in the future require visa sponsorship to work in the UAE? *</label>
+    <select id="visa" name="visa" required><option value="">Select…</option><option value="yes">Yes</option><option value="no">No</option></select>
+    <fieldset class="inline"><legend>Are you willing to relocate to Dubai?</legend>
+      <input type="radio" id="rel-yes" name="relocate" value="yes"><label for="rel-yes">Yes</label>
+      <input type="radio" id="rel-no" name="relocate" value="no"><label for="rel-no">No</label>
+    </fieldset>
+    <label for="years">How many years of professional experience do you have?</label><input id="years" name="years" type="number" min="0">
+    <label for="why">Why do you want to join Demo Company?</label><textarea id="why" name="why_company" rows="4"></textarea>
+    <label for="employer">Current employer name</label><input id="employer" name="current_employer">
+    <label for="source">How did you hear about us? *</label>
+    <select id="source" name="heard" required><option value="">Select…</option><option>LinkedIn</option><option>Referral</option><option>Company website</option></select>
+    <label class="inline"><input type="checkbox" name="consent" value="yes" required> I agree to the privacy policy and the processing of my data *</label>
+    <button type="submit">Submit application</button>
+  </form>
+  <p class="demo-note">Jobflow demo form: nothing is sent anywhere.</p>
+</main>
+</body>
+</html>

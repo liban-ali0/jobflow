@@ -1,0 +1,16 @@
+body { font: 15px/1.5 system-ui, sans-serif; margin: 0; background: #f4f5f7; color: #1d2330; }
+main { max-width: 640px; margin: 32px auto; background: #fff; padding: 28px 32px; border-radius: 10px; box-shadow: 0 1px 4px #0002; }
+h1 { margin: 0 0 4px; font-size: 22px; }
+.lede { margin: 0 0 20px; color: #5b6576; }
+label, legend { display: block; font-weight: 600; margin: 14px 0 4px; font-size: 14px; }
+input:not([type=radio]):not([type=checkbox]), textarea, select { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #c8ced8; border-radius: 6px; font: inherit; }
+fieldset { border: 0; padding: 0; margin: 0; }
+.inline label { display: inline; font-weight: 400; margin-right: 12px; }
+button { margin-top: 20px; padding: 10px 18px; border: 0; border-radius: 6px; background: #2457c5; color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.submitted { margin: 0; padding: 12px; background: #b3261e; color: #fff; font-weight: 700; text-align: center; }
+.demo-note { font-size: 12px; color: #8a93a3; margin-top: 18px; }
+.row { display: flex; gap: 12px; }
+.row > div { flex: 1; }
+.step { display: none; }
+.step.on { display: block; }
+.progress { color: #5b6576; font-size: 13px; }

@@ -14,37 +14,57 @@
         --stop: #b3261e;
         color-scheme: light;
       }
-      body { margin: 0; width: 300px; font: 14px/1.45 system-ui, sans-serif; color: var(--ink); background: #f6f7f9; }
+      body { margin: 0; width: 320px; font: 14px/1.45 system-ui, sans-serif; color: var(--ink); background: #f6f7f9; }
       header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--navy); color: #fff; }
       header b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; background: #e63946; font-weight: 700; }
       header span { font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-      main { padding: 14px; }
-      button { width: 100%; padding: 10px; border: 0; border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; background: var(--yellow); color: var(--navy); }
+      header button { margin-left: auto; width: auto; padding: 2px 6px; background: transparent; color: #c9d1de; font-weight: 500; font-size: 12px; text-decoration: underline; }
+      main { padding: 4px 14px 14px; }
+      section { padding-top: 10px; }
+      section + section { margin-top: 10px; border-top: 1px solid var(--line); }
+      h2 { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate); }
+      button { width: 100%; padding: 9px; border: 0; border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; background: var(--yellow); color: var(--navy); }
+      button.quiet { background: #fff; border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
       button:disabled { opacity: 0.5; cursor: default; }
-      button.quiet { margin-top: 8px; padding: 6px; background: transparent; color: var(--slate); font-weight: 500; text-decoration: underline; }
-      #status { margin: 10px 0 0; min-height: 1.4em; font-size: 13px; }
+      .status { margin: 8px 0 0; min-height: 1.2em; font-size: 13px; }
       .ok { color: var(--go); }
       .error { color: var(--stop); }
-      label { display: block; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--slate); }
-      input { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font: 13px ui-monospace, monospace; }
-      p.hint { margin: 8px 0 0; font-size: 12px; color: var(--slate); }
-      [hidden] { display: none; }
+      label { display: block; margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--slate); }
+      input, select { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font: 13px system-ui, sans-serif; background: #fff; }
+      input { font-family: ui-monospace, monospace; }
+      p.hint { margin: 6px 0 0; font-size: 12px; color: var(--slate); }
+      ul.report { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
+      [hidden] { display: none !important; }
     </style>
   </head>
   <body>
-    <header><b>J</b><span>Jobflow</span></header>
+    <header><b>J</b><span>Jobflow</span><button id="showSetup" type="button">Settings</button></header>
     <main>
-      <section id="send">
-        <button id="sendButton" type="button">Send this page to Jobflow</button>
-        <p id="status" role="status"></p>
-        <p class="hint">Works on search results or one job's page, on any job site. Your engine picks out the jobs; they appear on Today.</p>
-        <button id="showSetup" class="quiet" type="button">Connection settings</button>
-      </section>
+      <div id="work">
+        <section>
+          <h2>Find jobs</h2>
+          <button id="sendButton" type="button">Send this page to Jobflow</button>
+          <p id="sendStatus" class="status" role="status"></p>
+          <p class="hint">Search results or one job's page, on any job site. The jobs on it appear on Today.</p>
+        </section>
+        <section>
+          <h2>Apply</h2>
+          <label>Job <select id="job"><option value="">Loading…</option></select></label>
+          <button id="fillButton" type="button" style="margin-top: 8px">Fill this form</button>
+          <p id="fillStatus" class="status" role="status"></p>
+          <ul id="fillReport" class="report" hidden></ul>
+          <button id="appliedButton" class="quiet" type="button" style="margin-top: 8px" hidden>I submitted it: mark as applied</button>
+          <p class="hint">Open the job's application form first. Jobflow fills it and attaches your PDFs; it never presses Submit.</p>
+        </section>
+      </div>
       <form id="setup" hidden>
-        <label>Jobflow address <input id="address" value="http://localhost:3000" spellcheck="false" /></label>
-        <label>Key, from Settings → Sources <input id="token" spellcheck="false" autocomplete="off" /></label>
-        <p class="hint">Jobflow must be running on this computer.</p>
-        <button type="submit" style="margin-top: 12px">Save</button>
+        <section>
+          <h2>Connection</h2>
+          <label>Jobflow address <input id="address" value="http://localhost:3000" spellcheck="false" /></label>
+          <label>Key, from Settings → Sources <input id="token" spellcheck="false" autocomplete="off" /></label>
+          <p class="hint">Jobflow must be running on this computer.</p>
+          <button type="submit" style="margin-top: 10px">Save</button>
+        </section>
       </form>
     </main>
     <script src="popup.js"></script>

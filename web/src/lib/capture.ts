@@ -56,3 +56,12 @@ export function saveCapture(page: CapturedPage) {
   fs.writeFileSync(path.join(dir, name), JSON.stringify({ ...page, capturedAt: new Date().toISOString() }, null, 1));
   return `${CAPTURE_DIR}/${name}`;
 }
+
+// Requests from the Jobflow extension: its own origin and the user's key.
+// Returns an error response, or null when the request may go on.
+export function extensionDenied(request: Request) {
+  const reply = (message: string, status: number) => Response.json({ ok: false, message }, { status });
+  if (!/^(chrome|moz)-extension:\/\//.test(request.headers.get("origin") ?? "")) return reply("Only the Jobflow extension can do this.", 403);
+  if (!tokenMatches(request.headers.get("x-jobflow-token") ?? "")) return reply("The key does not match. Copy it again from Settings → Sources.", 401);
+  return null;
+}

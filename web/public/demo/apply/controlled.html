@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Careers · Demo Labs</title>
+  <link rel="stylesheet" href="demo.css">
+  <script src="guard.js"></script>
+</head>
+<body>
+<main>
+  <h1>Machine Learning Engineer</h1>
+  <p class="lede">Demo Labs · Istanbul, Turkey · Fields are tracked in JavaScript state, as on React sites: a value only counts if typing events fired (Jobflow test page).</p>
+  <form id="form">
+    <label for="fn">Given name</label><input id="fn" name="given_name" aria-required="true">
+    <label for="ln">Family name</label><input id="ln" name="family_name" aria-required="true">
+    <label for="em">E-mail</label><input id="em" name="email">
+    <label for="gh">Portfolio or GitHub</label><input id="gh" name="portfolio">
+    <label for="sp">Do you require sponsorship for a work permit?</label>
+    <select id="sp" name="sponsorship"><option value="">—</option><option value="1">Yes</option><option value="0">No</option></select>
+    <label for="mot">What motivates you about this role?</label><textarea id="mot" name="motivation" rows="4"></textarea>
+    <label for="res">Resume</label><input id="res" name="resume" type="file">
+    <p>State: <code id="state">{}</code></p>
+    <button type="submit">Send</button>
+  </form>
+  <p class="demo-note">Jobflow demo form: nothing is sent anywhere.</p>
+</main>
+<script>
+  // Like React: the "real" value lives in state, updated only by events.
+  const state = {};
+  for (const el of document.querySelectorAll("input, textarea, select")) {
+    const update = () => {
+      state[el.name] = el.type === "file" ? [...el.files].map((file) => file.name).join(", ") : el.value;
+      document.getElementById("state").textContent = JSON.stringify(state);
+    };
+    el.addEventListener("input", update);
+    el.addEventListener("change", update);
+  }
+  window.__appState = () => ({ ...state });
+</script>
+</body>
+</html>

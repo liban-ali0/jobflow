@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { runStage, saveNotes } from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
+import { ApplyPanel } from "@/components/apply-panel";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { BackLink } from "@/components/back-link";
 import { BoardingPass } from "@/components/boarding-pass";
@@ -11,6 +12,7 @@ import { Panel } from "@/components/panel";
 import { RewriteDocuments } from "@/components/rewrite-documents";
 import { StatusSelect } from "@/components/status-select";
 import { OutcomeBar } from "@/components/tracking";
+import { applyPack } from "@/lib/apply";
 import { checkCv } from "@/lib/ats";
 import { targetForJob } from "@/lib/ats-keywords";
 import { getJob, getSettings, listContacts, listDocuments, listEvents } from "@/lib/data";
@@ -34,6 +36,17 @@ const OLD_NAMES: Record<string, string> = { Arabic: "Language", "Entry-level fit
 
 // Tabs in this order; the research is read-only reference.
 const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "follow_up", "research", "interview_pack"];
+
+// Whether "Fill it in Chrome" can be used for this job, and why not.
+function applyInChrome(url: string | null, approved: boolean) {
+  if (!approved) return { available: false, reason: "Approve all documents first." };
+  if (!url) return { available: false, reason: "This job has no link to its application." };
+  if (/(^|\.)linkedin\.com$/i.test(new URL(url).hostname)) {
+    return { available: false, reason: "LinkedIn: apply there yourself with the answers below; automated filling can get the account restricted." };
+  }
+  if (!stageReady("apply-job")) return { available: false, reason: "The apply step is missing." };
+  return { available: true };
+}
 
 // A label and value in the sidebar's details list.
 function Detail({ label, children }: { label: string; children: React.ReactNode }) {
@@ -82,6 +95,10 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .filter((document) => ["cv", "cover_letter", "email", "answers"].includes(document.type))
     .map((document) => ({ type: document.type, approved: document.review === "approved" }));
   const afterApplying = ["applied", "replied", "interview", "offer"].includes(job.status);
+  // The Apply section: once the package is written, until the job is applied to.
+  const pack = !afterApplying && documents.some((document) => document.type === "answers") ? applyPack(job.id) : null;
+  const filling = stageRunning("apply-job", job.id);
+  const chrome = applyInChrome(job.url, pack?.approved ?? false);
   const breakdown = Object.entries(job.score_breakdown ?? {}).map(([name, value]) => {
     const shown = OLD_NAMES[name] ?? name;
     return { name: shown, value, max: SCORE_MAX[shown] ?? SCORE_MAX[name] ?? 15 };
@@ -109,6 +126,26 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
               applied={job.applied_at ? `Applied ${formatDateTime(job.applied_at)}` : null}
               followUp={followUpState(job)}
             />
+          )}
+
+          {pack && (
+            <Panel
+              id="apply"
+              title="Apply"
+              hint={pack.approved ? "Everything is approved. Jobflow fills the form or prepares the email; you check it and press Submit." : "Approve all four documents first; then Jobflow can fill the form for you."}
+            >
+              <ApplyPanel
+                jobId={job.id}
+                url={job.url}
+                profile={pack.profile}
+                answers={pack.answers}
+                coverLetterText={pack.coverLetterText}
+                files={pack.files}
+                emailTo={pack.email?.to ?? null}
+                chrome={chrome}
+                filling={filling}
+              />
+            </Panel>
           )}
 
           <Panel

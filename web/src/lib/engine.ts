@@ -18,6 +18,7 @@ export const STAGES = {
   "find-jobs": { label: "Find new jobs", perJob: false, script: "scripts/collect.mjs" },
   "browse-jobs": { label: "Find jobs in Chrome", perJob: false, chrome: true },
   "import-jobs": { label: "Import jobs from the browser", perJob: false },
+  "apply-job": { label: "Fill application in Chrome", perJob: true, chrome: true },
   "rank-jobs": { label: "Check and rank", perJob: false },
   "research-job": { label: "Research", perJob: true },
   "tailor-job": { label: "Tailor documents", perJob: true },

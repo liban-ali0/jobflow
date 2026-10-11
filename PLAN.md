@@ -1,6 +1,6 @@
 # Job Application Workflow: Plan
 
-Status (2026-10-11): phases 1 to 4 are built (LinkedIn only; email-alert sources still to do), plus sharing, the CVs page, and the CV editor. Phase 5 (schedule and fast track) is next.
+Status (2026-10-12): phases 1 to 4 built; phase 6 apply stage built (form filling in Chrome or with the Jobflow extension, email drafts, statistics), tested on demo forms. Sources: LinkedIn, Workable, and the blocked sites through the user's browser. Next: phase 5 (schedule and fast track), the interview pack.
 
 ## 1. Candidate profile
 

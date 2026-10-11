@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Apply in 3 steps · Demo Systems</title>
+  <link rel="stylesheet" href="demo.css">
+  <script src="guard.js"></script>
+</head>
+<body>
+<main>
+  <h1>Software Developer</h1>
+  <p class="lede">Demo Systems · Doha, Qatar · A three-step application (Jobflow test page).</p>
+  <form id="form">
+    <p class="progress" id="progress">Step 1 of 3: About you</p>
+    <div class="step on" data-step="1">
+      <label for="name">Full name *</label><input id="name" name="full_name" required>
+      <label for="email">Email address *</label><input id="email" name="email" type="email" required>
+      <label for="tel">Mobile *</label><input id="tel" name="mobile" type="tel" required>
+      <button type="button" class="next">Next</button>
+    </div>
+    <div class="step" data-step="2">
+      <label for="cv">Upload your CV *</label><input id="cv" name="cv" type="file" required>
+      <label for="letter">Cover letter</label><textarea id="letter" name="cover_letter" rows="6" placeholder="Paste your cover letter"></textarea>
+      <button type="button" class="back">Back</button> <button type="button" class="next">Continue</button>
+    </div>
+    <div class="step" data-step="3">
+      <label for="auth">Are you legally authorized to work in Qatar without sponsorship? *</label>
+      <select id="auth" name="authorized" required><option value="">Choose</option><option>Yes</option><option>No</option></select>
+      <label for="start">When can you start?</label><input id="start" name="start">
+      <label for="exp">Expected compensation</label><input id="exp" name="compensation">
+      <button type="button" class="back">Back</button> <button type="submit">Submit application</button>
+    </div>
+  </form>
+  <p class="demo-note">Jobflow demo form: nothing is sent anywhere.</p>
+</main>
+<script>
+  const steps = [...document.querySelectorAll(".step")];
+  const titles = ["About you", "Documents", "Final questions"];
+  let at = 0;
+  const show = () => {
+    steps.forEach((step, index) => step.classList.toggle("on", index === at));
+    document.getElementById("progress").textContent = "Step " + (at + 1) + " of 3: " + titles[at];
+  };
+  document.querySelectorAll(".next").forEach((button) => button.addEventListener("click", () => { at = Math.min(2, at + 1); show(); }));
+  document.querySelectorAll(".back").forEach((button) => button.addEventListener("click", () => { at = Math.max(0, at - 1); show(); }));
+</script>
+</body>
+</html>

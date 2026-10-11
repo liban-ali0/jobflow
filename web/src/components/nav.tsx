@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/profile", label: "Profile" },
   { href: "/cvs", label: "CVs" },
   { href: "/activity", label: "Activity" },
+  { href: "/stats", label: "Stats", hint: "what works" },
   { href: "/settings", label: "Settings" },
 ];
 
