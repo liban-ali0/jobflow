@@ -177,5 +177,6 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   email: "Outreach email",
   answers: "Form answers",
   research: "Research",
+  follow_up: "Follow-up email",
   interview_pack: "Interview pack",
 };

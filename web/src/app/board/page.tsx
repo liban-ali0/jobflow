@@ -93,6 +93,11 @@ export default async function BoardPage(props: PageProps<"/board">) {
         eyebrow={`${open.length} in progress`}
         title="Board"
         description="Every job you picked, from research to outcome."
+        actions={
+          <a href="/board/export" download className="btn btn-quiet" title="All applications with dates, follow-ups, contacts, and salary, as a spreadsheet">
+            Export for Excel
+          </a>
+        }
       />
 
       <div className="mt-8 overflow-x-auto pb-2">

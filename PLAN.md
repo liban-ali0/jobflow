@@ -1,6 +1,6 @@
 # Job Application Workflow: Plan
 
-Status (2026-10-11): phases 1 and 2 are built (LinkedIn only; email-alert sources still to do). Sharing is built: anyone can install their own copy and set it up from the Setup screen. Phase 3 is next.
+Status (2026-10-11): phases 1 to 4 are built (LinkedIn only; email-alert sources still to do), plus sharing, the CVs page, and the CV editor. Phase 5 (schedule and fast track) is next.
 
 ## 1. Candidate profile
 

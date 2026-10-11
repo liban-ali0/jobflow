@@ -18,6 +18,7 @@ export const STAGES = {
   "research-job": { label: "Research", perJob: true },
   "tailor-job": { label: "Tailor documents", perJob: true },
   "design-template": { label: "Design CV template", perJob: false },
+  "follow-up": { label: "Write follow-up", perJob: true },
   assistant: { label: "Assistant message", perJob: false },
 } satisfies Record<string, StageDef>;
 

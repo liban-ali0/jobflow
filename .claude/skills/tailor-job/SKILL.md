@@ -75,7 +75,7 @@ Ready-to-paste answers for common application questions, each as `## Question` f
 
 ## Questions
 
-If a document needs a fact that the profile, `facts.md`, and the job's notes do not give (for example, the notice period), check `node scripts/jobs.mjs questions` for it first; if it was not asked, write `jobs/_work/<id>-tailor-q-<n>.json` with `text`, `why`, and `job_id` (or no `job_id` when it is about the candidate in general, like the notice period) and run `node scripts/jobs.mjs ask --file jobs/_work/<id>-tailor-q-<n>.json`. At most two questions. Write the documents anyway, with the cautious wording, and mention the open question in the report.
+If a document needs a fact that the profile, `facts.md`, and the job's notes do not give (for example, the notice period), check `node scripts/jobs.mjs questions` for it first; if it was not asked, write `jobs/_work/<id>-tailor-q-<n>.json` with `text`, `why`, and a `category`: `"you"` (no `job_id`) for facts like the notice period, `"cv"` (no `job_id`) for the candidate's background, or `"job"` with this `job_id` only for things that matter to this job alone and run `node scripts/jobs.mjs ask --file jobs/_work/<id>-tailor-q-<n>.json`. At most two questions. Write the documents anyway, with the cautious wording, and mention the open question in the report.
 
 ## Rules
 

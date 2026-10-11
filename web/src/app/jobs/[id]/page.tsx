@@ -4,6 +4,8 @@ import { runStage, saveNotes } from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
 import { Freshness } from "@/components/freshness";
 import { JobActionBar } from "@/components/job-actions";
+import { OutcomeBar } from "@/components/tracking";
+import { followUpState } from "@/lib/followups";
 import { StatusSelect } from "@/components/status-select";
 import { getJob, getSettings, listContacts, listDocuments, listEvents } from "@/lib/data";
 import { stageReady, stageRunning } from "@/lib/engine";
@@ -25,7 +27,7 @@ const SCORE_MAX: Record<string, number> = {
 };
 
 // Tabs in this order; the research is read-only reference.
-const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "research", "interview_pack"];
+const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "follow_up", "research", "interview_pack"];
 
 export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const { id } = await props.params;
@@ -50,7 +52,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       note: document.review_note,
       text: readText(document.path) ?? "(The file is missing.)",
       printable: PRINTABLE.has(document.type),
-      inPackage: document.type !== "research" && document.type !== "interview_pack",
+      inPackage: !["research", "follow_up", "interview_pack"].includes(document.type),
       version: document.updated_at,
     }));
   const hasResearch = documents.some((document) => document.type === "research");
@@ -85,6 +87,17 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       <div className="mt-6">
         <JobActionBar job={{ id: job.id, status: job.status, url: job.url, ranked: job.score !== null }} />
       </div>
+
+      {["applied", "replied", "interview", "offer"].includes(job.status) && (
+        <div className="mt-6">
+          <OutcomeBar
+            jobId={job.id}
+            status={job.status}
+            applied={job.applied_at ? `Applied ${formatDateTime(job.applied_at)}` : null}
+            followUp={followUpState(job)}
+          />
+        </div>
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_18rem]">
         <div className="min-w-0 space-y-6">

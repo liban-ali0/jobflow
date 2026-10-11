@@ -1,5 +1,6 @@
 import { getJob } from "@/lib/data";
 import { buildDepartures } from "@/lib/departures";
+import { csvResponse } from "@/lib/csv";
 import { STATUS_LABELS, type Job } from "@/lib/types";
 
 // Downloads jobs as a CSV file that Excel opens directly. With "ids" it
@@ -23,14 +24,6 @@ const COLUMNS: [string, (job: Job) => string | number | null][] = [
   ["Notes", (job) => job.notes],
 ];
 
-function cell(value: string | number | null) {
-  if (value === null || value === undefined) return "";
-  const text = String(value);
-  // Quote everything that could break a row, and stop spreadsheet formulas.
-  const safe = /^[=+\-@]/.test(text) ? `'${text}` : text;
-  return /[",\n\r]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
-}
-
 export function GET(request: Request) {
   const query = new URL(request.url).searchParams;
   const ids = (query.get("ids") ?? "")
@@ -44,15 +37,6 @@ export function GET(request: Request) {
     : buildDepartures((key) => query.get(key) ?? undefined).shown;
 
   const rows = [COLUMNS.map(([name]) => name), ...jobs.map((job) => COLUMNS.map(([, read]) => read(job)))];
-  // The byte-order mark tells Excel the file is UTF-8 (Arabic titles).
-  const csv = `﻿${rows.map((row) => row.map(cell).join(",")).join("\r\n")}\r\n`;
   const day = new Date().toISOString().slice(0, 10);
-
-  return new Response(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="jobflow-${day}${ids.length ? "-selected" : ""}.csv"`,
-      "Cache-Control": "no-store",
-    },
-  });
+  return csvResponse(rows, `jobflow-${day}${ids.length ? "-selected" : ""}.csv`);
 }

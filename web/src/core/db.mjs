@@ -22,7 +22,7 @@ export const STATUSES = [
   "excluded",
 ];
 
-export const DOCUMENT_TYPES = ["cv", "cover_letter", "email", "answers", "research", "interview_pack"];
+export const DOCUMENT_TYPES = ["cv", "cover_letter", "email", "answers", "research", "follow_up", "interview_pack"];
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS jobs (

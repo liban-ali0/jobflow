@@ -61,6 +61,7 @@ When a requirement matters for this job and neither the profile, `facts.md`, nor
 - Check `node scripts/jobs.mjs questions` first, so nothing already asked is asked again.
 - Write the question to `jobs/_work/<id>-question-<n>.json` with `text`, `why`, `job_id` (this job), and `options` when a few fixed answers fit, then run `node scripts/jobs.mjs ask --file jobs/_work/<id>-question-<n>.json`.
 - Example: `{"text": "This job asks for Docker. Have you used it, and where?", "why": "If so, the tailored CV can mention it under the right role.", "job_id": 67, "category": "job"}`.
+- Questions about the candidate's own background (tools used in a past role, how a result was measured, cloud or AI experience) help every future job, so ask them with `"category": "cv"` and no `job_id`: the answer then goes into `candidate/facts.md`. Use `"category": "job"` with the `job_id` only for things that matter to this job alone (for example, whether the candidate would accept its location or shift pattern).
 - Do not wait for answers. Tailoring uses whatever is known, and answers improve later rebuilds.
 
 ## Structure of research.md

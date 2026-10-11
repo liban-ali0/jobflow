@@ -324,6 +324,7 @@ const ENGINE_STAGES = [
   { key: "research-job", label: "Research" },
   { key: "tailor-job", label: "Tailor documents" },
   { key: "design-template", label: "Design CV template" },
+  { key: "follow-up", label: "Write follow-up" },
 ];
 
 const EFFORTS = [

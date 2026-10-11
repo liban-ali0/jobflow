@@ -10,6 +10,8 @@ import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/pagination";
 import { QuestionCard } from "@/components/question-card";
 import { researchSelected } from "@/app/job-actions";
+import { FollowUpRow } from "@/components/tracking";
+import { followUpsDue } from "@/lib/followups";
 import { countByStatus, getJob, hasCv, listDocuments, listJobs, listQuestions, listRuns, readProfile } from "@/lib/data";
 import { SHOW_VIEWS, buildDepartures } from "@/lib/departures";
 import { ENGINES, STAGES, closeAbandonedRuns, engineFor, queuedResearch, stageReady, type EngineKey } from "@/lib/engine";
@@ -157,6 +159,8 @@ export default async function TodayPage(props: PageProps<"/">) {
     })
     .filter((row) => row.waiting + row.changes > 0);
 
+  const followUps = followUpsDue();
+
   const today = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
   return (
@@ -291,6 +295,21 @@ export default async function TodayPage(props: PageProps<"/">) {
                   </span>
                 </Link>
               </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {followUps.length > 0 && (
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="section-title">Follow-ups due</h2>
+            <span className="font-mono text-xs text-slate">{followUps.length}</span>
+          </div>
+          <p className="mt-0.5 text-sm text-slate">Applications without a reply after {settings.followUpDays} days. One short follow-up each.</p>
+          <ul className="card mt-3 divide-y divide-line rounded-xl">
+            {followUps.map(({ job, sent, draftId, daysSinceApplied }) => (
+              <FollowUpRow key={job.id} jobId={job.id} title={job.title} company={job.company} days={daysSinceApplied} sent={sent} draftId={draftId} />
             ))}
           </ul>
         </section>
