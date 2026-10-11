@@ -6,6 +6,8 @@ import { Freshness } from "@/components/freshness";
 import { JobActionBar } from "@/components/job-actions";
 import { OutcomeBar } from "@/components/tracking";
 import { followUpState } from "@/lib/followups";
+import { checkCv } from "@/lib/ats";
+import { targetForJob } from "@/lib/ats-keywords";
 import { StatusSelect } from "@/components/status-select";
 import { getJob, getSettings, listContacts, listDocuments, listEvents } from "@/lib/data";
 import { stageReady, stageRunning } from "@/lib/engine";
@@ -40,7 +42,9 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const events = listEvents(job.id);
   const researching = stageRunning("research-job", job.id);
   const tailoring = stageRunning("tailor-job", job.id);
-  const working = researching ? "Researching this job…" : tailoring ? "Writing the documents…" : null;
+  const improving = stageRunning("improve-cv", job.id);
+  const working = researching ? "Researching this job…" : tailoring ? "Writing the documents…" : improving ? "Improving the CV for ATS…" : null;
+  const atsTarget = targetForJob(job.id);
   const reviewDocs: ReviewDoc[] = documents
     .filter((document) => DOCUMENT_ORDER.includes(document.type))
     .sort((a, b) => DOCUMENT_ORDER.indexOf(a.type) - DOCUMENT_ORDER.indexOf(b.type))
@@ -54,7 +58,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       printable: PRINTABLE.has(document.type),
       inPackage: !["research", "follow_up", "interview_pack"].includes(document.type),
       version: document.updated_at,
-    }));
+    }))
+    .map((doc) => (doc.type === "cv" ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc));
   const hasResearch = documents.some((document) => document.type === "research");
   const researchReady = stageReady("research-job");
   const tailorReady = stageReady("tailor-job");
@@ -191,7 +196,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
               )
             ) : (
               <div className="mt-4">
-                <DocumentReview jobId={job.id} docs={reviewDocs} rewriting={tailoring} />
+                <DocumentReview jobId={job.id} docs={reviewDocs} rewriting={tailoring} improving={improving} />
               </div>
             )}
           </section>

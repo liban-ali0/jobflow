@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
 import { parseCv, parseLetter, sectionKey, serializeCv, type CvDocument, type CvEntry, type CvSection } from "@/lib/cv-format";
 import { renderCv, renderLetter, type CvTemplate } from "@/lib/cv-render";
+import { checkCv, type AtsTarget } from "@/lib/ats";
+import { AtsPanel } from "@/components/ats-panel";
 
 const PREVIEW_WIDTH = 520;
 const NEW_SECTIONS = ["Summary", "Experience", "Education", "Projects", "Skills", "Certificates", "Languages", "Awards", "Volunteering"];
@@ -214,6 +216,9 @@ export function CvEditor({
   pdfHref,
   backHref,
   backLabel,
+  target = { text: "", keywords: [] },
+  keywordSource = "the keywords",
+  improve,
 }: {
   kind: "cv" | "cover_letter";
   initial: string;
@@ -223,6 +228,11 @@ export function CvEditor({
   pdfHref: string;
   backHref: string;
   backLabel: string;
+  // What the ATS score checks the CV against: the job's listing or the role.
+  target?: AtsTarget;
+  keywordSource?: string;
+  // "Fix with AI" for this CV, and whether it is running now.
+  improve?: { target: string; running: boolean };
 }) {
   const [templateId, setTemplateId] = useState(initialTemplate);
   const [savedTemplate, setSavedTemplate] = useState(initialTemplate);
@@ -249,6 +259,27 @@ export function CvEditor({
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  // "+" on a missing keyword: adds it to an "Other skills" line in Skills,
+  // where it can be moved or reworded.
+  const addKeyword = (term: string) => {
+    const add = (current: CvDocument): CvDocument => {
+      const sections = [...current.sections];
+      let at = sections.findIndex((section) => /skill/.test(section.key));
+      if (at < 0) {
+        sections.push({ title: "Skills", key: "skills", entries: [], bullets: [], text: [] });
+        at = sections.length - 1;
+      }
+      const bullets = [...sections[at].bullets];
+      const line = bullets.findIndex((bullet) => /^(\*\*)?other skills:?(\*\*)?/i.test(bullet));
+      if (line >= 0) bullets[line] = `${bullets[line].replace(/[\s,]+$/, "")}, ${term}`;
+      else bullets.push(`Other skills: ${term}`);
+      sections[at] = { ...sections[at], bullets };
+      return { ...current, sections };
+    };
+    if (mode === "form") setDoc(add(doc));
+    else setText(serializeCv(add(parseCv(text))));
+  };
+
   const switchTo = (next: "form" | "text") => {
     if (next === mode) return;
     if (next === "text") setText(serializeCv(doc));
@@ -256,6 +287,7 @@ export function CvEditor({
     setMode(next);
   };
   const scale = PREVIEW_WIDTH / 794;
+  const ats = useMemo(() => (kind === "cv" ? checkCv(markdown, target) : null), [kind, markdown, target]);
 
   return (
     <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_auto]">
@@ -324,6 +356,17 @@ export function CvEditor({
           </div>
         </div>
 
+        {ats && (
+          <div className="xl:hidden">
+            <AtsPanel
+              result={ats}
+              source={keywordSource}
+              onAddKeyword={addKeyword}
+              improve={improve && { ...improve, blocked: dirty ? "Save your changes first, so the AI works on your latest version." : undefined }}
+            />
+          </div>
+        )}
+
         {mode === "form" ? (
           <CvForm doc={doc} onChange={setDoc} />
         ) : (
@@ -345,8 +388,14 @@ export function CvEditor({
         )}
       </div>
 
-      <div className="hidden xl:block">
-        <div className="sticky top-28">
+      <div className="hidden xl:block" style={{ width: PREVIEW_WIDTH }}>
+        <div className="sticky top-28 max-h-[calc(100vh-8rem)] space-y-4 overflow-y-auto pb-4">
+          {ats && <AtsPanel
+              result={ats}
+              source={keywordSource}
+              onAddKeyword={addKeyword}
+              improve={improve && { ...improve, blocked: dirty ? "Save your changes first, so the AI works on your latest version." : undefined }}
+            />}
           <p className="mb-2 text-xs text-slate">Live preview · {template.name} template</p>
           <div className="overflow-hidden rounded-md border border-line bg-white shadow-sm" style={{ width: PREVIEW_WIDTH, height: Math.round(1123 * scale) }}>
             <iframe srcDoc={html} title="Preview" className="origin-top-left border-0" style={{ width: 794, height: 1123, transform: `scale(${scale})` }} />

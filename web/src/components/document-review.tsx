@@ -6,6 +6,8 @@ import type { ActionResult } from "@/app/actions";
 import { approveDocument, requestChanges, rewriteDocuments, saveDocumentText } from "@/app/document-actions";
 import { PagePreview } from "@/components/cv-actions";
 import { Markdown } from "@/components/markdown";
+import { AtsPanel } from "@/components/ats-panel";
+import type { AtsResult } from "@/lib/ats";
 
 export type ReviewDoc = {
   id: number;
@@ -18,6 +20,8 @@ export type ReviewDoc = {
   // Needs approval before the job is ready (everything except the research).
   inPackage: boolean;
   version: string;
+  // The ATS check of a CV against the job's keywords.
+  ats?: AtsResult;
 };
 
 const REVIEW = {
@@ -26,7 +30,7 @@ const REVIEW = {
   changes_requested: { label: "Changes requested", dot: "bg-coral", chip: "bg-coral-soft text-coral" },
 } as const;
 
-export function DocumentReview({ jobId, docs, rewriting }: { jobId: number; docs: ReviewDoc[]; rewriting: boolean }) {
+export function DocumentReview({ jobId, docs, rewriting, improving = false }: { jobId: number; docs: ReviewDoc[]; rewriting: boolean; improving?: boolean }) {
   const [current, setCurrent] = useState(docs.find((doc) => doc.inPackage && doc.review !== "approved")?.id ?? docs[0]?.id);
   const [mode, setMode] = useState<"read" | "edit" | "changes">("read");
   const [draft, setDraft] = useState("");
@@ -80,6 +84,7 @@ export function DocumentReview({ jobId, docs, rewriting }: { jobId: number; docs
           >
             {item.inPackage && <span className={`size-2 rounded-full ${REVIEW[item.review].dot}`} aria-hidden />}
             {item.label}
+            {item.ats && <span className="font-mono text-[11px] opacity-80">· ATS {item.ats.score}</span>}
           </button>
         ))}
       </div>
@@ -205,9 +210,16 @@ export function DocumentReview({ jobId, docs, rewriting }: { jobId: number; docs
             </div>
           </form>
         ) : doc.printable ? (
-          <a href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer" className="block w-fit" title="Open the full page">
-            <PagePreview src={`/api/documents/${doc.id}?v=${doc.version}`} title={doc.label} width={560} />
-          </a>
+          <div className="flex flex-wrap items-start gap-5">
+            <a href={`/api/documents/${doc.id}`} target="_blank" rel="noreferrer" className="block w-fit" title="Open the full page">
+              <PagePreview src={`/api/documents/${doc.id}?v=${doc.version}`} title={doc.label} width={doc.ats ? 440 : 560} />
+            </a>
+            {doc.ats && (
+              <div className="min-w-64 flex-1">
+                <AtsPanel result={doc.ats} source="this job's keywords" improve={{ target: `doc:${doc.id}`, running: improving }} />
+              </div>
+            )}
+          </div>
         ) : (
           <div className="max-h-[36rem] overflow-auto rounded-lg border border-line bg-surface p-4">
             {/* An email is shown exactly as written, line by line. */}

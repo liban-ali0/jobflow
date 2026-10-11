@@ -30,7 +30,7 @@ Start from the base CV for the role and adapt it to this job, following `templat
 
 - **Headline and summary**: aimed at this job's title and the requirements in the research. Name the role type, the strongest matching skills, and the level, truthfully.
 - **Order and emphasis**: put the experience bullets that match the job's real requirements first within each role; drop or shorten bullets that do not help this job. Keep every role in the profile with its true title, dates, and employment type.
-- **Keywords**: use the listing's exact words (from "ATS keywords" in the research) wherever the profile truly supports them, for example "REST APIs" if the listing says so and the profile shows API work. Never add a keyword the profile does not support.
+- **Keywords**: use the listing's exact words (from "ATS keywords" in the research) wherever the profile truly supports them, for example "REST APIs" if the listing says so and the profile shows API work, and cover every `(must)` keyword the profile supports. The app shows the candidate an ATS score for the CV (keywords matched plus format checks), but never add a keyword the profile does not support just to raise it.
 - **Skills**: reorder so the job's skills come first; leave out skills irrelevant to this job if space is short.
 - **Length**: one page. Cut the least relevant content first.
 - **Language**: the listing's language. If the listing is in Arabic, write the CV in Arabic; otherwise English.

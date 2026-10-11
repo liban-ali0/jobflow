@@ -69,3 +69,9 @@ export function previewCvMarkdown() {
   }
   return fs.readFileSync(path.join(ROOT, "templates", "sample-cv.md"), "utf8");
 }
+
+// When a file last changed, so screens can reload after the engine edits it.
+export function fileVersion(relative: string) {
+  const full = inside(relative);
+  return full && fs.existsSync(full) ? String(fs.statSync(full).mtimeMs) : "missing";
+}

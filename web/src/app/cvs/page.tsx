@@ -7,7 +7,10 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { AutoUpdateSwitch, DesignTemplateForm, PagePreview, RoleTemplateSelect, TemplateActions } from "@/components/cv-actions";
 import { PageHeader } from "@/components/page-header";
 import { ROOT, getSettings, hasCv, listAllDocuments, listRuns } from "@/lib/data";
-import { baseCvPath } from "@/lib/documents";
+import { baseCvPath, readText } from "@/lib/documents";
+import { AtsBadge } from "@/components/ats-panel";
+import { checkCv } from "@/lib/ats";
+import { targetForJob, targetForRole } from "@/lib/ats-keywords";
 import { formatDateTime } from "@/lib/format";
 import { DEFAULT_TEMPLATE, getTemplate, listTemplates } from "@/lib/templates";
 import { STATUS_LABELS } from "@/lib/types";
@@ -139,7 +142,10 @@ export default function CvsPage() {
                   )}
                   <div className="flex min-w-0 flex-1 flex-col gap-3">
                     <div>
-                      <h3 className="font-display text-lg font-semibold tracking-wide uppercase">{role.label}</h3>
+                      <h3 className="flex flex-wrap items-center gap-2 font-display text-lg font-semibold tracking-wide uppercase">
+                        {role.label}
+                        {built && <AtsBadge score={checkCv(readText(baseCvPath(role.key)) ?? "", targetForRole(role.key)).score} />}
+                      </h3>
                       <p className="text-xs text-slate">{built ? `Built ${formatDateTime(built)}` : "Use Rebuild all from profile."}</p>
                     </div>
                     <RoleTemplateSelect
@@ -203,7 +209,10 @@ export default function CvsPage() {
                         <td key={type} className="px-4 py-3">
                           {doc ? (
                             <div className="space-y-1.5">
-                              <ReviewChip review={doc.review} />
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <ReviewChip review={doc.review} />
+                                {type === "cv" && <AtsBadge score={checkCv(readText(doc.path) ?? "", targetForJob(jobId)).score} />}
+                              </div>
                               <div className="flex gap-3 text-xs">
                                 <Link href={`/cvs/edit/document/${doc.id}`} className="text-teal underline">
                                   Edit

@@ -29,7 +29,7 @@ What they do, main products or clients, size, ownership or funding, where they o
 ## Job analysis
 
 - **Real requirements**: what the listing truly needs versus what is nice to have. Note the level and years asked.
-- **Keywords**: the exact skills, tools, and phrases an automated CV reader (ATS) will look for. List them as written in the listing, in its language.
+- **ATS keywords**: the skills, tools, qualifications, and job-title terms an automated CV reader (ATS) will look for, as written in the listing and in its language. One per line as a bullet, short (one to three words, for example `- Spring Boot`), most important first, with `(must)` after the ones the listing requires (for example `- Java (must)`). Leave out years of experience and degrees; the fit table covers them. The app scores every CV against this list, so keep it to 15 to 40 real keywords.
 - **What the team probably does**: day-to-day work, products, and stack, inferred from the listing and the company research.
 - **Fit against the profile**: for each important requirement, whether the profile shows it (with the evidence from the profile), shows something close, or does not show it. Be honest: this decides what the documents emphasise.
 - **Angle**: two or three specific reasons this candidate fits this job, which the cover letter and email can build on.
