@@ -11,6 +11,7 @@ import { parseCv, type CvDocument } from "./cv-format";
 import { scoreResume } from "@/vendor/ats-screener/scorer/engine";
 import { ALL_PROFILES } from "@/vendor/ats-screener/scorer/profiles";
 import type { ScoringInput, Suggestion } from "@/vendor/ats-screener/scorer/types";
+import { QUANTIFICATION_PATTERNS, STRONG_ACTION_VERBS } from "@/vendor/ats-screener/scorer/experience-scorer";
 
 export type AtsKeyword = { term: string; must: boolean };
 export type AtsCheck = { id: string; label: string; ok: boolean; detail: string };
@@ -174,6 +175,15 @@ function jobflowChecks(doc: CvDocument): AtsCheck[] {
 // ---------- what to fix ----------
 
 type EngineResult = ReturnType<typeof scoreResume>[number];
+
+// The start of a bullet, to point at it in a fix.
+const quote = (bullet: string) => {
+  const words = bullet.trim().split(/\s+/);
+  return `“${words.slice(0, 7).join(" ")}${words.length > 7 ? "…" : ""}”`;
+};
+const listed = (bullets: string[], max = 3) => `${bullets.slice(0, max).map(quote).join(", ")}${bullets.length > max ? `, and ${bullets.length - max} more` : ""}`;
+const hasNumber = (bullet: string) => QUANTIFICATION_PATTERNS.some((pattern) => pattern.test(bullet));
+const firstWord = (bullet: string) => bullet.trim().split(/\s+/)[0]?.toLowerCase().replace(/[^a-z]/g, "") ?? "";
 const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 // Points lost in the six-system half of the score, split by cause. Each
@@ -195,22 +205,27 @@ function systemFixes(results: EngineResult[], input: ScoringInput, hasKeywordLis
     const w = weights(index);
     return (40 - Math.min(1, quantRatio / 0.4) * 40) * w.experienceRelevance + (100 - quantRatio * 100) * w.quantification;
   });
+  const withoutNumbers = input.experienceBullets.filter((bullet) => !hasNumber(bullet));
   if (quantPoints >= 0.5) {
     fixes.push({
       label: "Put numbers in more experience bullets",
       detail:
-        quantRatio >= 0.4
+        (quantRatio >= 0.4
           ? `${quantified} of ${total} bullets (${Math.round(quantRatio * 100)}%) have a number, which is good; each extra one still adds a little (users, time saved, percentages, money).`
-          : `${quantified} of ${total} bullets (${Math.round(quantRatio * 100)}%) have a number. Aim for 40% or more: users, time saved, percentages, money.`,
+          : `${quantified} of ${total} bullets (${Math.round(quantRatio * 100)}%) have a number. Aim for 40% or more: users, time saved, percentages, money.`) +
+        (withoutNumbers.length ? ` Without one: ${listed(withoutNumbers)}.` : ""),
       points: quantPoints,
       kind: "fix",
     });
   }
+  const weakStarts = input.experienceBullets.filter((bullet) => !STRONG_ACTION_VERBS.has(firstWord(bullet)));
   const verbPoints = share((_, index) => (30 - Math.min(1, verbRatio / 0.7) * 30) * weights(index).experienceRelevance);
   if (verbPoints >= 0.5) {
     fixes.push({
       label: "Start more bullets with a strong action verb",
-      detail: `${Math.round(verbRatio * 100)}% start with one (for example Built, Led, Reduced, Automated). Aim for 70%.`,
+      detail: `${Math.round(verbRatio * 100)}% start with one (for example Built, Led, Reduced, Automated). Aim for 70%.${
+        weakStarts.length ? ` Change the start of ${listed(weakStarts)}.` : ""
+      }`,
       points: verbPoints,
       kind: "fix",
     });
@@ -307,6 +322,27 @@ function keywordFixes(results: EngineResult[], target: AtsTarget, matched: AtsKe
   return fixes;
 }
 
+// Keywords found only in the Skills list: systems that rank by context, and
+// recruiters, trust a skill more when a job's bullets show it in use.
+function contextFix(doc: CvDocument, matched: AtsKeyword[]): AtsFix[] {
+  const used = new Set(
+    tokens(
+      [doc.headline, ...doc.sections.filter((section) => !/skill|competenc|technolog/.test(section.key)).flatMap((section) => [...section.text, ...section.bullets, ...section.entries.flatMap((entry) => [entry.title, ...entry.bullets, ...entry.text])])].join("\n"),
+    ),
+  );
+  const listOnly = matched.filter((keyword) => !present(keyword.term, used));
+  if (!listOnly.length) return [];
+  const terms = [...listOnly.filter((keyword) => keyword.must), ...listOnly.filter((keyword) => !keyword.must)].map((keyword) => keyword.term);
+  return [
+    {
+      label: `Show ${terms.length === 1 ? "this skill" : `these ${terms.length} skills`} in your experience, not only in Skills`,
+      detail: `${terms.slice(0, 12).join(", ")}${terms.length > 12 ? ", …" : ""}. Name each one in the bullet where you used it, or in the summary: a skill shown in use counts for more than a list.`,
+      points: 0,
+      kind: "fix",
+    },
+  ];
+}
+
 export function checkCv(markdown: string, target: AtsTarget): AtsResult {
   const doc = parseCv(markdown);
   const input = scoringInput(doc, markdown, target);
@@ -346,7 +382,7 @@ export function checkCv(markdown: string, target: AtsTarget): AtsResult {
   return {
     ...base,
     score: Math.round((systemsScore + percent) / 2),
-    fixes: sortFixes([...keywordFixes(results, target, matched, missing), ...systemFixes(results, input, true), ...checkFixes]),
+    fixes: sortFixes([...keywordFixes(results, target, matched, missing), ...systemFixes(results, input, true), ...contextFix(doc, matched), ...checkFixes]),
     keywords: {
       matched: matched.map((keyword) => keyword.term),
       missing: missing.map((keyword) => keyword.term),

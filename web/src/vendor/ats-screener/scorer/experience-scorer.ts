@@ -1,5 +1,5 @@
 // strong action verbs that ATS systems and recruiters look for in bullet points
-const STRONG_ACTION_VERBS = new Set([
+export const STRONG_ACTION_VERBS = new Set([
 	'achieved',
 	'accelerated',
 	'administered',
@@ -100,7 +100,7 @@ const STRONG_ACTION_VERBS = new Set([
 ]);
 
 // patterns indicating quantified achievements (measurable impact boosts ATS scores)
-const QUANTIFICATION_PATTERNS = [
+export const QUANTIFICATION_PATTERNS = [
 	/\d+%/, // percentages: "increased by 30%"
 	/\$[\d,]+/, // dollar amounts: "$1.2M"
 	/\d+\s*(?:x|times)/i, // multipliers: "3x improvement"
