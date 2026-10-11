@@ -20,7 +20,10 @@ export function QuestionCard({ question, jobTitle }: { question: Question; jobTi
     });
 
   return (
-    <article className="card border-l-4 border-l-saffron p-4">
+    <article className="card rounded-xl p-5 shadow-sm">
+      <p className="mb-2 flex items-center gap-2 font-mono text-[10px] tracking-[0.18em] text-slate uppercase">
+        <span aria-hidden className="fresh-dot size-1.5 rounded-full bg-saffron" />Q-{String(question.id).padStart(3, "0")} · waiting for you
+      </p>
       <div className="flex items-start justify-between gap-3">
         <p className="font-medium" dir="auto">
           {question.text}

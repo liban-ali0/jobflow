@@ -57,6 +57,7 @@ export default function StatsPage() {
         </div>
       )}
 
+      {stats.applied > 0 && (
       <div className="mt-8">
         <Panel title="Application results" hint="All applications, including rejected and unanswered jobs. Interviews and offers count as replies; a rejection alone does not.">
           <dl className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -75,6 +76,7 @@ export default function StatsPage() {
           </dl>
         </Panel>
       </div>
+      )}
 
       <div className="mt-6">
         <Panel title="From found to offer" hint="Jobs that reached each stage, counted once. Last 30 days follows jobs found in that period and their progress so far.">
@@ -102,6 +104,9 @@ export default function StatsPage() {
         </Panel>
       </div>
 
+      {/* The breakdowns need applications to say anything. */}
+      {stats.applied > 0 && (
+      <>
       <div className="mt-6 grid items-start gap-6 lg:grid-cols-3">
         <BreakdownPanel title="By source" rows={stats.sources} />
         <BreakdownPanel title="By country" rows={stats.countries} hint="In your settings’ priority order." />
@@ -117,6 +122,8 @@ export default function StatsPage() {
           </dl>
         </Panel>
       </div>
+      </>
+      )}
     </div>
   );
 }

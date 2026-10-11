@@ -15,6 +15,35 @@ const GROUPS = [
   { key: "job", title: "This job", hint: "Questions about one job. The answer is saved with that job and used for its documents." },
 ] as const;
 
+// One answered or dismissed question, with what was answered.
+function AnsweredRow({ question }: { question: Question }) {
+  return (
+    <li className="px-4 py-3 text-sm">
+      <p dir="auto">
+        {question.text}
+        {question.job_id && (
+          <Link href={`/jobs/${question.job_id}`} className="ml-2 text-xs text-teal underline">
+            job
+          </Link>
+        )}
+      </p>
+      <p className="mt-1">
+        {question.status === "answered" ? (
+          <span className="font-medium" dir="auto">
+            {question.answer}
+          </span>
+        ) : (
+          <span className="text-slate">Dismissed</span>
+        )}
+        <span className="text-xs text-slate"> · {formatDateTime(question.answered_at)}</span>
+      </p>
+    </li>
+  );
+}
+
+// The latest answers show; older ones fold away.
+const RECENT = 6;
+
 export default function QuestionsPage() {
   const open = listQuestions("open");
   const closed = listQuestions().filter((question) => question.status !== "open").slice(0, 30);
@@ -75,30 +104,21 @@ export default function QuestionsPage() {
       {closed.length > 0 && (
         <section className="mt-12">
           <h2 className="section-title">Answered</h2>
-          <ul className="card mt-3 divide-y divide-line">
-            {closed.map((question) => (
-              <li key={question.id} className="px-4 py-3 text-sm">
-                <p dir="auto">
-                  {question.text}
-                  {question.job_id && (
-                    <Link href={`/jobs/${question.job_id}`} className="ml-2 text-xs text-teal underline">
-                      job
-                    </Link>
-                  )}
-                </p>
-                <p className="mt-1">
-                  {question.status === "answered" ? (
-                    <span className="font-medium" dir="auto">
-                      {question.answer}
-                    </span>
-                  ) : (
-                    <span className="text-slate">Dismissed</span>
-                  )}
-                  <span className="text-xs text-slate"> · {formatDateTime(question.answered_at)}</span>
-                </p>
-              </li>
+          <ul className="card mt-3 divide-y divide-line/70 overflow-hidden rounded-xl">
+            {closed.slice(0, RECENT).map((question) => (
+              <AnsweredRow key={question.id} question={question} />
             ))}
           </ul>
+          {closed.length > RECENT && (
+            <details className="mt-2">
+              <summary className="cursor-pointer px-1 py-2 text-sm font-medium text-teal">Show {closed.length - RECENT} more</summary>
+              <ul className="card mt-1 divide-y divide-line/70 overflow-hidden rounded-xl">
+                {closed.slice(RECENT).map((question) => (
+                  <AnsweredRow key={question.id} question={question} />
+                ))}
+              </ul>
+            </details>
+          )}
         </section>
       )}
     </div>

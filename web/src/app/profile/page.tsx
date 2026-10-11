@@ -2,6 +2,7 @@ import { runStage, saveFacts, saveRules } from "@/app/actions";
 import Link from "next/link";
 import { ActionButton } from "@/components/action-button";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { Markdown } from "@/components/markdown";
 import { PageHeader } from "@/components/page-header";
 import { TextForm } from "@/components/text-form";
 import { getSettings, hasCv, listQuestions, listRuns, profileUpdatedAt, readFacts, readProfile } from "@/lib/data";
@@ -97,10 +98,11 @@ export default function ProfilePage() {
 
         <section className="card p-5">
           <h2 className="card-title">Current profile</h2>
+          <p className="mt-0.5 text-sm text-slate">What every step reads about you, built from your CV and the facts above.</p>
           {profile ? (
-            <pre className="mt-3 max-h-[32rem] overflow-auto rounded bg-mist p-4 font-mono text-[13px] leading-relaxed whitespace-pre-wrap" dir="auto">
-              {profile}
-            </pre>
+            <div className="mt-3 max-h-[36rem] overflow-auto rounded-lg bg-mist/50 px-5 py-4" dir="auto">
+              <Markdown text={profile} />
+            </div>
           ) : (
             <p className="mt-2 text-sm text-slate">
               No profile yet. {cv ? "Use Rebuild profile to create it from your CV." : "Add your CV as a PDF in the candidate folder first."}
