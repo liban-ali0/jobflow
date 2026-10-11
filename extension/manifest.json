@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "Jobflow",
+  "version": "0.1.0",
+  "description": "Send the job listings on the page you are reading to your own Jobflow app.",
+  "action": { "default_popup": "popup.html", "default_title": "Send to Jobflow" },
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"]
+}

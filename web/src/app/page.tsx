@@ -122,7 +122,7 @@ export default async function TodayPage(props: PageProps<"/">) {
 
   closeAbandonedRuns();
   const runs = listRuns(50);
-  const lastRuns = (["find-jobs", "rank-jobs"] as const)
+  const lastRuns = (["find-jobs", "browse-jobs", "rank-jobs"] as const)
     .map((stage) => runs.find((run) => run.stage === stage))
     .filter((run): run is Run => Boolean(run));
   const active = lastRuns.some((run) => run.status === "running");
@@ -177,7 +177,7 @@ export default async function TodayPage(props: PageProps<"/">) {
               variant="primary"
               action={runStage.bind(null, "find-jobs", null)}
               disabled={!findReady}
-              title="Search LinkedIn for jobs posted in the last day"
+              title={`Search ${settings.sources.filter((source) => source.enabled && source.key !== "careers").map((source) => source.name).join(", ") || "the enabled sources"} for jobs posted in the last ${settings.freshness.maxHours} hours`}
             >
               Find new jobs
             </ActionButton>

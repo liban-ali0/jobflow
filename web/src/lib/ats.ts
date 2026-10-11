@@ -32,7 +32,7 @@ export type AtsResult = {
   checks: AtsCheck[];
 };
 // What a CV is checked against: the listing text and research's keywords.
-export type AtsTarget = { text: string; keywords: AtsKeyword[] };
+export type AtsTarget = { text: string; keywords: AtsKeyword[]; title?: string };
 
 // ---------- keyword matching ----------
 
@@ -156,14 +156,67 @@ function scoringInput(doc: CvDocument, markdown: string, target: AtsTarget): Sco
 const DATES = /((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4}|\b\d{4}\b)/i;
 const FIRST_PERSON = /\b(i|my|me)\b/i;
 
+// Words that make a bullet describe duties instead of results.
+const FILLER = /\b(responsible for|duties included|helped( to)?|assisted (in|with)|worked on|involved in|participated in|tasked with|various|etc\.?)(?=\W|$)/i;
+
+// The listing's title without extras such as "(Remote)" or "- Dubai".
+const coreTitle = (title: string) => title.replace(/\(.*?\)/g, " ").split(/\s[-–|,/]\s|\s@\s/)[0].trim();
+
 // A few checks the engine does not make, shown alongside its scores.
-function jobflowChecks(doc: CvDocument): AtsCheck[] {
+function jobflowChecks(doc: CvDocument, target: AtsTarget): AtsCheck[] {
   const experience = doc.sections.filter((section) => canonicalSection(section.key) === "experience").flatMap((section) => section.entries);
+  const bullets = experience.flatMap((entry) => entry.bullets.map(plain)).filter((bullet) => bullet.trim());
   const undated = experience.filter((entry) => !DATES.test(entry.dates));
   const thin = experience.filter((entry) => entry.bullets.length < 2 || entry.bullets.length > 6);
   const firstPerson = [...experience.flatMap((entry) => entry.bullets), ...doc.sections.flatMap((section) => section.text)].filter((line) => FIRST_PERSON.test(line));
   const contact = doc.contact.join(" ");
+  const filler = bullets.filter((bullet) => FILLER.test(bullet));
+  const wordsIn = (bullet: string) => bullet.split(/\s+/).filter(Boolean).length;
+  const tooShort = bullets.filter((bullet) => wordsIn(bullet) < 8);
+  const tooLong = bullets.filter((bullet) => wordsIn(bullet) > 35);
+  // The same opening verb on three or more bullets.
+  const starts = new Map<string, number>();
+  for (const bullet of bullets) starts.set(firstWord(bullet), (starts.get(firstWord(bullet)) ?? 0) + 1);
+  const repeated = [...starts].filter(([word, count]) => word && count >= 3).map(([word, count]) => `${capitalize(word)} (${count}×)`);
+  // The title the listing uses, in the headline or summary.
+  const title = target.title ? coreTitle(target.title) : "";
+  const summary = doc.sections.filter((section) => canonicalSection(section.key) === "summary").flatMap((section) => section.text);
+  const titleShown = !title || significant(title).length === 0 || present(title, new Set(tokens([doc.headline, ...summary].join("\n"))));
+  const words = [doc.headline, ...doc.sections.flatMap((section) => [section.title, ...section.text, ...section.bullets, ...section.entries.flatMap((entry) => [entry.title, entry.org, ...entry.bullets, ...entry.text])])]
+    .join(" ")
+    .split(/\s+/)
+    .filter(Boolean).length;
   return [
+    {
+      id: "title",
+      label: "The job's title in your headline or summary",
+      ok: titleShown,
+      detail: `The listing says “${title}”. Recruiters search by title, so use it (if it fits you) in the headline or the summary's first line.`,
+    },
+    {
+      id: "filler",
+      label: "Bullets say what you achieved, not your duties",
+      ok: filler.length === 0,
+      detail: filler.length ? `Rewrite ${listed(filler)}: drop “responsible for”, “helped”, “worked on” and say what you did and what changed.` : "",
+    },
+    {
+      id: "length",
+      label: "Bullets of 1 to 2 lines",
+      ok: tooShort.length === 0 && tooLong.length === 0,
+      detail: [tooLong.length ? `Too long (over 35 words): ${listed(tooLong, 2)}.` : "", tooShort.length ? `Too short to show a result: ${listed(tooShort, 2)}.` : ""].filter(Boolean).join(" "),
+    },
+    {
+      id: "variety",
+      label: "Varied opening verbs",
+      ok: repeated.length === 0,
+      detail: repeated.length ? `${repeated.join(", ")}. Vary them so each bullet reads as its own result (Built, Cut, Led, Automated…).` : "",
+    },
+    {
+      id: "size",
+      label: "Fits one or two pages",
+      ok: words >= 250 && words <= 800,
+      detail: words > 800 ? `${words} words. Over about 800 it runs past two pages; cut the oldest or least related bullets.` : `${words} words. Under about 250 it looks thin; add results to your recent jobs.`,
+    },
     { id: "contact", label: "Email and phone in the header", ok: /@/.test(contact) && /\d{6,}/.test(contact.replace(/[\s()+-]/g, "")), detail: "CV readers take your contact details from the top." },
     { id: "headline", label: "Headline under your name", ok: Boolean(doc.headline), detail: "A short line naming the role you are after." },
     { id: "dates", label: "Dates on every job", ok: experience.length > 0 && undated.length === 0, detail: undated.length ? `Missing or unclear: ${undated.map((entry) => entry.title || "an entry").join(", ")}.` : "" },
@@ -349,7 +402,7 @@ export function checkCv(markdown: string, target: AtsTarget): AtsResult {
   const results = scoreResume(input);
   const systemsScore = average(results.map((result) => result.overallScore));
   const hasKeywordList = target.keywords.length > 0;
-  const checks = jobflowChecks(doc);
+  const checks = jobflowChecks(doc, target);
   // Jobflow's own checks carry no points, but recruiters notice them.
   const checkFixes: AtsFix[] = checks.filter((check) => !check.ok).map((check) => ({ label: check.label, detail: check.detail, points: 0, kind: "fix" }));
   const sortFixes = (fixes: AtsFix[]) =>
@@ -362,7 +415,7 @@ export function checkCv(markdown: string, target: AtsTarget): AtsResult {
     systemsScore,
     systems: results.map((result) => ({ name: result.system, vendor: result.vendor, score: result.overallScore, passes: result.passesFilter })),
     suggestions,
-    checks: jobflowChecks(doc),
+    checks,
   };
 
   if (!hasKeywordList) {

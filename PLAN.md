@@ -39,18 +39,22 @@ A third, separate list holds graduate programs, which run on deadlines rather th
 
 ### Stage 1: Collect
 
-Sources, as tested on 2026-09-27:
+Sources, as tested on 2026-09-27 and 2026-10-12:
 
 | Source | Access | Method |
 |---|---|---|
-| LinkedIn | Public job feed answers plain requests, no login | `scripts/collect.mjs`: about 30 list requests plus one per new job, 1.5 s apart |
-| Bayt | Blocks Node and headless browsers (Cloudflare) | Job alert emails, to build |
-| GulfTalent | Cloudflare challenge | Job alert emails, to build |
-| Indeed (Gulf domains) | Blocked page | Job alert emails, to build |
-| Naukrigulf | Drops the connection | Job alert emails, to build |
+| LinkedIn | Public job feed answers plain requests, no login | `scripts/collect.mjs` |
+| Workable | Public job search API (jobs.workable.com), filter by days, full descriptions | `scripts/collect.mjs` |
+| Indeed (all countries) | Blocks plain requests, headless browsers, and RSS; loads normally in the user's Chrome | `browse-jobs` step through Claude in Chrome (Claude Code), or the Jobflow extension |
+| Bayt | Blocks Node and headless browsers (Cloudflare) | Same as Indeed |
+| GulfTalent | Cloudflare challenge | Same as Indeed |
+| Naukrigulf | Needs JavaScript; headless connection dropped | Same as Indeed |
+| Kariyer.net (Turkey) | Blocks headless browsers | Same as Indeed |
 | Company career pages | Not tested | Watchlist of target employers and graduate programs, to build |
 
-Bypassing the blocks (browser disguise, VPN or IP rotation) is ruled out: it defeats the sites' bot protection and risks getting this machine's IP blocked.
+Bypassing the blocks (browser disguise, stealth plugins, VPN, proxies or IP rotation) is ruled out: it defeats the sites' bot protection and risks getting this machine's IP and the user's accounts blocked. Blocked sites are read in the user's own browser instead: Claude in Chrome for Claude Code users (tested 2026-10-12: Indeed loads normally), the Jobflow extension for everyone, including Codex users.
+
+Countries are searched in the user's priority order. Tested 2026-10-12 and rejected: Secretcv (search results unrelated to the keywords), Glassdoor, Yenibiris and QatarLiving (Cloudflare).
 
 First real run: 228 listings, 61 new within 24 hours, 18 more dropped because LinkedIn listed them as Mid-Senior level despite the entry-level filter.
 

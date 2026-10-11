@@ -185,12 +185,21 @@ function readDefaults(rootDir) {
   return JSON.parse(fs.readFileSync(path.join(rootDir, "config", "defaults.json"), "utf8"));
 }
 
+// Sources are defined by the code (config/defaults.json); only the user's
+// on/off choice is saved, so sources added later appear in every copy.
+function normalizeSources(defaults, saved) {
+  const enabled = new Map((saved ?? []).map((source) => [source.key, source.enabled]));
+  return defaults.map((source) => ({ ...source, enabled: enabled.get(source.key) ?? source.enabled }));
+}
+
 export function getSettings(db) {
-  const settings = readDefaults(db.rootDir);
+  const defaults = readDefaults(db.rootDir);
+  const settings = structuredClone(defaults);
   for (const row of db.prepare("SELECT key, value FROM settings").all()) {
     settings[row.key] = JSON.parse(row.value);
   }
   settings.experience = normalizeExperience(settings.experience);
+  settings.sources = normalizeSources(defaults.sources, settings.sources);
   return settings;
 }
 

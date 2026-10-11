@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Jobflow</title>
+    <style>
+      :root {
+        --navy: #12203a;
+        --yellow: #ffc20e;
+        --ink: #1b2433;
+        --slate: #5b6576;
+        --line: #d9dee7;
+        --go: #1d7a46;
+        --stop: #b3261e;
+        color-scheme: light;
+      }
+      body { margin: 0; width: 300px; font: 14px/1.45 system-ui, sans-serif; color: var(--ink); background: #f6f7f9; }
+      header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--navy); color: #fff; }
+      header b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; background: #e63946; font-weight: 700; }
+      header span { font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+      main { padding: 14px; }
+      button { width: 100%; padding: 10px; border: 0; border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; background: var(--yellow); color: var(--navy); }
+      button:disabled { opacity: 0.5; cursor: default; }
+      button.quiet { margin-top: 8px; padding: 6px; background: transparent; color: var(--slate); font-weight: 500; text-decoration: underline; }
+      #status { margin: 10px 0 0; min-height: 1.4em; font-size: 13px; }
+      .ok { color: var(--go); }
+      .error { color: var(--stop); }
+      label { display: block; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--slate); }
+      input { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font: 13px ui-monospace, monospace; }
+      p.hint { margin: 8px 0 0; font-size: 12px; color: var(--slate); }
+      [hidden] { display: none; }
+    </style>
+  </head>
+  <body>
+    <header><b>J</b><span>Jobflow</span></header>
+    <main>
+      <section id="send">
+        <button id="sendButton" type="button">Send this page to Jobflow</button>
+        <p id="status" role="status"></p>
+        <p class="hint">Works on search results or one job's page, on any job site. Your engine picks out the jobs; they appear on Today.</p>
+        <button id="showSetup" class="quiet" type="button">Connection settings</button>
+      </section>
+      <form id="setup" hidden>
+        <label>Jobflow address <input id="address" value="http://localhost:3000" spellcheck="false" /></label>
+        <label>Key, from Settings → Sources <input id="token" spellcheck="false" autocomplete="off" /></label>
+        <p class="hint">Jobflow must be running on this computer.</p>
+        <button type="submit" style="margin-top: 12px">Save</button>
+      </form>
+    </main>
+    <script src="popup.js"></script>
+  </body>
+</html>

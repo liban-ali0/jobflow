@@ -54,28 +54,40 @@
       "method": "Public job feed, no login, a few dozen requests per search"
     },
     {
+      "key": "workable",
+      "name": "Workable",
+      "enabled": true,
+      "method": "Workable's public job search: companies hiring through Workable, with full descriptions"
+    },
+    {
       "key": "bayt",
       "name": "Bayt",
       "enabled": false,
-      "method": "Job alert emails (blocks automated access)"
+      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
     },
     {
       "key": "gulftalent",
       "name": "GulfTalent",
       "enabled": false,
-      "method": "Job alert emails (blocks automated access)"
+      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
     },
     {
       "key": "naukrigulf",
       "name": "Naukrigulf",
       "enabled": false,
-      "method": "Job alert emails (blocks automated access)"
+      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
     },
     {
       "key": "indeed",
-      "name": "Indeed (Gulf domains)",
+      "name": "Indeed",
       "enabled": false,
-      "method": "Job alert emails (blocks automated access)"
+      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
+    },
+    {
+      "key": "kariyer",
+      "name": "Kariyer.net",
+      "enabled": false,
+      "method": "Through your own Chrome with Claude in Chrome (the site blocks automated access)"
     },
     {
       "key": "careers",

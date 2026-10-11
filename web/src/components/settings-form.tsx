@@ -1,5 +1,6 @@
 "use client";
 
+import { ExtensionSetup } from "@/components/extension-setup";
 import { createContext, startTransition, useActionState, useContext, useEffect, useRef, useState } from "react";
 import { saveSettings } from "@/app/actions";
 import { AppearanceSection } from "@/components/appearance-section";
@@ -327,6 +328,7 @@ const ENGINE_STAGES = [
   { key: "follow-up", label: "Write follow-up" },
   { key: "improve-cv", label: "Improve CV for ATS" },
   { key: "weave-keyword", label: "Work keyword into CV" },
+  { key: "import-jobs", label: "Import jobs from the browser" },
 ];
 
 const EFFORTS = [
@@ -455,7 +457,7 @@ function GroupHeading({ gate }: { gate: string }) {
 
 // Only LinkedIn is collected automatically; the others wait for job alert
 // emails, so they cannot be switched on yet.
-const BUILT_SOURCES = new Set(["linkedin"]);
+const BUILT_SOURCES = new Set(["linkedin", "workable", "indeed", "bayt", "gulftalent", "naukrigulf", "kariyer"]);
 
 const SECTION_IDS = GROUPS.flatMap((group) => group.sections.map((section) => section.id));
 
@@ -465,7 +467,7 @@ function sectionValues(form: HTMLFormElement, id: string) {
   return [...fields].map((field) => `${field.name}=${field.type === "checkbox" ? field.checked : field.value}`).join("\n");
 }
 
-export function SettingsForm({ settings, countryOptions }: { settings: Settings; countryOptions: CountryOption[] }) {
+export function SettingsForm({ settings, countryOptions, extension }: { settings: Settings; countryOptions: CountryOption[]; extension: { token: string; folder: string } }) {
   const [result, action, pending] = useActionState(saveSettings, null);
   const form = useRef<HTMLFormElement>(null);
   const saved = useRef(new Map<string, string>());
@@ -624,6 +626,7 @@ export function SettingsForm({ settings, countryOptions }: { settings: Settings;
               );
             })}
           </SwitchList>
+          <ExtensionSetup {...extension} />
         </Section>
 
         <Section id="schedule" title="Schedule" hint="Not available yet. For now, steps run when you start them from Today.">

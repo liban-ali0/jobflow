@@ -4,6 +4,7 @@
       "Read",
       "WebSearch",
       "WebFetch",
+      "mcp__claude-in-chrome",
       "Bash(node scripts/jobs.mjs)",
       "Bash(node scripts/jobs.mjs *)",
       "Bash(node scripts/collect.mjs)",

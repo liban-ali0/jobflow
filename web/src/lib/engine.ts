@@ -9,11 +9,15 @@ import type { Conversation, EngineChoice } from "./types";
 // chosen in Settings (Claude Code or Codex). Script stages run a Node script
 // directly, which is faster and costs nothing. "assistant" runs carry a chat
 // message from the Assistant screen.
-type StageDef = { label: string; perJob: boolean; script?: string };
+// "chrome" steps read sites through the user's own Chrome (Claude in Chrome),
+// which only Claude Code can do.
+type StageDef = { label: string; perJob: boolean; script?: string; chrome?: boolean };
 
 export const STAGES = {
   "build-profile": { label: "Build profile from CV", perJob: false },
   "find-jobs": { label: "Find new jobs", perJob: false, script: "scripts/collect.mjs" },
+  "browse-jobs": { label: "Find jobs in Chrome", perJob: false, chrome: true },
+  "import-jobs": { label: "Import jobs from the browser", perJob: false },
   "rank-jobs": { label: "Check and rank", perJob: false },
   "research-job": { label: "Research", perJob: true },
   "tailor-job": { label: "Tailor documents", perJob: true },
@@ -45,6 +49,11 @@ export function isStage(value: string): value is Stage {
 }
 
 const scriptOf = (stage: Stage) => (STAGES[stage] as StageDef).script;
+const usesChrome = (stage: Stage) => Boolean((STAGES[stage] as StageDef).chrome);
+
+// Sources read through Chrome by the browse-jobs step.
+export const CHROME_SOURCES = ["indeed", "bayt", "gulftalent", "naukrigulf", "kariyer"];
+export const chromeSourcesOn = () => getSettings().sources.some((source) => source.enabled && CHROME_SOURCES.includes(source.key));
 const skillFile = (stage: Stage) => path.join(ROOT, ".claude", "skills", stage, "SKILL.md");
 
 export function stageReady(stage: Stage) {
@@ -87,6 +96,7 @@ export function conversationRunning(conversationId: number) {
 
 export function engineFor(stage: Stage): EngineChoice {
   const choice = getSettings().engines?.[stage];
+  if (usesChrome(stage)) return { engine: "claude", model: choice?.engine === "claude" ? choice.model : "", effort: choice?.engine === "claude" ? choice.effort : "" };
   return choice && choice.engine in ENGINES ? choice : { engine: "claude", model: "", effort: "" };
 }
 
@@ -302,10 +312,11 @@ function skillPrompt(stage: Stage, argument: string) {
   ].join("\n");
 }
 
-function claudeInvocation(prompt: string, choice: EngineChoice, resume?: string): Invocation {
+function claudeInvocation(prompt: string, choice: EngineChoice, resume?: string, chrome = false): Invocation {
   // Only what .claude/settings.json allows can run: anything else is refused
   // instead of waiting for an answer.
   const args = ["-p", "--output-format", "stream-json", "--verbose", "--permission-mode", "dontAsk"];
+  if (chrome) args.push("--chrome");
   if (resume) args.push("--resume", resume);
   if (choice.model) args.push("--model", choice.model);
   if (choice.effort) args.push("--effort", choice.effort);
@@ -392,7 +403,7 @@ function start({ stage, jobId = null, trigger = "manual", conversation, message,
       message ?? (choice!.engine === "claude" ? `/${stage}${argument ? ` ${argument}` : ""}` : skillPrompt(stage, argument));
     const resume = conversation?.session_id ?? undefined;
     invocation =
-      choice!.engine === "codex" ? codexInvocation(prompt, choice!, resume) : claudeInvocation(prompt, choice!, resume);
+      choice!.engine === "codex" ? codexInvocation(prompt, choice!, resume) : claudeInvocation(prompt, choice!, resume, usesChrome(stage));
   }
 
   const child = spawn(invocation.command, invocation.args, {
@@ -425,6 +436,14 @@ function start({ stage, jobId = null, trigger = "manual", conversation, message,
         launch("tailor-job", jobId, trigger);
       } catch {
         // Already running or not possible now; it can be started by hand.
+      }
+    }
+    // The open sites are searched first; the Chrome sources follow.
+    if (stage === "find-jobs" && status === "done" && chromeSourcesOn() && stageReady("browse-jobs")) {
+      try {
+        launch("browse-jobs", null, trigger);
+      } catch {
+        // Already running; nothing to do.
       }
     }
     // When a job's research or tailoring ends, the next queued job starts.

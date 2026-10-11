@@ -1,8 +1,11 @@
 #!/usr/bin/env node
-// Collects fresh listings from LinkedIn's public job feed, stores new ones in
-// the database, and fetches their full descriptions. Bayt, GulfTalent, Indeed,
-// and Naukrigulf block automated access, so they are read from job alert
-// emails instead of being fetched here.
+// Collects fresh listings from LinkedIn's public job feed and Workable's public
+// job search, stores new ones in the database, and fetches their full
+// descriptions. Countries are searched in the user's priority order, and
+// descriptions are fetched only after every country has been searched, so the
+// request budget never runs out before a lower-priority country is reached.
+// Bayt, GulfTalent, Naukrigulf, Indeed, and Kariyer.net block automated
+// access; they are read through the user's own Chrome instead (see Settings).
 // No Claude involved: judging and ranking happen in the rank-jobs skill.
 //
 //   node scripts/collect.mjs            search every enabled source
@@ -23,6 +26,7 @@ const DRY_RUN = process.argv.includes("--dry-run");
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
 const DELAY_MS = 1500;
+// Per source, list pages and descriptions together.
 const MAX_REQUESTS = 120;
 const KEYWORDS_PER_ROLE = 3;
 const DESCRIPTION_LIMIT = 20000;
@@ -39,15 +43,20 @@ const LINKEDIN_NAMES = {
 };
 const linkedinLocation = (country) => LINKEDIN_NAMES[country] ?? country;
 
-let requests = 0;
+const requests = {};
 const blocked = new Set();
+const exhausted = new Set();
+const totalRequests = () => Object.values(requests).reduce((sum, count) => sum + count, 0);
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function get(source, url) {
   if (blocked.has(source)) return null;
-  if (requests >= MAX_REQUESTS) throw new Error("request budget reached");
-  if (requests > 0) await sleep(DELAY_MS);
-  requests++;
+  if ((requests[source] ?? 0) >= MAX_REQUESTS) {
+    exhausted.add(source);
+    return null;
+  }
+  if (totalRequests() > 0) await sleep(DELAY_MS);
+  requests[source] = (requests[source] ?? 0) + 1;
   const response = await fetch(url, {
     headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: "text/html,application/json" },
     signal: AbortSignal.timeout(25000),
@@ -149,7 +158,47 @@ const linkedin = {
   },
 };
 
-const SOURCES = { linkedin };
+// ---------- Workable's public job search (no login) ----------
+
+// The country names Workable uses for the short ones people type.
+const WORKABLE_NAMES = { UAE: "United Arab Emirates", KSA: "Saudi Arabia", Türkiye: "Turkey", USA: "United States", US: "United States", UK: "United Kingdom" };
+const workableLocation = (country) => WORKABLE_NAMES[country] ?? country;
+
+const workable = {
+  key: "workable",
+  async search({ keyword, country, maxHours }) {
+    const params = new URLSearchParams({ query: keyword, location: workableLocation(country), day_range: String(Math.max(1, Math.ceil(maxHours / 24))) });
+    const text = await get("workable", `https://jobs.workable.com/api/v1/jobs?${params}`);
+    if (!text) return [];
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      return [];
+    }
+    return (data.jobs ?? [])
+      // Its location search also returns jobs elsewhere (remote, nearby).
+      .filter((job) => job.location?.countryName === workableLocation(country))
+      .map((job) => ({
+        title: clean(job.title ?? ""),
+        company: clean(job.company?.title ?? ""),
+        city: job.location?.city || null,
+        url: job.url,
+        posted_at: job.created ?? null,
+        work_mode: { remote: "remote", hybrid: "hybrid", on_site: "onsite" }[job.workplace] ?? null,
+        // The search already carries the full listing.
+        description: [job.employmentType ? `Employment type: ${job.employmentType}` : "", "", htmlToText([job.description, job.requirementsSection, job.benefitsSection].filter(Boolean).join("<br>"))]
+          .join("\n")
+          .trim(),
+      }))
+      .filter((job) => job.title && job.company && job.url);
+  },
+  async details(job) {
+    return job.description;
+  },
+};
+
+const SOURCES = { linkedin, workable };
 
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -184,13 +233,18 @@ async function main() {
   const skipTitle = titleFilter(settings.experience.skipTitles);
 
   const seen = new Set();
-  const stats = { listings: 0, tooOld: 0, skipped: 0, duplicate: 0, added: [] };
+  const stats = { listings: 0, tooOld: 0, skipped: 0, duplicate: 0, added: [], withoutDescription: 0 };
+  const perCountry = new Map(countries.map((country) => [country.name, 0]));
+  // New jobs waiting for their description, in the order found: by country
+  // priority first, then role priority.
+  const pending = [];
   let stopped = null;
 
   try {
-    for (const role of roles) {
-      const keywords = role.keywords.filter(isLatin).slice(0, KEYWORDS_PER_ROLE);
-      for (const country of countries) {
+    // 1. Every country's search pages, highest priority first.
+    for (const country of countries) {
+      for (const role of roles) {
+        const keywords = role.keywords.filter(isLatin).slice(0, KEYWORDS_PER_ROLE);
         for (const keyword of keywords) {
           for (const source of sources) {
             const found = await SOURCES[source.key].search({ keyword, country: country.name, maxHours, levels });
@@ -212,6 +266,7 @@ async function main() {
                 company: job.company,
                 country: country.name,
                 city: job.city,
+                work_mode: job.work_mode ?? undefined,
                 role: role.key,
                 source: source.key,
                 url: job.url,
@@ -221,6 +276,7 @@ async function main() {
               };
               if (DRY_RUN) {
                 stats.added.push(record);
+                perCountry.set(country.name, perCountry.get(country.name) + 1);
                 continue;
               }
               const { id, created } = core.addJob(db, record);
@@ -228,19 +284,27 @@ async function main() {
                 stats.duplicate++;
                 continue;
               }
-              const description = await SOURCES[source.key].details(job);
-              const level = description?.match(LISTED_LEVEL)?.[1]?.trim();
-              if (level && outsideLevels(level)) {
-                core.updateJob(db, id, { description, status: "excluded", excluded_reason: `Listed as ${level}` });
-                stats.skipped++;
-                continue;
-              }
-              if (description) core.updateJob(db, id, { description });
-              stats.added.push({ id, ...record });
+              pending.push({ id, job, source: source.key, record });
             }
           }
         }
       }
+    }
+
+    // 2. Descriptions, in the same priority order, while each source's
+    // budget lasts. A job left without one is still kept.
+    for (const { id, job, source, record } of pending) {
+      const description = await SOURCES[source].details(job);
+      const level = description?.match(LISTED_LEVEL)?.[1]?.trim();
+      if (level && outsideLevels(level)) {
+        core.updateJob(db, id, { description, status: "excluded", excluded_reason: `Listed as ${level}` });
+        stats.skipped++;
+        continue;
+      }
+      if (description) core.updateJob(db, id, { description });
+      else stats.withoutDescription++;
+      stats.added.push({ id, ...record });
+      perCountry.set(record.country, perCountry.get(record.country) + 1);
     }
   } catch (error) {
     stopped = error.message;
@@ -249,8 +313,10 @@ async function main() {
   const fast = stats.added.filter((job) => job.track === "fast");
   const lines = [
     `${stats.added.length} new jobs${fast.length ? `, ${fast.length} posted within ${fastTrackMinutes} minutes` : ""}.`,
-    `Checked ${stats.listings} listings in ${requests} requests: ${stats.duplicate} already stored, ${stats.skipped} outside your levels or skipped titles, ${stats.tooOld} older than ${maxHours} hours.`,
+    `By country, in your priority order: ${[...perCountry].map(([name, count]) => `${name} ${count}`).join(", ")}.`,
+    `Checked ${stats.listings} listings in ${totalRequests()} requests (${Object.entries(requests).map(([source, count]) => `${source} ${count}`).join(", ") || "none"}): ${stats.duplicate} already stored, ${stats.skipped} outside your levels or skipped titles, ${stats.tooOld} older than ${maxHours} hours.`,
   ];
+  if (stats.withoutDescription) lines.push(`${stats.withoutDescription} saved without a description (request budget used up${exhausted.size ? ` for ${[...exhausted].join(", ")}` : ""}); research reads the listing.`);
   if (blocked.size) lines.push(`Blocked by: ${[...blocked].join(", ")}. Try again later.`);
   if (stopped) lines.push(`Stopped early: ${stopped}.`);
   for (const job of stats.added.slice(0, 15)) {
