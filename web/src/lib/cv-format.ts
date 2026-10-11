@@ -137,3 +137,27 @@ export function serializeCv(doc: CvDocument) {
   }
   return `${lines.join("\n")}\n`;
 }
+
+// Replaces one line (a bullet or a paragraph, anywhere in the CV) that reads
+// "before" with "after". Returns the same object when no line matches.
+export function replaceLine(doc: CvDocument, before: string, after: string): CvDocument {
+  const clean = (line: string) => line.replace(/^\s*[-*]\s+/, "").replace(/\s+/g, " ").trim();
+  const target = clean(before);
+  const next = clean(after);
+  let done = false;
+  const swap = (lines: string[]) =>
+    lines.map((line) => {
+      if (!done && clean(line) === target) {
+        done = true;
+        return next;
+      }
+      return line;
+    });
+  const sections = doc.sections.map((section) => ({
+    ...section,
+    text: swap(section.text),
+    bullets: swap(section.bullets),
+    entries: section.entries.map((entry) => ({ ...entry, bullets: swap(entry.bullets), text: swap(entry.text) })),
+  }));
+  return done ? { ...doc, sections } : doc;
+}

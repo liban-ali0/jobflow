@@ -5,6 +5,8 @@ import type { ActionResult } from "@/app/actions";
 import { improveCv } from "@/app/ats-actions";
 import type { AtsResult } from "@/lib/ats";
 
+export type KeywordState = { state: "working" | "added" | "skipped" | "failed"; note?: string };
+
 // "Fix with AI": the engine applies the fix list using only profile facts.
 function ImproveButton({ target, running, blocked }: { target: string; running: boolean; blocked?: string }) {
   const [pending, start] = useTransition();
@@ -58,16 +60,24 @@ export function AtsBadge({ score }: { score: number }) {
 export function AtsPanel({
   result,
   source,
-  onAddKeyword,
+  onKeyword,
+  keywordState,
   improve,
 }: {
   result: AtsResult;
   source: string;
-  // In the editor: "+" adds a missing keyword to the Skills section.
-  onAddKeyword?: (term: string) => void;
+  // In the editor: "+" on a missing keyword, either straight into Skills or
+  // worked into an experience bullet by the engine.
+  // "confirm": the candidate says they have it (with where, if they said).
+  onKeyword?: (term: string, how: "skills" | "weave" | "confirm", evidence?: string) => void;
+  // Progress and outcome of keywords being worked in.
+  keywordState?: Record<string, KeywordState>;
   // "Fix with AI" for this CV ("doc:<id>" or "base:<role>").
   improve?: { target: string; running: boolean; blocked?: string };
 }) {
+  const [menu, setMenu] = useState<string | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [evidence, setEvidence] = useState("");
   const { score, systems, keywords, suggestions, checks } = result;
   const passing = systems.filter((system) => system.passes).length;
   const failing = checks.filter((check) => !check.ok);
@@ -153,33 +163,125 @@ export function AtsPanel({
       {keywords.percent !== null && keywords.missing.length > 0 && (
         <div>
           <p className="mb-1 text-xs font-semibold text-slate">
-            Missing keywords ({keywords.missing.length}) · {onAddKeyword ? "press + on the ones that are true for you" : "add only what is true for you"}
+            Missing keywords ({keywords.missing.length}) · {onKeyword ? "press + on the ones that are true for you" : "add only what is true for you"}
           </p>
           <ul className="flex flex-wrap gap-1">
-            {keywords.missing.slice(0, 40).map((term) => (
-              <li
-                key={term}
-                className={`inline-flex items-center rounded-full text-xs ${isMust(term) ? "bg-coral-soft font-semibold text-coral" : "bg-mist text-ink"} ${onAddKeyword ? "pl-0.5" : "px-2 py-0.5"}`}
-                dir="auto"
-              >
-                {onAddKeyword && (
-                  <button
-                    type="button"
-                    onClick={() => onAddKeyword(term)}
-                    className="mr-0.5 grid size-6 place-items-center rounded-full text-sm font-bold hover:bg-teal hover:text-on-primary"
-                    aria-label={`Add ${term} to your skills`}
-                    title="Add to Skills (only if true)"
-                  >
-                    +
-                  </button>
-                )}
-                <span className={onAddKeyword ? "py-0.5 pr-2" : ""}>
-                  {term}
-                  {isMust(term) && " · must"}
-                </span>
-              </li>
-            ))}
+            {keywords.missing.slice(0, 40).map((term) => {
+              const state = keywordState?.[term];
+              const working = state?.state === "working";
+              return (
+                <li
+                  key={term}
+                  className={`relative inline-flex items-center rounded-full text-xs ${isMust(term) ? "bg-coral-soft font-semibold text-coral" : "bg-mist text-ink"} ${onKeyword ? "pl-0.5" : "px-2 py-0.5"}`}
+                  dir="auto"
+                >
+                  {onKeyword && (
+                    <button
+                      type="button"
+                      disabled={working}
+                      onClick={() => setMenu(menu === term ? null : term)}
+                      aria-expanded={menu === term}
+                      aria-haspopup="menu"
+                      className="mr-0.5 grid size-6 place-items-center rounded-full text-sm font-bold hover:bg-teal hover:text-on-primary disabled:hover:bg-transparent"
+                      aria-label={`Add ${term}`}
+                      title="Add this keyword (only if true)"
+                    >
+                      {working ? <span className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden /> : "+"}
+                    </button>
+                  )}
+                  <span className={onKeyword ? "py-0.5 pr-2" : ""}>
+                    {term}
+                    {isMust(term) && " · must"}
+                  </span>
+                  {onKeyword && menu === term && (
+                    <div role="menu" className="card absolute top-full left-0 z-30 mt-1 w-64 p-1 text-ink shadow-lg" onKeyDown={(event) => event.key === "Escape" && setMenu(null)}>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        autoFocus
+                        onClick={() => {
+                          setMenu(null);
+                          onKeyword(term, "skills");
+                        }}
+                        className="block w-full rounded px-3 py-2 text-left hover:bg-mist"
+                      >
+                        <span className="block text-sm font-medium">Add to Skills</span>
+                        <span className="block text-xs font-normal text-slate">Instant. Best for tools and technologies.</span>
+                      </button>
+                      <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setMenu(null);
+                          onKeyword(term, "weave");
+                        }}
+                        className="block w-full rounded px-3 py-2 text-left hover:bg-mist"
+                      >
+                        <span className="block text-sm font-medium">Work it into my experience (AI)</span>
+                        <span className="block text-xs font-normal text-slate">Rewrites the one bullet your profile backs. You see it before saving.</span>
+                      </button>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
+          {keywordState && Object.entries(keywordState).some(([, value]) => value.state !== "working" && value.note) && (
+            <ul className="mt-2 space-y-1">
+              {Object.entries(keywordState)
+                .filter(([, value]) => value.state !== "working" && value.note)
+                .map(([term, value]) => (
+                  <li key={term} className={`text-xs ${value.state === "added" ? "text-go" : "text-slate"}`}>
+                    <span className="font-semibold">{term}:</span> {value.note}
+                    {value.state === "skipped" && onKeyword && confirming !== term && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConfirming(term);
+                          setEvidence("");
+                        }}
+                        className="ml-1.5 font-semibold text-teal underline"
+                      >
+                        I have this, add it
+                      </button>
+                    )}
+                    {confirming === term && (
+                      <form
+                        className="mt-1.5 space-y-1.5 rounded-md border border-line bg-surface p-2"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          setConfirming(null);
+                          onKeyword?.(term, "confirm", evidence);
+                        }}
+                      >
+                        <label className="block font-medium text-ink" htmlFor={`evidence-${term}`}>
+                          Where did you use {term}? (optional, helps place it)
+                        </label>
+                        <input
+                          id={`evidence-${term}`}
+                          autoFocus
+                          value={evidence}
+                          maxLength={300}
+                          onChange={(event) => setEvidence(event.target.value)}
+                          placeholder="e.g. Azure Functions for a university project in 2023"
+                          className="field py-1.5 text-xs"
+                          dir="auto"
+                        />
+                        <p className="text-[11px] text-slate">It is saved to your facts, so later steps treat it as true.</p>
+                        <div className="flex gap-1.5">
+                          <button type="submit" className="btn btn-primary px-2.5 py-1 text-xs">
+                            Add it
+                          </button>
+                          <button type="button" onClick={() => setConfirming(null)} className="btn btn-quiet px-2.5 py-1 text-xs">
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                  </li>
+                ))}
+            </ul>
+          )}
         </div>
       )}
       {keywords.matched.length > 0 && (

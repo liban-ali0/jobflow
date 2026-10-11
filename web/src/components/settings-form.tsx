@@ -326,6 +326,7 @@ const ENGINE_STAGES = [
   { key: "design-template", label: "Design CV template" },
   { key: "follow-up", label: "Write follow-up" },
   { key: "improve-cv", label: "Improve CV for ATS" },
+  { key: "weave-keyword", label: "Work keyword into CV" },
 ];
 
 const EFFORTS = [

@@ -139,3 +139,19 @@ export const finishRun = (id: number, result: { status: Run["status"]; summary?:
   core.finishRun(db(), id, result);
 export const listRuns = (limit = 50) => core.listRuns(db(), limit) as Run[];
 export const getRun = (id: number) => core.getRun(db(), id) as Run | undefined;
+
+const CONFIRMED_HEADING = "## Skills I confirmed";
+
+// A skill the candidate confirmed while editing a CV, so every later step
+// (research, tailoring, ATS fixes) treats it as true.
+export function confirmSkill(skill: string, evidence: string) {
+  const facts = readFacts() ?? "# Facts not on the CV\n";
+  const day = new Date().toISOString().slice(0, 10);
+  const line = `- ${skill}${evidence ? `: ${evidence}` : ""} (confirmed ${day})`;
+  if (facts.toLowerCase().includes(`- ${skill.toLowerCase()}`)) return;
+  writeFacts(
+    facts.includes(CONFIRMED_HEADING)
+      ? facts.replace(CONFIRMED_HEADING, `${CONFIRMED_HEADING}\n\n${line}`).replace(/\n{3,}/g, "\n\n")
+      : `${facts.trimEnd()}\n\n${CONFIRMED_HEADING}\n\n${line}\n`,
+  );
+}

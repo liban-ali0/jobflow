@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
-import { parseCv, parseLetter, sectionKey, serializeCv, type CvDocument, type CvEntry, type CvSection } from "@/lib/cv-format";
+import { parseCv, parseLetter, replaceLine, sectionKey, serializeCv, type CvDocument, type CvEntry, type CvSection } from "@/lib/cv-format";
 import { renderCv, renderLetter, type CvTemplate } from "@/lib/cv-render";
 import { checkCv, type AtsTarget } from "@/lib/ats";
-import { AtsPanel } from "@/components/ats-panel";
+import { AtsPanel, type KeywordState } from "@/components/ats-panel";
+import { weaveKeyword, weaveResult } from "@/app/ats-actions";
 
 const PREVIEW_WIDTH = 520;
 const NEW_SECTIONS = ["Summary", "Experience", "Education", "Projects", "Skills", "Certificates", "Languages", "Awards", "Volunteering"];
@@ -238,6 +239,10 @@ export function CvEditor({
   const [savedTemplate, setSavedTemplate] = useState(initialTemplate);
   const template = templates.find((item) => item.id === templateId) ?? templates[0];
   const [mode, setMode] = useState<"form" | "text">(kind === "cv" ? "form" : "text");
+  const modeRef = useRef(mode);
+  useEffect(() => {
+    modeRef.current = mode;
+  }, [mode]);
   const [doc, setDoc] = useState(() => parseCv(initial));
   const [text, setText] = useState(initial);
   const [saved, setSaved] = useState(initial);
@@ -247,6 +252,11 @@ export function CvEditor({
   // The form and the text stay in step: whichever is being edited is the source.
   const markdown = mode === "form" ? serializeCv(doc) : text;
   const dirty = markdown.trim() !== saved.trim() || templateId !== savedTemplate;
+  // The latest text, for requests that run after a wait (see weave).
+  const markdownRef = useRef(markdown);
+  useEffect(() => {
+    markdownRef.current = markdown;
+  }, [markdown]);
   const html = useMemo(
     () => (kind === "cv" ? renderCv(parseCv(markdown), template) : renderLetter(parseLetter(markdown), template)),
     [kind, markdown, template],
@@ -278,7 +288,65 @@ export function CvEditor({
     };
     if (mode === "form") setDoc(add(doc));
     else setText(serializeCv(add(parseCv(text))));
+    setKeywordState((current) => ({ ...current, [term]: { state: "added", note: "added to Skills, on the “Other skills” line." } }));
   };
+
+  // "Work it into my experience": the engine proposes one changed line, which
+  // replaces the original in the unsaved CV so the preview shows it.
+  const [keywordState, setKeywordState] = useState<Record<string, KeywordState>>({});
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+  const setState = (term: string, value: KeywordState) => {
+    if (mounted.current) setKeywordState((current) => ({ ...current, [term]: value }));
+  };
+
+  // Keywords clicked while one is being worked in wait their turn.
+  const queue = useRef<Promise<void>>(Promise.resolve());
+  const weave = (term: string, confirmed?: { evidence: string }) => {
+    if (!improve) return;
+    setState(term, { state: "working" });
+    queue.current = queue.current.then(() => weaveOne(term, confirmed));
+  };
+
+  const weaveOne = async (term: string, confirmed?: { evidence: string }) => {
+    if (!improve) return;
+    // The CV as it is now, not as it was when the keyword was clicked.
+    const started = await weaveKeyword(improve.target, markdownRef.current, term, confirmed);
+    if (!started.ok || !started.id) return setState(term, { state: "failed", note: started.message });
+    let result = await weaveResult(improve.target, started.id);
+    while (result.status === "working" && mounted.current) {
+      await new Promise((resolve) => setTimeout(resolve, 2500));
+      result = await weaveResult(improve.target, started.id);
+    }
+    if (result.status === "added") {
+      // Applied to the CV as it is now (the latest text), in the user's mode.
+      const current = parseCv(markdownRef.current);
+      const next = replaceLine(current, result.before, result.after);
+      const applied = next !== current;
+      if (applied) {
+        if (modeRef.current === "form") setDoc(next);
+        else setText(serializeCv(next));
+      }
+      setState(
+        term,
+        applied
+          ? { state: "added", note: `worked into ${result.where || "your experience"} (not saved yet). ${result.reason}` }
+          : { state: "failed", note: `the line changed while it was working. Suggested wording: “${result.after}”` },
+      );
+    } else if (result.status === "not-supported") {
+      setState(term, { state: "skipped", note: `not added. ${result.reason}` });
+    } else if (result.status === "failed") {
+      setState(term, { state: "failed", note: result.reason });
+    }
+  };
+
+  const onKeyword = (term: string, how: "skills" | "weave" | "confirm", evidence = "") =>
+    how === "skills" ? addKeyword(term) : weave(term, how === "confirm" ? { evidence } : undefined);
 
   const switchTo = (next: "form" | "text") => {
     if (next === mode) return;
@@ -361,7 +429,8 @@ export function CvEditor({
             <AtsPanel
               result={ats}
               source={keywordSource}
-              onAddKeyword={addKeyword}
+              onKeyword={onKeyword}
+              keywordState={keywordState}
               improve={improve && { ...improve, blocked: dirty ? "Save your changes first, so the AI works on your latest version." : undefined }}
             />
           </div>
@@ -393,7 +462,8 @@ export function CvEditor({
           {ats && <AtsPanel
               result={ats}
               source={keywordSource}
-              onAddKeyword={addKeyword}
+              onKeyword={onKeyword}
+              keywordState={keywordState}
               improve={improve && { ...improve, blocked: dirty ? "Save your changes first, so the AI works on your latest version." : undefined }}
             />}
           <p className="mb-2 text-xs text-slate">Live preview · {template.name} template</p>
