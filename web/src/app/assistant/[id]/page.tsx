@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { removeConversation, sendMessage } from "@/app/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { BackLink } from "@/components/back-link";
 import { Composer } from "@/components/composer";
 import { Markdown } from "@/components/markdown";
 import { ProgressList, parseProgress } from "@/components/progress-list";
@@ -52,6 +53,7 @@ export default async function ConversationPage(props: PageProps<"/assistant/[id]
 
   return (
     <div className="flex flex-col gap-4">
+      <BackLink fallbackHref="/assistant" fallbackLabel="Assistant" />
       <AutoRefresh active={Boolean(active)} />
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">

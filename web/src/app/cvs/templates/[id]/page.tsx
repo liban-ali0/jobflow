@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { TemplateEditor } from "@/components/template-editor";
 import { previewCvMarkdown } from "@/lib/documents";
@@ -13,9 +13,7 @@ export default async function TemplatePage(props: PageProps<"/cvs/templates/[id]
 
   return (
     <div className="max-w-6xl">
-      <Link href="/cvs" className="text-sm text-slate hover:text-ink">
-        ← CVs
-      </Link>
+      <BackLink fallbackHref="/cvs" fallbackLabel="CVs" />
       <div className="mt-3">
         <PageHeader eyebrow="Template" title={template.name} description={template.description} />
       </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { NavigationTracker } from "@/components/back-link";
 import { Barlow_Condensed, IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { Nav } from "@/components/nav";
 import { WorkflowStrip, type WorkflowStep } from "@/components/workflow-strip";
@@ -124,6 +125,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             running={running}
           />
           {/* The strip reads the "show" filter from the address. */}
+          <Suspense fallback={null}>
+            <NavigationTracker />
+          </Suspense>
           <Suspense fallback={<div className="h-[42px] border-b border-chrome-line bg-chrome" />}>
             <WorkflowStrip steps={steps} />
           </Suspense>

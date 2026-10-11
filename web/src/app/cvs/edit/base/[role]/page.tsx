@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { saveBaseCv } from "@/app/cv-actions";
 import { CvEditor } from "@/components/cv-editor";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { getSettings } from "@/lib/data";
 import { baseCvPath, fileVersion, readText } from "@/lib/documents";
@@ -20,6 +21,8 @@ export default async function EditBaseCvPage(props: PageProps<"/cvs/edit/base/[r
 
   return (
     <div>
+      <BackLink fallbackHref="/cvs" fallbackLabel="CVs" />
+      <div className="mt-3">
       <PageHeader eyebrow="Base CV" title={found.label} description="Tailored CVs for this role start from this one. Your edits are kept when the profile is rebuilt." />
       <div className="mt-6">
         <AutoRefresh active={improving} />
@@ -31,12 +34,11 @@ export default async function EditBaseCvPage(props: PageProps<"/cvs/edit/base/[r
           initialTemplate={templateFor(role).id}
           save={saveBaseCv.bind(null, role)}
           pdfHref={`/api/cvs/${role}?format=pdf`}
-          backHref="/cvs"
-          backLabel="← CVs"
           target={targetForRole(role)}
           improve={{ target: `base:${role}`, running: improving }}
           keywordSource={`the ${found.label} search keywords`}
         />
+      </div>
       </div>
     </div>
   );

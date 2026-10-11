@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { saveJobDocument } from "@/app/cv-actions";
 import { CvEditor } from "@/components/cv-editor";
+import { BackLink } from "@/components/back-link";
 import { PageHeader } from "@/components/page-header";
 import { getDocument, getJob, getSettings } from "@/lib/data";
 import { PRINTABLE, fileVersion, readText } from "@/lib/documents";
@@ -20,6 +21,8 @@ export default async function EditJobDocumentPage(props: PageProps<"/cvs/edit/do
 
   return (
     <div>
+      <BackLink fallbackHref={`/jobs/${job.id}#documents`} fallbackLabel="Job" />
+      <div className="mt-3">
       <PageHeader
         eyebrow={kind === "cv" ? "Tailored CV" : "Cover letter"}
         title={`${job.title} · ${job.company}`}
@@ -35,12 +38,11 @@ export default async function EditJobDocumentPage(props: PageProps<"/cvs/edit/do
           initialTemplate={templateFor(job.role, getSettings().cvTemplates?.byJob?.[String(job.id)]).id}
           save={saveJobDocument.bind(null, doc.id)}
           pdfHref={`/api/documents/${doc.id}?format=pdf`}
-          backHref={`/jobs/${job.id}#documents`}
-          backLabel="← Job"
           target={targetForJob(job.id)}
           improve={kind === "cv" ? { target: `doc:${doc.id}`, running: improving } : undefined}
           keywordSource="this job's keywords"
         />
+      </div>
       </div>
     </div>
   );

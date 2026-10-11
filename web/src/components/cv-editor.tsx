@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
 import { parseCv, parseLetter, replaceLine, sectionKey, serializeCv, type CvDocument, type CvEntry, type CvSection } from "@/lib/cv-format";
@@ -215,8 +214,6 @@ export function CvEditor({
   initialTemplate,
   save,
   pdfHref,
-  backHref,
-  backLabel,
   target = { text: "", keywords: [] },
   keywordSource = "the keywords",
   improve,
@@ -227,8 +224,6 @@ export function CvEditor({
   initialTemplate: string;
   save: (markdown: string, templateId: string) => Promise<ActionResult>;
   pdfHref: string;
-  backHref: string;
-  backLabel: string;
   // What the ATS score checks the CV against: the job's listing or the role.
   target?: AtsTarget;
   keywordSource?: string;
@@ -418,9 +413,6 @@ export function CvEditor({
             >
               Download PDF
             </a>
-            <Link href={backHref} className="text-sm text-slate hover:text-ink">
-              {backLabel}
-            </Link>
           </div>
         </div>
 

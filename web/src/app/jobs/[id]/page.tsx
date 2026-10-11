@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { runStage, saveNotes } from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
 import { Freshness } from "@/components/freshness";
 import { JobActionBar } from "@/components/job-actions";
+import { BackLink } from "@/components/back-link";
 import { OutcomeBar } from "@/components/tracking";
 import { followUpState } from "@/lib/followups";
 import { checkCv } from "@/lib/ats";
@@ -67,9 +67,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   return (
     <div className="max-w-5xl">
       <AutoRefresh active={Boolean(working)} />
-      <Link href="/" className="text-sm text-slate hover:text-ink">
-        ← Today
-      </Link>
+      <BackLink fallbackHref="/" fallbackLabel="Today" />
 
       <header className="mt-3 flex flex-wrap items-start justify-between gap-6">
         <div className="min-w-0">
