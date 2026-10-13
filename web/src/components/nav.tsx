@@ -61,7 +61,7 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
 
         <div className="ml-auto flex shrink-0 items-center gap-3 pr-5 pl-3">
           {/* Search every job, whatever its stage. */}
-          <form action="/search" role="search" className="flex items-center">
+          <form action="/search" role="search" className="relative flex items-center">
             <label className="sr-only" htmlFor="nav-search">
               Search all jobs
             </label>
