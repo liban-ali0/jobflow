@@ -1,6 +1,7 @@
 "use client";
 
 import { ExtensionSetup } from "@/components/extension-setup";
+import { OtherDevices } from "@/components/other-devices";
 import { createContext, startTransition, useActionState, useContext, useEffect, useRef, useState } from "react";
 import { saveSettings } from "@/app/actions";
 import { AppearanceSection } from "@/components/appearance-section";
@@ -378,7 +379,14 @@ const GROUPS = [
       { id: "email", label: "Email" },
     ],
   },
-  { gate: "D", title: "Look", sections: [{ id: "appearance", label: "Appearance" }] },
+  {
+    gate: "D",
+    title: "Look and access",
+    sections: [
+      { id: "appearance", label: "Appearance" },
+      { id: "devices", label: "Other devices" },
+    ],
+  },
 ];
 
 // The section list beside the form, highlighting the section in view.
@@ -468,7 +476,17 @@ function sectionValues(form: HTMLFormElement, id: string) {
   return [...fields].map((field) => `${field.name}=${field.type === "checkbox" ? field.checked : field.value}`).join("\n");
 }
 
-export function SettingsForm({ settings, countryOptions, extension }: { settings: Settings; countryOptions: CountryOption[]; extension: { token: string; folder: string } }) {
+export function SettingsForm({
+  settings,
+  countryOptions,
+  extension,
+  devices,
+}: {
+  settings: Settings;
+  countryOptions: CountryOption[];
+  extension: { token: string; folder: string };
+  devices: { links: string[]; path: string };
+}) {
   const [result, action, pending] = useActionState(saveSettings, null);
   const form = useRef<HTMLFormElement>(null);
   const saved = useRef(new Map<string, string>());
@@ -769,6 +787,10 @@ export function SettingsForm({ settings, countryOptions, extension }: { settings
 
         <Section id="appearance" title="Appearance" hint="Light or dark mode, and the two colours the app is built around.">
           <AppearanceSection appearance={settings.appearance} />
+        </Section>
+
+        <Section id="devices" title="Other devices" hint="Open Offerbound on your phone, through Tailscale.">
+          <OtherDevices {...devices} />
         </Section>
 
         <div className="sticky bottom-4 z-10 flex items-center gap-4 rounded-xl border border-line bg-surface/95 px-5 py-3 shadow-lg backdrop-blur">

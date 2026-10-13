@@ -4,9 +4,22 @@ import { SettingsForm } from "@/components/settings-form";
 import { COUNTRY_OPTIONS, codeFor } from "@/lib/countries";
 import { EXTENSION_DIR, captureToken } from "@/lib/capture";
 import { getSettings } from "@/lib/data";
+import { accessKey } from "@/lib/access";
+
+// Addresses other devices can use: the Tailscale name and address set in
+// web/.env.local (JOBFLOW_DEV_ORIGINS), on the app's port.
+function pairingLinks(key: string) {
+  const port = process.env.PORT ?? "3000";
+  return (process.env.JOBFLOW_DEV_ORIGINS ?? "")
+    .split(",")
+    .map((host) => host.trim())
+    .filter(Boolean)
+    .map((host) => `http://${host}:${port}/pair?key=${key}`);
+}
 
 export default function SettingsPage() {
   const token = captureToken();
+  const key = accessKey();
   const settings = getSettings();
   // Countries saved before the picker existed have only a name.
   const countries = settings.countries.map((country) => ({ ...country, code: country.code ?? codeFor(country.name) ?? "" }));
@@ -23,7 +36,7 @@ export default function SettingsPage() {
         }
       />
       <div className="mt-8">
-        <SettingsForm settings={{ ...settings, countries }} countryOptions={COUNTRY_OPTIONS} extension={{ token, folder: EXTENSION_DIR }} />
+        <SettingsForm settings={{ ...settings, countries }} countryOptions={COUNTRY_OPTIONS} extension={{ token, folder: EXTENSION_DIR }} devices={{ links: pairingLinks(key), path: `/pair?key=${key}` }} />
       </div>
     </div>
   );

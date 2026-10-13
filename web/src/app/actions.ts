@@ -21,6 +21,7 @@ import {
 } from "@/lib/data";
 import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssistant } from "@/lib/engine";
 import { isHex } from "@/lib/theme";
+import { resetAccessKey } from "@/lib/access";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
 import type { Settings, Status } from "@/lib/types";
 import { RESEARCH_POINTS, STATUS_LABELS } from "@/lib/types";
@@ -126,7 +127,8 @@ export async function saveFacts(_: ActionResult | null, formData: FormData): Pro
   const facts = String(formData.get("facts") ?? "").replace(/\r\n/g, "\n");
   if (facts.length > FACTS_LIMIT) return { ok: false, message: `Keep the facts under ${FACTS_LIMIT} characters.` };
   writeFacts(facts);
-  revalidatePath("/profile");
+  // Profile and Setup both show the facts.
+  revalidatePath("/", "layout");
   return { ok: true, message: "Facts saved. Use Rebuild profile to apply them to the profile and base CVs." };
 }
 
@@ -326,4 +328,11 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
   setSettings(patch);
   revalidatePath("/", "layout");
   return { ok: true, message: "Settings saved." };
+}
+
+// Every device paired through Settings → Other devices must pair again.
+export async function signOutDevices(): Promise<ActionResult> {
+  resetAccessKey();
+  revalidatePath("/settings");
+  return { ok: true, message: "Signed out. Use the new link on each device you still want to use." };
 }
