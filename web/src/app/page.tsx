@@ -11,7 +11,7 @@ import { Pagination } from "@/components/pagination";
 import { QuestionCard } from "@/components/question-card";
 import { researchSelected } from "@/app/job-actions";
 import { FollowUpRow } from "@/components/tracking";
-import { followUpsDue } from "@/lib/followups";
+import { followUpsDue, upcomingInterviews } from "@/lib/followups";
 import { countByStatus, getJob, hasCv, listDocuments, listJobs, listQuestions, listRuns, readProfile } from "@/lib/data";
 import { SHOW_VIEWS, buildDepartures } from "@/lib/departures";
 import { scheduleStatus } from "@/lib/scheduler";
@@ -161,6 +161,16 @@ export default async function TodayPage(props: PageProps<"/">) {
     .filter((row) => row.waiting + row.changes > 0);
 
   const followUps = followUpsDue();
+  const allInterviews = upcomingInterviews();
+  // The scheduled ones (a few), and a count of those without a time.
+  const interviews = allInterviews.filter(({ inHours }) => inHours !== null).slice(0, 8);
+  const unscheduled = allInterviews.filter(({ inHours }) => inHours === null).length;
+  const interviewWhen = (iso: string | null, inHours: number | null) => {
+    if (!iso || inHours === null) return "Date and time not set";
+    const when = new Date(iso).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+    const soon = inHours < 0 ? "now" : inHours < 1 ? "in under an hour" : inHours < 48 ? `in ${Math.round(inHours)} hours` : `in ${Math.round(inHours / 24)} days`;
+    return `${when} · ${soon}`;
+  };
   const schedule = scheduleStatus();
   const time = (date: Date | null) => (date ? date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "");
   const scheduleLine = schedule.enabled ? ` Next check for fresh postings at ${time(schedule.nextFast)}; full run at ${time(schedule.nextDaily)}.` : "";
@@ -304,6 +314,38 @@ export default async function TodayPage(props: PageProps<"/">) {
                 </Link>
               </li>
             ))}
+          </ul>
+        </section>
+      )}
+
+      {allInterviews.length > 0 && (
+        <section className="mt-8">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="section-title">Upcoming interviews</h2>
+            <span className="font-mono text-xs text-slate">{allInterviews.length}</span>
+          </div>
+          <ul className="card mt-3 divide-y divide-line rounded-xl">
+            {interviews.map(({ job, inHours }) => (
+              <li key={job.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-3 text-sm">
+                <span className="min-w-0">
+                  <Link href={`/jobs/${job.id}`} className="font-medium hover:text-teal hover:underline" dir="auto">
+                    {job.title}
+                  </Link>
+                  <span className="text-slate" dir="auto">
+                    {" "}
+                    · {job.company}
+                  </span>
+                </span>
+                <span className={`font-mono text-xs ${inHours !== null && inHours < 48 ? "font-semibold text-ink" : "text-slate"}`}>{interviewWhen(job.interview_at, inHours)}</span>
+              </li>
+            ))}
+            {unscheduled > 0 && (
+              <li className="px-4 py-3 text-sm">
+                <Link href="/board?stage=interview#applications" className="text-teal hover:underline">
+                  {unscheduled} {unscheduled === 1 ? "interview" : "interviews"} without a date and time: set {unscheduled === 1 ? "it" : "them"} on the job page →
+                </Link>
+              </li>
+            )}
           </ul>
         </section>
       )}

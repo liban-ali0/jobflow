@@ -16,7 +16,14 @@ function refresh(jobId: number) {
 
 // What happened after applying. The date is kept in the job's history, and a
 // note, if given, is added to the job's notes.
-export async function recordOutcome(jobId: number, status: string, note: string): Promise<ActionResult> {
+// An interview time from the form (ISO), or null for "not known".
+function cleanTime(value: string | null | undefined) {
+  if (!value) return null;
+  const at = Date.parse(value);
+  return Number.isFinite(at) ? new Date(at).toISOString() : null;
+}
+
+export async function recordOutcome(jobId: number, status: string, note: string, interviewAt: string | null = null): Promise<ActionResult> {
   const job = getJob(jobId);
   if (!job) return { ok: false, message: "This job no longer exists." };
   if (!OUTCOMES.includes(status as Status)) return { ok: false, message: `Unknown outcome "${status}".` };
@@ -27,6 +34,7 @@ export async function recordOutcome(jobId: number, status: string, note: string)
     status: status as Status,
     // Any answer, or closing the job, ends the follow-up reminders.
     follow_up_due: null,
+    ...(status === "interview" ? { interview_at: cleanTime(interviewAt) } : {}),
     ...(text ? { notes: `${job.notes ? `${job.notes}\n\n` : ""}${day} ${label}: ${text}` } : {}),
   });
   // An interview: the pack is written straight away.
@@ -41,6 +49,17 @@ export async function recordOutcome(jobId: number, status: string, note: string)
   }
   refresh(jobId);
   return { ok: true, message: `Marked as ${label}.${extra}` };
+}
+
+// Sets or clears the interview's date and time.
+export async function setInterviewTime(jobId: number, interviewAt: string | null): Promise<ActionResult> {
+  const job = getJob(jobId);
+  if (!job) return { ok: false, message: "This job no longer exists." };
+  const at = cleanTime(interviewAt);
+  updateJob(jobId, { interview_at: at });
+  addEvent(jobId, "interview", at ? `Interview on ${at}` : "Interview time cleared");
+  refresh(jobId);
+  return { ok: true, message: at ? "Interview time saved." : "Interview time cleared." };
 }
 
 export async function writeFollowUp(jobId: number): Promise<ActionResult> {

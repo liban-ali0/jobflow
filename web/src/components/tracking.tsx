@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
-import { markFollowUpSent, recordOutcome, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
+import { markFollowUpSent, recordOutcome, setInterviewTime, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
 import { STATUS_LABELS, type Status } from "@/lib/types";
 
 const OUTCOMES: { status: Status; label: string; tone: string }[] = [
@@ -56,11 +56,16 @@ export function OutcomeBar({
   // For example "Applied 11 Oct", formatted on the server.
   applied: string | null;
   followUp: { due: boolean; sent: boolean; draft: boolean } | null;
-  // At the interview stage: whether the pack exists or is being written.
-  interviewPack?: { exists: boolean; running: boolean } | null;
+  // At the interview stage: whether the pack exists or is being written,
+  // and when the interview is.
+  interviewPack?: { exists: boolean; running: boolean; at: string | null } | null;
 }) {
   const [choice, setChoice] = useState<Status | null>(null);
   const [note, setNote] = useState("");
+  // A datetime-local value ("2026-10-16T10:00"), in this device's time.
+  const [when, setWhen] = useState("");
+  const [editingTime, setEditingTime] = useState(false);
+  const toIso = (local: string) => (local ? new Date(local).toISOString() : null);
   const { pending, result, run } = useRun();
   const next = NEXT[status] ?? [];
   if (next.length === 0 && !followUp) return null;
@@ -72,6 +77,51 @@ export function OutcomeBar({
         {applied && <span className="text-xs text-slate">{applied}</span>}
       </div>
       {interviewPack && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line px-3 py-2.5 text-sm">
+          {editingTime ? (
+            <form
+              className="flex flex-wrap items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                run(() => setInterviewTime(jobId, toIso(when)), () => setEditingTime(false));
+              }}
+            >
+              <label className="font-medium" htmlFor="interview-when">
+                Interview on
+              </label>
+              <input id="interview-when" type="datetime-local" value={when} onChange={(event) => setWhen(event.target.value)} className="field w-auto" />
+              <button type="submit" disabled={pending} className="btn btn-primary px-3 py-1.5 text-xs">
+                Save
+              </button>
+              <button type="button" onClick={() => setEditingTime(false)} className="text-xs text-slate underline">
+                Cancel
+              </button>
+            </form>
+          ) : (
+            <>
+              <span className="mr-auto">
+                <span className="font-medium">Interview: </span>
+                {interviewPack.at ? (
+                  <span suppressHydrationWarning>
+                    {new Date(interviewPack.at).toLocaleString("en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                ) : (
+                  <span className="text-slate">date and time not set</span>
+                )}
+              </span>
+              {interviewPack.at && (
+                <a href={`/api/jobs/${jobId}/interview.ics`} className="btn btn-quiet px-3 py-1.5 text-xs">
+                  Add to calendar
+                </a>
+              )}
+              <button type="button" onClick={() => setEditingTime(true)} className="btn btn-quiet px-3 py-1.5 text-xs">
+                {interviewPack.at ? "Change" : "Set date and time"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+      {interviewPack && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-saffron-soft px-3 py-2.5">
           <p className="text-sm">
             <span className="font-medium">Interview coming up. </span>
@@ -81,7 +131,7 @@ export function OutcomeBar({
                 ? "Your interview pack is under Documents: likely questions with answers from your experience, gaps, and questions to ask."
                 : "Get a pack with the likely questions, answers from your real experience, and questions to ask them."}
           </p>
-          <span className="flex gap-2">
+          <span className="flex flex-wrap gap-2">
             {interviewPack.exists && (
               <a href="#documents" className="btn btn-quiet px-3 py-1.5 text-xs">
                 Open the pack
@@ -111,7 +161,7 @@ export function OutcomeBar({
           className="space-y-2 rounded-lg border border-line p-3"
           onSubmit={(event) => {
             event.preventDefault();
-            run(() => recordOutcome(jobId, choice, note), () => {
+            run(() => recordOutcome(jobId, choice, note, choice === "interview" ? toIso(when) : null), () => {
               setChoice(null);
               setNote("");
             });
@@ -125,10 +175,16 @@ export function OutcomeBar({
             autoFocus
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            placeholder={choice === "interview" ? "e.g. Video call with the team lead on Tuesday 10:00" : "e.g. What they said"}
+            placeholder={choice === "interview" ? "e.g. Video call with the team lead" : "e.g. What they said"}
             className="field"
             dir="auto"
           />
+          {choice === "interview" && (
+            <label className="block text-sm">
+              <span className="font-medium">When (optional)</span>
+              <input type="datetime-local" value={when} onChange={(event) => setWhen(event.target.value)} className="field mt-1 w-auto" />
+            </label>
+          )}
           <button type="submit" disabled={pending} className="btn btn-primary px-3 py-1.5 text-xs">
             Save
           </button>

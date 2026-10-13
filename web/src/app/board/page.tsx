@@ -94,6 +94,11 @@ function Row({ job, now }: { job: Job; now: number }) {
       <div className="flex flex-wrap items-start justify-end gap-1.5 md:justify-start">
         <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${STAGE_STYLE[job.status] ?? "bg-mist"}`}>{STAGE_TEXT[job.status] ?? STATUS_LABELS[job.status]}</span>
         {due && <span className="rounded bg-saffron px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-on-saffron">Follow-up due</span>}
+        {job.status === "interview" && job.interview_at && Date.parse(job.interview_at) > now - 2 * 3600000 && (
+          <span className="rounded bg-go-soft px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-go">
+            {new Date(job.interview_at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+          </span>
+        )}
       </div>
       <div className="order-4 col-span-2 truncate text-xs text-slate md:order-none md:col-span-1" title={job.excluded_reason ?? undefined}>
         {job.excluded_reason ?? (job.source ? `via ${job.source}` : "")}

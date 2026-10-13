@@ -33,3 +33,17 @@ export function followUpState(job: Job) {
     draft: listDocuments(job.id).some((doc) => doc.type === "follow_up"),
   };
 }
+
+// Interviews still ahead (or within the last two hours), soonest first, then
+// the ones without a time.
+export function upcomingInterviews() {
+  const now = Date.now();
+  const jobs = listJobs({ status: "interview" });
+  const timed = jobs
+    .filter((job) => job.interview_at && Date.parse(job.interview_at) >= now - 2 * 3600000)
+    .sort((a, b) => Date.parse(a.interview_at!) - Date.parse(b.interview_at!));
+  return [...timed, ...jobs.filter((job) => !job.interview_at)].map((job) => ({
+    job,
+    inHours: job.interview_at ? (Date.parse(job.interview_at) - now) / 3600000 : null,
+  }));
+}

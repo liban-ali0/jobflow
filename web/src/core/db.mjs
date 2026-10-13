@@ -140,7 +140,7 @@ const JOB_COLUMNS = [
   "title", "company", "country", "city", "work_mode", "role", "source", "url", "language",
   "description", "posted_at", "track", "score", "score_reason", "score_breakdown", "legitimacy",
   "salary_estimate", "status", "excluded_reason", "folder", "notes", "applied_at", "follow_up_due",
-  "apply_state", "apply_missing",
+  "apply_state", "apply_missing", "interview_at",
 ];
 
 const now = () => new Date().toISOString();
@@ -155,6 +155,8 @@ const ADDED_COLUMNS = [
   // form, with the reasons as a JSON list.
   ["jobs", "apply_state", "TEXT"],
   ["jobs", "apply_missing", "TEXT"],
+  // When the interview is (ISO time), if the user gave it.
+  ["jobs", "interview_at", "TEXT"],
 ];
 
 // What a question is about: the candidate in general, a gap in their CV, or

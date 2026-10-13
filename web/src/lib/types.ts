@@ -42,6 +42,8 @@ export type Job = {
   // form, with what the extension could not fill.
   apply_state: "waiting" | null;
   apply_missing: string[] | null;
+  // When the interview is, if known (ISO time).
+  interview_at: string | null;
   updated_at: string;
 };
 

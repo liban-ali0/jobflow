@@ -137,7 +137,9 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
               applied={job.applied_at ? `Applied ${formatDateTime(job.applied_at)}` : null}
               followUp={followUpState(job)}
               interviewPack={
-                job.status === "interview" ? { exists: documents.some((document) => document.type === "interview_pack"), running: stageRunning("interview-pack", job.id) } : null
+                job.status === "interview"
+                  ? { exists: documents.some((document) => document.type === "interview_pack"), running: stageRunning("interview-pack", job.id), at: job.interview_at }
+                  : null
               }
             />
           )}
