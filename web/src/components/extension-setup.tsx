@@ -123,8 +123,15 @@ export function ExtensionSetup({ token, folder }: { token: string; folder: strin
           disabled={busy || extension.state === "missing" || extension.state === "checking"}
           onClick={async () => {
             setBusy(true);
+            setResult({ ok: true, message: "Confirm in the small Offerbound window that opens…" });
             const reply = await extension.connect(token);
-            setResult({ ok: reply.ok, message: reply.ok ? "Connected. The extension can now fill forms and send pages to Offerbound." : (reply.message ?? "") });
+            setResult(
+              !reply.ok
+                ? { ok: false, message: reply.message ?? "" }
+                : reply.pending
+                  ? { ok: true, message: "When you press Connect in that window, the status above changes to Connected." }
+                  : { ok: true, message: "Connected. The extension can now fill forms and send pages to Offerbound." },
+            );
             setBusy(false);
           }}
           className={`btn ${extension.state === "ready" ? "btn-quiet" : "btn-primary"}`}

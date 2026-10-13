@@ -187,9 +187,30 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           if (current && current !== message.origin) {
             return { ok: false, message: `The extension is connected to ${current}. To switch, change the address in the extension's Settings.` };
           }
+          // The same Offerbound again (a new key): no need to ask.
+          if (current === message.origin) {
+            await chrome.storage.local.set({ token: message.token });
+            return { ok: true, message: "Connected." };
+          }
         }
-        await chrome.storage.local.set({ address: message.origin, token: message.token });
+        // The first connection is confirmed by the user in the extension's
+        // own window, so no other page on this computer can claim it.
+        await save("pendingConnect", { origin: message.origin, token: message.token });
+        await chrome.windows.create({ url: chrome.runtime.getURL("connect.html"), type: "popup", width: 420, height: 300 });
+        return { ok: true, pending: true, message: "Confirm in the small Offerbound window that just opened." };
+      case "confirmConnect": {
+        // Only the extension's own connect.html may confirm.
+        if (sender.url !== chrome.runtime.getURL("connect.html")) return { ok: false, message: "Not allowed." };
+        const pending = await load("pendingConnect", null);
+        await chrome.storage.session.remove("pendingConnect");
+        if (!pending || !message.allow) return { ok: true, message: "Not connected." };
+        await chrome.storage.local.set({ address: pending.origin, token: pending.token });
         return { ok: true, message: "Connected." };
+      }
+      case "pendingConnect": {
+        if (sender.url !== chrome.runtime.getURL("connect.html")) return { ok: false };
+        return { ok: true, pending: await load("pendingConnect", null) };
+      }
       case "apply": {
         const ids = [...new Set((message.jobIds || []).map(Number).filter(Boolean))];
         if (!ids.length) return { ok: false, message: "No job to apply for." };

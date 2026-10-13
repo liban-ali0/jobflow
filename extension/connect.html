@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Connect Offerbound</title>
+    <style>
+      body { margin: 0; font: 14px/1.5 system-ui, sans-serif; color: #1b2433; background: #f6f7f9; }
+      header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #12203a; color: #fff; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+      main { padding: 14px; }
+      code { display: block; margin: 8px 0 12px; padding: 6px 8px; border-radius: 6px; background: #fff; border: 1px solid #d9dee7; font: 13px ui-monospace, monospace; word-break: break-all; }
+      .row { display: flex; gap: 8px; }
+      button { flex: 1; padding: 9px; border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid #d9dee7; background: #fff; color: #1b2433; }
+      button.main { background: #ffc20e; border-color: #ffc20e; color: #12203a; }
+      p.hint { color: #5b6576; font-size: 12px; margin: 10px 0 0; }
+    </style>
+  </head>
+  <body>
+    <header><img src="icons/icon-48.png" width="22" height="22" alt="" />Offerbound</header>
+    <main>
+      <p id="question">Connect this browser to the Offerbound app at:</p>
+      <code id="origin">…</code>
+      <div class="row">
+        <button id="allow" class="main" type="button">Connect</button>
+        <button id="cancel" type="button">Cancel</button>
+      </div>
+      <p class="hint">Only connect if you just pressed Connect in your own Offerbound (Settings → Sources).</p>
+    </main>
+    <script src="connect.js"></script>
+  </body>
+</html>

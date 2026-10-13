@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 // Talks to the Offerbound browser extension through its bridge script on this
 // page (extension/bridge.js): is it installed, and open application forms.
 
-type Reply = { ok: boolean; message?: string; version?: string; connected?: boolean };
+type Reply = { ok: boolean; message?: string; version?: string; connected?: boolean; pending?: boolean };
 
 let counter = 0;
 
@@ -62,6 +62,14 @@ export function useJobflowExtension() {
   const connect = useCallback(
     async (token: string) => {
       const reply = await ask("connect", [], 5000, token);
+      // The first time, the user confirms in the extension's own window.
+      if (reply?.pending) {
+        for (let i = 0; i < 60; i++) {
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          const ping = await ask("ping");
+          if (ping?.connected) break;
+        }
+      }
       await check();
       return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
     },

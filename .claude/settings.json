@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "Read",
+      "Read(/**)",
       "WebSearch",
       "WebFetch",
       "mcp__claude-in-chrome",
