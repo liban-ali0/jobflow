@@ -220,7 +220,11 @@ export default async function TodayPage(props: PageProps<"/">) {
         <Stat label="Not ranked" value={unranked} note={unranked ? `Next: Check and rank` : "All checked"} />
         <Stat label="Ranked" value={counts.ranked} note="Waiting for your pick" />
         <Stat label="Selected" value={`${selected.length}/${settings.dailyCap}`} note="For full research" />
-        <Stat label="Applied" value={counts.applied + counts.replied + counts.interview} note={`${counts.interview} in interview`} />
+        <Stat
+          label="Applied"
+          value={counts.applied + counts.replied + counts.interview + counts.offer}
+          note={`${counts.interview} in interview${counts.offer ? ` · ${counts.offer} ${counts.offer === 1 ? "offer" : "offers"}` : ""} · ${counts.rejected + counts.no_response} closed`}
+        />
         <Stat
           label="Questions"
           value={questions.length}

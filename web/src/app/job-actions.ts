@@ -90,6 +90,9 @@ export async function rankJobs(ids: number[]): Promise<ActionResult> {
 export async function markApplied(id: number): Promise<ActionResult> {
   const job = getJob(id);
   if (!job) return { ok: false, message: "This job no longer exists." };
+  if (["applied", "replied", "interview", "offer", "rejected", "no_response"].includes(job.status)) {
+    return { ok: false, message: `Already applied: this job is at ${job.status.replace("_", " ")}.` };
+  }
   // Nothing goes to an employer before the user has approved it.
   const unapproved = unapprovedDocuments(id);
   if (unapproved.length) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ActionResult } from "@/app/actions";
 
 // One large text field saved by a server action, with the result shown
@@ -28,6 +28,9 @@ export function TextForm({
   bare?: boolean;
 }) {
   const [result, formAction, pending] = useActionState(action, null);
+  // Kept in state: React resets a form after its action, which would wipe
+  // what the user typed when saving fails.
+  const [value, setValue] = useState(defaultValue);
 
   return (
     <form action={formAction} className={bare ? "" : "card p-5"}>
@@ -39,7 +42,8 @@ export function TextForm({
         id={name}
         name={name}
         rows={rows}
-        defaultValue={defaultValue}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
         placeholder={placeholder}
         className="field font-mono text-[13px] leading-relaxed"
         dir="auto"

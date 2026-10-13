@@ -10,8 +10,8 @@ import { formatDateTime } from "@/lib/format";
 
 const RULES_EXAMPLE = `Examples:
 - Skip jobs that require German or French.
-- Prefer Java Spring Boot roles over .NET roles.
-- Treat government contractor roles in Riyadh as a plus.`;
+- Prefer roles that use my main skill over ones that only mention it.
+- Treat jobs in my first-choice city as a plus.`;
 
 // The profile's "Gaps" section lists what the CV is missing or unclear about.
 function gapsOf(profile: string | null) {
@@ -51,7 +51,7 @@ export default function ProfilePage() {
             variant="primary"
             action={runStage.bind(null, "build-profile", null)}
             disabled={!cv || lastBuild?.status === "running"}
-            title={cv ? "Rebuilds the profile and the three base CVs from your CV and facts" : "Add the CV as a PDF in the candidate folder first"}
+            title={cv ? "Rebuilds the profile and the base CV for each role from your CV and facts" : "Add the CV as a PDF in the candidate folder first"}
           >
             Rebuild profile
           </ActionButton>

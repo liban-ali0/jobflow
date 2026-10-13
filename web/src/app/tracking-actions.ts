@@ -44,6 +44,7 @@ export async function recordOutcome(jobId: number, status: string, note: string)
 }
 
 export async function writeFollowUp(jobId: number): Promise<ActionResult> {
+  if (stageRunning("follow-up", jobId)) return { ok: false, message: "Already writing this follow-up." };
   try {
     launch("follow-up", jobId);
   } catch (error) {

@@ -246,7 +246,7 @@ function CvForm({ doc, onChange }: { doc: CvDocument; onChange: (doc: CvDocument
       <Part id={partId("header")} number={1} title="Header">
         <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
           <Field label="Name" value={doc.name} onChange={(name) => onChange({ ...doc, name })} />
-          <Field label="Headline" value={doc.headline} placeholder="e.g. Backend Developer · Java, Spring Boot" onChange={(headline) => onChange({ ...doc, headline })} wide />
+          <Field label="Headline" value={doc.headline} placeholder="e.g. Your title · two or three key skills" onChange={(headline) => onChange({ ...doc, headline })} wide />
           <label className="block text-xs font-medium text-slate sm:col-span-2">
             Contact <span className="font-normal">· separate each with |</span>
             <input

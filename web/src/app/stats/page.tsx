@@ -50,7 +50,7 @@ export default function StatsPage() {
         <div className="mt-8">
           <Panel title={stats.applied === 0 ? "Start with your first application" : "Early days"}>
             <p className="max-w-2xl text-sm text-slate">
-              {stats.applied === 0 ? "Mark jobs as applied on the Board to see reply and interview rates by source, country, and role, plus application speed and fast-track results. " : "These are your first results. A single reply can change a small sample a lot. "}
+              {stats.applied === 0 ? "Mark jobs as applied (on the job page, or by submitting through the extension) to see reply and interview rates by source, country, and role, plus application speed and fast-track results. " : "These are your first results. A single reply can change a small sample a lot. "}
               Numbers become meaningful after about 10 applications. Keep recording replies and interviews as they arrive.
             </p>
           </Panel>

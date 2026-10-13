@@ -623,7 +623,7 @@ export function SettingsForm({
 
         <Section id="daily" title="Daily selection" hint="How many jobs get full research, and when to follow up.">
           <div className="flex flex-wrap gap-x-10 gap-y-5">
-            <NumberField name="dailyCap" label="Daily cap" value={settings.dailyCap} unit="jobs" min={1} max={50} help="Picked for full research each day." />
+            <NumberField name="dailyCap" label="Selected at once" value={settings.dailyCap} unit="jobs" min={1} max={50} help="How many jobs can wait for research at the same time." />
             <NumberField name="followUpDays" label="Follow up after" value={settings.followUpDays} unit="days" min={1} max={30} help="Without a reply." />
           </div>
         </Section>

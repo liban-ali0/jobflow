@@ -18,7 +18,7 @@ const TONES: Record<Boarding["tone"], string> = {
 
 
 function clock(iso: string | null) {
-  if (!iso) return "--:--";
+  if (!iso) return "Unknown";
   return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -72,7 +72,7 @@ export function DeparturesBoard({
         <span className="font-mono text-xs text-board-dim">{total ?? jobs.length} listed</span>
       </header>
 
-      <div className="hidden grid-cols-[4.5rem_6.5rem_1fr_5.5rem_6.5rem_6.5rem] gap-4 px-5 py-2 font-mono text-[11px] tracking-[0.14em] text-board-dim uppercase lg:grid">
+      <div className="hidden grid-cols-[6.5rem_6.5rem_1fr_5.5rem_6.5rem_9rem] gap-4 px-5 py-2 font-mono text-[11px] tracking-[0.14em] text-board-dim uppercase lg:grid">
         <span className="flex items-center gap-3">
           {selectable && (
             <input type="checkbox" data-select-all aria-label="Select all jobs on this page" className="size-4 accent-teal" />
@@ -92,6 +92,12 @@ export function DeparturesBoard({
 
       {sorting && (
         <div className="flex flex-wrap items-center gap-1.5 border-b border-board-line px-5 py-2.5 lg:hidden">
+          {selectable && (
+            <label className="mr-2 flex items-center gap-1.5 font-mono text-[11px] tracking-[0.14em] text-board-dim uppercase">
+              <input type="checkbox" data-select-all aria-label="Select all jobs on this page" className="size-4 accent-teal" />
+              All
+            </label>
+          )}
           <span className="mr-1 font-mono text-[11px] tracking-[0.14em] text-board-dim uppercase">Sort</span>
           {SORT_KEYS.map((key) => (
             <Link
@@ -138,7 +144,7 @@ export function DeparturesBoard({
                   )}
                   <div>
                     <div>{clock(job.posted_at)}</div>
-                    <div className="text-[11px] whitespace-nowrap text-board-dim">{formatAgeShort(ageMinutes(job.posted_at))} ago</div>
+                    <div className="text-[11px] whitespace-nowrap text-board-dim">{job.posted_at ? `${formatAgeShort(ageMinutes(job.posted_at))} ago` : "post time"}</div>
                   </div>
                 </div>
 

@@ -9,6 +9,7 @@ import {
   deleteConversation,
   dismissQuestion,
   getConversation,
+  getJob,
   getSettings,
   listJobs,
   listMessages,
@@ -147,11 +148,18 @@ export async function setStatus(jobId: number, status: string): Promise<ActionRe
     const { dailyCap } = getSettings();
     const selected = listJobs({ status: "selected" }).length;
     if (selected >= dailyCap) {
-      return { ok: false, message: `The daily cap is ${dailyCap}. Remove a selected job or raise the cap in Settings.` };
+      return { ok: false, message: `At most ${dailyCap} jobs can be selected at once. Remove a selected job or raise the limit in Settings.` };
     }
   }
 
-  const patch: { status: Status; follow_up_due?: string } = { status: status as Status };
+  // Leaving a stage clears what belonged to it: the follow-up date (applied)
+  // and the extension's "Waiting for you" (ready).
+  const patch: { status: Status; follow_up_due?: string | null; apply_state?: null; apply_missing?: null } = {
+    status: status as Status,
+    follow_up_due: null,
+    apply_state: null,
+    apply_missing: null,
+  };
   if (status === "applied" && unapprovedDocuments(jobId).length) {
     return { ok: false, message: "Approve this job's documents first (Documents on the job page)." };
   }
@@ -164,9 +172,17 @@ export async function setStatus(jobId: number, status: string): Promise<ActionRe
   return { ok: true, message: `Moved to ${STATUS_LABELS[status as Status]}.` };
 }
 
-export async function saveNotes(jobId: number, formData: FormData) {
-  updateJob(jobId, { notes: String(formData.get("notes") ?? "") });
+// Saves the notes field. `base` is what the page showed: notes added
+// meanwhile (an outcome note, a note from the row menu) are kept, not lost.
+export async function saveNotes(jobId: number, base: string, text: string): Promise<ActionResult> {
+  const job = getJob(jobId);
+  if (!job) return { ok: false, message: "This job no longer exists." };
+  const current = job.notes ?? "";
+  const added = current !== base && current.startsWith(base) ? current.slice(base.length).trim() : "";
+  const notes = [text.trim(), added].filter(Boolean).join("\n\n").slice(0, 20000);
+  updateJob(jobId, { notes });
   revalidatePath(`/jobs/${jobId}`);
+  return { ok: true, message: added ? "Saved, with the note added meanwhile." : "Saved." };
 }
 
 const list = (value: FormDataEntryValue | null) =>

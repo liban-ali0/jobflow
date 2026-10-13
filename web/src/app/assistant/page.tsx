@@ -1,9 +1,10 @@
 import { startConversation } from "@/app/actions";
+import { PendingSubmit } from "@/components/form-buttons";
 import { ENGINES } from "@/lib/engine";
 
 const EXAMPLES = [
   "Rank the next 10 jobs that are waiting.",
-  "Which of today's jobs fit my Spring Boot experience best?",
+  "Which of today's jobs fit my experience best, and why?",
   "Explain the score of the highest ranked job.",
   "Add a ranking rule: skip jobs that need a driving licence.",
 ];
@@ -32,18 +33,17 @@ export default function AssistantHome() {
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         {EXAMPLES.map((example) => (
-          <button
+          <PendingSubmit
             key={example}
-            type="submit"
             name="message"
             value={example}
-            className="group flex items-center justify-between gap-3 rounded-lg border border-line bg-mist px-4 py-3 text-left text-sm transition-colors hover:border-ink hover:bg-surface"
+            className="group flex items-center justify-between gap-3 rounded-lg border border-line bg-mist px-4 py-3 text-left text-sm transition-colors hover:border-ink hover:bg-surface disabled:opacity-60"
           >
             {example}
             <span className="text-slate transition-transform group-hover:translate-x-0.5 group-hover:text-ink" aria-hidden>
               →
             </span>
-          </button>
+          </PendingSubmit>
         ))}
       </div>
     </form>

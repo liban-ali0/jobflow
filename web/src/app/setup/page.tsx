@@ -136,7 +136,7 @@ export default function SetupPage() {
 
         <Step number={5} title="Build your profile" done={done.profile}>
           <p>
-            Claude reads your CV and facts and writes your profile plus one base CV per role. Takes a few minutes. Questions it has for you appear under{" "}
+            The engine reads your CV and facts and writes your profile plus one base CV per role. Takes a few minutes. Questions it has for you appear under{" "}
             <Link href="/questions" className="text-teal underline">
               Questions
             </Link>

@@ -18,7 +18,17 @@ export type JobSummary = { id: number; status: string; url: string | null; ranke
 
 // The reason form for "Not interested", used by the bulk bar, the row menu,
 // and the job page.
-export function ExcludeForm({ onSubmit, onCancel, dark = false }: { onSubmit: (reason: string, asRule: boolean) => void; onCancel: () => void; dark?: boolean }) {
+export function ExcludeForm({
+  onSubmit,
+  onCancel,
+  dark = false,
+  pending = false,
+}: {
+  onSubmit: (reason: string, asRule: boolean) => void;
+  onCancel: () => void;
+  dark?: boolean;
+  pending?: boolean;
+}) {
   const [reason, setReason] = useState("");
   const [asRule, setAsRule] = useState(false);
   return (
@@ -45,8 +55,8 @@ export function ExcludeForm({ onSubmit, onCancel, dark = false }: { onSubmit: (r
         Also skip jobs like this when ranking
       </label>
       <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary px-3 py-1 text-xs">
-          Exclude
+        <button type="submit" disabled={pending} className="btn btn-primary px-3 py-1 text-xs">
+          {pending ? "Excluding…" : "Exclude"}
         </button>
         <button type="button" onClick={onCancel} className="btn btn-quiet px-3 py-1 text-xs">
           Cancel
@@ -158,9 +168,12 @@ export function RowMenu({ job }: { job: JobSummary }) {
               <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => askAboutJob(job.id))}>
                 Ask the Assistant about it
               </button>
-              <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => markApplied(job.id))}>
-                Mark as applied
-              </button>
+              {/* Only before applying: later stages would lose their place. */}
+              {!["applied", "replied", "interview", "offer", "rejected", "no_response"].includes(job.status) && (
+                <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => markApplied(job.id))}>
+                  Mark as applied
+                </button>
+              )}
               <button type="button" role="menuitem" className={item} onClick={() => setPanel("note")}>
                 Add a note…
               </button>
@@ -200,7 +213,7 @@ export function RowMenu({ job }: { job: JobSummary }) {
           )}
           {panel === "exclude" && (
             <div className="p-1.5">
-              <ExcludeForm onSubmit={(reason, asRule) => run(() => excludeJobs([job.id], reason, asRule))} onCancel={() => setPanel("menu")} />
+              <ExcludeForm pending={pending} onSubmit={(reason, asRule) => run(() => excludeJobs([job.id], reason, asRule))} onCancel={() => setPanel("menu")} />
             </div>
           )}
           {result && (
@@ -282,6 +295,7 @@ export function JobActionBar({ job, hasResearch, working }: { job: JobSummary; h
       {excluding && (
         <div className="card max-w-md rounded-xl p-4">
           <ExcludeForm
+            pending={pending}
             onSubmit={(reason, asRule) => run(() => excludeJobs([job.id], reason, asRule), () => setExcluding(false))}
             onCancel={() => setExcluding(false)}
           />

@@ -1,7 +1,8 @@
 import { notFound } from "next/navigation";
-import { runStage, saveNotes } from "@/app/actions";
+import { runStage } from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
 import { ApplyPanel } from "@/components/apply-panel";
+import { NotesForm } from "@/components/notes-form";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { BackLink } from "@/components/back-link";
 import { BoardingPass } from "@/components/boarding-pass";
@@ -41,7 +42,13 @@ const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "follow_up", "
 function applyInChrome(url: string | null, approved: boolean) {
   if (!approved) return { available: false, reason: "Approve all documents first." };
   if (!url) return { available: false, reason: "This job has no link to its application." };
-  if (/(^|\.)linkedin\.com$/i.test(new URL(url).hostname)) {
+  let host = "";
+  try {
+    host = new URL(url).hostname;
+  } catch {
+    return { available: false, reason: "The link to this job is not a valid web address." };
+  }
+  if (/(^|\.)linkedin\.com$/i.test(host)) {
     return { available: false, reason: "LinkedIn: apply there yourself with the answers below; automated filling can get the account restricted." };
   }
   if (!stageReady("apply-job")) return { available: false, reason: "The apply step is missing." };
@@ -95,7 +102,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const packageDocs = documents
     .filter((document) => ["cv", "cover_letter", "email", "answers"].includes(document.type))
     .map((document) => ({ type: document.type, approved: document.review === "approved" }));
-  const afterApplying = ["applied", "replied", "interview", "offer"].includes(job.status);
+  // Applied, or closed: no Apply section any more.
+  const afterApplying = ["applied", "replied", "interview", "offer", "rejected", "no_response", "excluded"].includes(job.status);
   // The Apply section: once the package is written, until the job is applied to.
   // Shown once every document is approved; before that, Documents is the next step.
   const fullPack = !afterApplying && documents.some((document) => document.type === "answers") ? applyPack(job.id) : null;
@@ -138,7 +146,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
             <Panel
               id="apply"
               title="Apply"
-              hint={pack.approved ? "Everything is approved. Jobflow fills the form or prepares the email; you check it and press Submit." : "Approve all four documents first; then Jobflow can fill the form for you."}
+              hint="Everything is approved. Offerbound fills the form or prepares the email; you check it and press Submit."
             >
               <ApplyPanel
                 jobId={job.id}
@@ -295,15 +303,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
           </Panel>
 
           <Panel title="Notes">
-            <form action={saveNotes.bind(null, job.id)}>
-              <label className="sr-only" htmlFor="notes">
-                Notes
-              </label>
-              <textarea id="notes" name="notes" rows={6} defaultValue={job.notes ?? ""} placeholder="Anything to remember about this job." className="field text-sm" dir="auto" />
-              <button type="submit" className="btn btn-quiet mt-3 px-3 py-1.5 text-xs">
-                Save notes
-              </button>
-            </form>
+            <NotesForm key={job.notes ?? ""} jobId={job.id} notes={job.notes ?? ""} />
           </Panel>
 
           <Panel title="History">

@@ -2,24 +2,37 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
 import { designTemplate, duplicateTemplate, removeTemplate, setAutoUpdate, setDefaultTemplate, setRoleTemplate } from "@/app/cv-actions";
 
 // A document page shrunk into a card: an A4 page (794 × 1123 px) scaled to fit.
+// A small live picture of a document page. As wide as `width`, or narrower
+// when its column is (on a phone), keeping the A4 shape.
 export function PagePreview({ src, title, width = 220 }: { src: string; title: string; width?: number }) {
-  const scale = width / 794;
+  const box = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(width);
+  useEffect(() => {
+    const element = box.current;
+    if (!element) return;
+    const observer = new ResizeObserver(([entry]) => setShown(Math.min(width, Math.round(entry.contentRect.width))));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [width]);
+  const scale = shown / 794;
   return (
-    <div className="overflow-hidden rounded-md border border-line bg-white shadow-sm" style={{ width, height: Math.round(1123 * scale) }}>
-      <iframe
-        src={src}
-        title={title}
-        loading="lazy"
-        tabIndex={-1}
-        aria-hidden
-        className="pointer-events-none origin-top-left border-0"
-        style={{ width: 794, height: 1123, transform: `scale(${scale})` }}
-      />
+    <div ref={box} className="w-full" style={{ maxWidth: width }}>
+      <div className="overflow-hidden rounded-md border border-line bg-white shadow-sm" style={{ width: shown, height: Math.round(1123 * scale) }}>
+        <iframe
+          src={src}
+          title={title}
+          loading="lazy"
+          tabIndex={-1}
+          aria-hidden
+          className="pointer-events-none origin-top-left border-0"
+          style={{ width: 794, height: 1123, transform: `scale(${scale})` }}
+        />
+      </div>
     </div>
   );
 }

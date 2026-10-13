@@ -19,8 +19,8 @@ export function BulkSelection({ children }: { children: React.ReactNode }) {
   const read = () => {
     const all = boxes();
     const ticked = all.filter((box) => box.checked).map((box) => Number(box.value));
-    const toggle = area.current?.querySelector<HTMLInputElement>("input[data-select-all]");
-    if (toggle) {
+    // One "select all" in the desktop header, one in the phone sort strip.
+    for (const toggle of area.current?.querySelectorAll<HTMLInputElement>("input[data-select-all]") ?? []) {
       toggle.checked = all.length > 0 && ticked.length === all.length;
       toggle.indeterminate = ticked.length > 0 && ticked.length < all.length;
     }
@@ -91,7 +91,7 @@ export function BulkSelection({ children }: { children: React.ReactNode }) {
             )}
             {excluding && ids.length > 0 && (
               <div className="w-full max-w-md pt-2">
-                <ExcludeForm onSubmit={(reason, asRule) => run(() => excludeJobs(ids, reason, asRule))} onCancel={() => setExcluding(false)} />
+                <ExcludeForm pending={pending} onSubmit={(reason, asRule) => run(() => excludeJobs(ids, reason, asRule))} onCancel={() => setExcluding(false)} />
               </div>
             )}
           </div>

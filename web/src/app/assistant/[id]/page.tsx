@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { removeConversation, sendMessage } from "@/app/actions";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { BackLink } from "@/components/back-link";
+import { ConfirmSubmit } from "@/components/form-buttons";
 import { Composer } from "@/components/composer";
 import { Markdown } from "@/components/markdown";
 import { ProgressList, parseProgress } from "@/components/progress-list";
@@ -68,9 +69,7 @@ export default async function ConversationPage(props: PageProps<"/assistant/[id]
           </p>
         </div>
         <form action={removeConversation.bind(null, conversation.id)}>
-          <button type="submit" className="btn btn-quiet text-xs">
-            Delete conversation
-          </button>
+          <ConfirmSubmit label="Delete conversation" confirm="Delete it for good" className="btn btn-quiet text-xs" />
         </form>
       </header>
 
