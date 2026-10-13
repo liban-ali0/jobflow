@@ -515,9 +515,14 @@ export function finishRun(db, id, { status, summary = null, log = null }) {
 
 // Recent runs. Without `full`, the long progress and log are left out and the
 // summary is shortened: enough for status checks and lists.
-export function listRuns(db, limit = 50, { full = false } = {}) {
+export function listRuns(db, limit = 50, { full = false, offset = 0, status = null } = {}) {
   const columns = full ? "*" : "id, stage, job_id, trigger, engine, conversation_id, status, started_at, finished_at, substr(summary, 1, 3000) AS summary, NULL AS progress, NULL AS log";
-  return db.prepare(`SELECT ${columns} FROM runs ORDER BY id DESC LIMIT ?`).all(limit);
+  const where = status ? "WHERE status = ?" : "";
+  return db.prepare(`SELECT ${columns} FROM runs ${where} ORDER BY id DESC LIMIT ? OFFSET ?`).all(...(status ? [status] : []), limit, offset);
+}
+
+export function countRuns(db, { status = null } = {}) {
+  return status ? db.prepare("SELECT COUNT(*) AS n FROM runs WHERE status = ?").get(status).n : db.prepare("SELECT COUNT(*) AS n FROM runs").get().n;
 }
 
 export function listRunningRuns(db) {

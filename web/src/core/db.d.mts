@@ -60,7 +60,8 @@ export function finishRun(
   id: number,
   result: { status: string; summary?: string | null; log?: string | null },
 ): void;
-export function listRuns(db: Db, limit?: number, options?: { full?: boolean }): Row[];
+export function listRuns(db: Db, limit?: number, options?: { full?: boolean; offset?: number; status?: string | null }): Row[];
+export function countRuns(db: Db, options?: { status?: string | null }): number;
 export function listRunningRuns(db: Db): Row[];
 export function getRun(db: Db, id: number): Row | undefined;
 export { EXPERIENCE_LEVELS } from "./levels.mjs";

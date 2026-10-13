@@ -3,7 +3,8 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { Markdown } from "@/components/markdown";
 import { PageHeader } from "@/components/page-header";
 import { ProgressList, parseProgress } from "@/components/progress-list";
-import { listConversations, listRuns } from "@/lib/data";
+import { Pagination } from "@/components/pagination";
+import { countRuns, getRun, listConversations, listRuns } from "@/lib/data";
 import { ENGINES, STAGES, closeAbandonedRuns, isStage, type EngineKey } from "@/lib/engine";
 import { dayLabel, firstLine, timeOf } from "@/lib/format";
 import type { Run } from "@/lib/types";
@@ -16,6 +17,8 @@ const STATUS = {
 } as const;
 
 const TRIGGERS: Record<string, string> = { schedule: "fast track", daily: "daily run" };
+const PAGE = 40;
+const SUMMARY_PREVIEW = 1200;
 
 function duration(run: Run) {
   if (!run.finished_at) return null;
@@ -73,24 +76,14 @@ function RunRow({ run, conversationExists }: { run: Run; conversationExists: boo
         {run.status === "running" && <ProgressList lines={steps} live />}
         {run.summary && (
           <div className="max-h-96 overflow-y-auto rounded-lg bg-mist/50 px-4 py-3">
-            <Markdown text={run.summary} />
+            {/* The start of the report; the run's own page has all of it. */}
+            <Markdown text={run.summary.length > SUMMARY_PREVIEW ? `${run.summary.slice(0, SUMMARY_PREVIEW).replace(/\s+\S*$/, "")} …` : run.summary} />
           </div>
         )}
-        {run.status !== "running" && steps.length > 0 && (
-          <details className="text-xs">
-            <summary className="cursor-pointer text-slate hover:text-ink">
-              What the engine did · {steps.length} {steps.length === 1 ? "step" : "steps"}
-            </summary>
-            <div className="mt-2">
-              <ProgressList lines={steps} />
-            </div>
-          </details>
-        )}
-        {run.status === "failed" && run.log && (
-          <details className="text-xs">
-            <summary className="cursor-pointer text-slate hover:text-ink">Error details</summary>
-            <pre className="mt-2 max-h-64 overflow-auto rounded bg-mist p-3 font-mono whitespace-pre-wrap">{run.log}</pre>
-          </details>
+        {run.status !== "running" && (
+          <Link href={`/activity/${run.id}`} className="inline-block text-xs text-teal underline">
+            {run.status === "failed" ? "Full report, every step, and the error" : "Full report and every step"} →
+          </Link>
         )}
       </div>
     </details>
@@ -98,15 +91,21 @@ function RunRow({ run, conversationExists }: { run: Run; conversationExists: boo
 }
 
 export default async function ActivityPage(props: PageProps<"/activity">) {
-  const { show } = await props.searchParams;
+  const { show, page: pageParam } = await props.searchParams;
   closeAbandonedRuns();
-  const all = listRuns(100, { full: true });
+  const failedOnly = show === "failed";
+  // A page of runs without their long progress; running ones get it back
+  // for the live view.
+  const total = countRuns(failedOnly ? { status: "failed" } : {});
+  const pages = Math.max(1, Math.ceil(total / PAGE));
+  const page = Math.min(pages, Math.max(1, Math.floor(Number(pageParam) || 1)));
+  const runs = listRuns(PAGE, { offset: (page - 1) * PAGE, ...(failedOnly ? { status: "failed" as const } : {}) }).map((run) =>
+    run.status === "running" ? (getRun(run.id) ?? run) : run,
+  );
   // A deleted conversation keeps its runs, but there is nothing to open.
   const conversations = new Set(listConversations().map((conversation) => conversation.id));
-  const failedOnly = show === "failed";
-  const runs = failedOnly ? all.filter((run) => run.status === "failed") : all;
-  const active = all.filter((run) => run.status === "running").length;
-  const failed = all.filter((run) => run.status === "failed").length;
+  const active = countRuns({ status: "running" });
+  const failed = countRuns({ status: "failed" });
   // Grouped by day, newest first.
   const days = new Map<string, Run[]>();
   for (const run of runs) {
@@ -118,7 +117,7 @@ export default async function ActivityPage(props: PageProps<"/activity">) {
     <div className="max-w-4xl">
       <AutoRefresh active={active > 0} />
       <PageHeader
-        eyebrow={active ? `${active} running now` : `Last ${all.length} runs`}
+        eyebrow={active ? `${active} running now` : `${total} ${total === 1 ? "run" : "runs"}`}
         title="Activity"
         description="Every step and assistant message, newest first. Open a row for the full report."
         actions={
@@ -151,6 +150,14 @@ export default async function ActivityPage(props: PageProps<"/activity">) {
               </div>
             </section>
           ))}
+          <Pagination
+            page={page}
+            pages={pages}
+            start={(page - 1) * PAGE}
+            shown={runs.length}
+            total={total}
+            href={(number) => `/activity?${new URLSearchParams({ ...(failedOnly ? { show: "failed" } : {}), page: String(number) })}`}
+          />
         </div>
       )}
     </div>

@@ -153,7 +153,8 @@ export const listMessages = (conversationId: number) => core.listMessages(db(), 
 export const finishRun = (id: number, result: { status: Run["status"]; summary?: string | null; log?: string | null }) =>
   core.finishRun(db(), id, result);
 // Recent runs without their long progress and log; `full` includes them.
-export const listRuns = (limit = 50, options: { full?: boolean } = {}) => core.listRuns(db(), limit, options) as Run[];
+export const listRuns = (limit = 50, options: { full?: boolean; offset?: number; status?: Run["status"] } = {}) => core.listRuns(db(), limit, options) as Run[];
+export const countRuns = (options: { status?: Run["status"] } = {}) => core.countRuns(db(), options);
 export const listRunningRuns = () => core.listRunningRuns(db()) as Run[];
 export const getRun = (id: number) => core.getRun(db(), id) as Run | undefined;
 
