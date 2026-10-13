@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Apply · Demo Teknoloji</title>
+  <link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<main>
+  <h1>Backend Developer</h1>
+  <p class="lede">Demo Teknoloji · Istanbul, Türkiye · Like a real site: steps, questions Jobflow cannot know, a consent box, and a thank-you page after you submit (Jobflow test page).</p>
+  <form id="form" action="thanks.html" method="get">
+    <p class="progress" id="progress">Step 1 of 3: About you</p>
+    <div class="step on" data-step="1">
+      <label for="name">Full name *</label><input id="name" name="full_name" required>
+      <label for="email">Email *</label><input id="email" name="email" type="email" required>
+      <label for="tel">Phone *</label><input id="tel" name="phone" type="tel" required>
+      <label for="military">Military service status *</label>
+      <select id="military" name="military" required><option value="">Choose</option><option>Completed</option><option>Exempt</option><option>Postponed</option></select>
+      <button type="button" class="next">Next</button>
+    </div>
+    <div class="step" data-step="2">
+      <label for="cv">Upload your CV *</label><input id="cv" name="cv" type="file" required>
+      <label for="letter">Cover letter</label><textarea id="letter" name="cover_letter" rows="6"></textarea>
+      <button type="button" class="back">Back</button> <button type="button" class="next">Next</button>
+    </div>
+    <div class="step" data-step="3">
+      <label for="hear">How did you hear about this position? *</label><input id="hear" name="heard_from" required>
+      <label for="why">Describe a project you are proud of *</label><textarea id="why" name="project" rows="4" required></textarea>
+      <label class="inline-check"><input type="checkbox" name="kvkk" required> I agree to the processing of my personal data (privacy policy) *</label>
+      <button type="button" class="back">Back</button> <button type="submit">Submit application</button>
+    </div>
+  </form>
+  <p class="demo-note">Jobflow demo form: nothing is sent anywhere. Submitting opens a thank-you page, like a real site.</p>
+</main>
+<script>
+  const steps = [...document.querySelectorAll(".step")];
+  const titles = ["About you", "Documents", "Final questions"];
+  let at = 0;
+  const show = () => {
+    steps.forEach((step, index) => step.classList.toggle("on", index === at));
+    document.getElementById("progress").textContent = "Step " + (at + 1) + " of 3: " + titles[at];
+  };
+  // Like real forms: Next only moves on when this step's required fields are filled.
+  document.querySelectorAll(".next").forEach((button) => button.addEventListener("click", () => {
+    const fields = [...steps[at].querySelectorAll("[required]")];
+    const empty = fields.find((field) => (field.type === "file" ? !field.files.length : !field.value));
+    if (empty) { empty.reportValidity(); return; }
+    at = Math.min(2, at + 1); show();
+  }));
+  document.querySelectorAll(".back").forEach((button) => button.addEventListener("click", () => { at = Math.max(0, at - 1); show(); }));
+</script>
+</body>
+</html>

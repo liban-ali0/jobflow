@@ -57,11 +57,15 @@ export function saveCapture(page: CapturedPage) {
   return `${CAPTURE_DIR}/${name}`;
 }
 
-// Requests from the Jobflow extension: its own origin and the user's key.
+// Requests from the Jobflow extension: never from a website, and with the
+// user's key. Chrome leaves out the Origin header on some requests from the
+// extension's background worker; a website always sends its own, and cannot
+// send the key header without a CORS preflight the app never allows.
 // Returns an error response, or null when the request may go on.
 export function extensionDenied(request: Request) {
   const reply = (message: string, status: number) => Response.json({ ok: false, message }, { status });
-  if (!/^(chrome|moz)-extension:\/\//.test(request.headers.get("origin") ?? "")) return reply("Only the Jobflow extension can do this.", 403);
+  const origin = request.headers.get("origin");
+  if (origin && !/^(chrome|moz)-extension:\/\//.test(origin)) return reply("Only the Jobflow extension can do this.", 403);
   if (!tokenMatches(request.headers.get("x-jobflow-token") ?? "")) return reply("The key does not match. Copy it again from Settings → Sources.", 401);
   return null;
 }

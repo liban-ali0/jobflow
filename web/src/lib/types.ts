@@ -38,6 +38,10 @@ export type Job = {
   notes: string | null;
   applied_at: string | null;
   follow_up_due: string | null;
+  // Applying through the extension: "waiting" while the user finishes the
+  // form, with what the extension could not fill.
+  apply_state: "waiting" | null;
+  apply_missing: string[] | null;
   updated_at: string;
 };
 

@@ -1,4 +1,4 @@
-import { cleanCapture, saveCapture, tokenMatches } from "@/lib/capture";
+import { cleanCapture, extensionDenied, saveCapture } from "@/lib/capture";
 import { launch, stageRunning } from "@/lib/engine";
 
 const reply = (ok: boolean, message: string, status = 200) => Response.json({ ok, message }, { status });
@@ -6,10 +6,9 @@ const reply = (ok: boolean, message: string, status = 200) => Response.json({ ok
 // A page sent by the Jobflow browser extension: saved, then the import-jobs
 // step picks out the jobs with the engine chosen in Settings.
 export async function POST(request: Request) {
-  // Only the extension may send pages: browsers set this header themselves,
-  // and the token proves it is this user's extension.
-  if (!/^(chrome|moz)-extension:\/\//.test(request.headers.get("origin") ?? "")) return reply(false, "Only the Jobflow extension can send pages.", 403);
-  if (!tokenMatches(request.headers.get("x-jobflow-token") ?? "")) return reply(false, "The key does not match. Copy it again from Settings → Sources.", 401);
+  // Only the extension may send pages (no website, and the user's key).
+  const denied = extensionDenied(request);
+  if (denied) return denied;
   const raw = await request.text();
   if (raw.length > 600_000) return reply(false, "This page is too large to send.", 413);
   let page;

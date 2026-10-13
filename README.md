@@ -55,14 +55,23 @@ Stop the app with Ctrl+C in its terminal.
 - **LinkedIn and Workable** are searched automatically, without logging in, country by country in your priority order.
 - **Indeed, Bayt, GulfTalent, Naukrigulf, Kariyer.net** block automated access, so they are read in your own browser:
   - With Claude Code: switch them on in Settings → Sources. After **Find new jobs**, Claude in Chrome reads their search pages in your Chrome (install the Claude in Chrome extension and allow it on those sites).
-  - With any engine: the **Jobflow extension**. In Chrome open `chrome://extensions`, switch on Developer mode, choose **Load unpacked**, and pick the `extension` folder. Paste the key from Settings → Sources. On any job site press **Send this page to Jobflow**.
+  - With any engine: the **Jobflow extension** (below). On any job site press **Send this page to Jobflow**.
+
+## The Jobflow extension (Chrome, Edge, Firefox)
+
+Settings → Sources shows the steps for the browser you are using, with buttons to copy each address:
+
+- **Chrome or Edge:** open `chrome://extensions` (or `edge://extensions`), switch on Developer mode, press **Load unpacked**, and choose the `extension` folder.
+- **Firefox:** open `about:debugging#/runtime/this-firefox`, press **Load Temporary Add-on…**, and choose `manifest.json` in the `extension` folder. Firefox removes it when it closes, so repeat this after a restart.
+
+Then press **Connect** in Settings → Sources. Nothing to paste.
 
 ## Applying
 
 When every document of a job is approved, its page shows **Apply**. Jobflow never submits for you:
 
-- **Fill it in Chrome** (Claude Code): fills the application form in your Chrome, attaches the CV and cover letter, and stops before Submit.
-- **The Jobflow extension**: on the form, choose the job and press **Fill this form**; then **I submitted it** marks it applied.
+- **Open and fill the form** (the extension, any engine): opens the job's form, fills every step, and attaches the CV and cover letter. What it cannot fill is marked yellow on the form and listed on a Jobflow bar, and the job shows **Waiting for you** with the reasons. You fill the rest and press Submit; when the site confirms it, the job is marked applied, a copy of what was sent is kept in its folder, and the bar offers to save your typed answers for the next forms. On the Board, **Apply to all** goes through every ready job one by one. LinkedIn is never automated.
+- **Fill with Claude** (Claude Code): Claude in Chrome fills unusual forms and stops before Submit.
 - **Email draft**: when research found a confirmed email address, an `.eml` draft with both PDFs opens in your mail app.
 
 After applying, record replies and interviews on the job page. An interview gets an interview pack: likely questions with answers from your real experience, gaps, and questions to ask.

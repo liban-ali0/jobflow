@@ -1,9 +1,49 @@
 {
   "manifest_version": 3,
   "name": "Jobflow",
-  "version": "0.1.0",
-  "description": "Send the job listings on the page you are reading to your own Jobflow app.",
-  "action": { "default_popup": "popup.html", "default_title": "Send to Jobflow" },
-  "permissions": ["activeTab", "scripting", "storage"],
-  "host_permissions": ["http://localhost/*", "http://127.0.0.1/*"]
+  "version": "0.3.0",
+  "description": "Connects your browser to your own Jobflow app: sends job listings to it and fills application forms from your approved documents. It never submits.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Jobflow"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "scripts": [
+      "common.js",
+      "background.js"
+    ]
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "tabGroups"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "http://localhost/*",
+        "http://127.0.0.1/*"
+      ],
+      "js": [
+        "bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "jobflow@jobflow.local",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ]
+      }
+    }
+  }
 }

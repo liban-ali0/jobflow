@@ -2,7 +2,7 @@ import "server-only";
 import fs from "node:fs";
 import path from "node:path";
 import { parseCv } from "./cv-format";
-import { ROOT, getJob, listContacts, listDocuments } from "./data";
+import { ROOT, answeredFacts, getJob, listContacts, listDocuments } from "./data";
 import { jobDocumentPage, readText } from "./documents";
 import { htmlToPdf } from "./pdf";
 
@@ -27,6 +27,9 @@ export type ApplyPack = {
   job: { id: number; title: string; company: string; url: string | null; status: string };
   profile: ApplyProfile;
   answers: ApplyAnswer[];
+  // Questions the user answered in Jobflow or saved from earlier forms, for
+  // fields the job's own answers do not cover.
+  facts: { question: string; answer: string }[];
   files: { type: "cv" | "cover_letter"; documentId: number; fileName: string }[];
   coverLetterText: string;
   email: { to: string; name: string; subject: string; body: string } | null;
@@ -147,6 +150,7 @@ export function applyPack(jobId: number): ApplyPack | null {
     job: { id: job.id, title: job.title, company: job.company, url: job.url, status: job.status },
     profile: profileFromCv(cvText ?? ""),
     answers: answers ? fromFacts(parseAnswers(readText(answers.path) ?? ""), readText("candidate/facts.md") ?? "") : [],
+    facts: answeredFacts(),
     files,
     coverLetterText: letterBody(letterText),
     email: email ? emailApplication(readText(email.path) ?? "", confirmed) : null,

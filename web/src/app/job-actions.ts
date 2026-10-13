@@ -99,7 +99,7 @@ export async function markApplied(id: number): Promise<ActionResult> {
     };
   }
   const { followUpDays } = getSettings();
-  updateJob(id, { status: "applied", follow_up_due: new Date(Date.now() + followUpDays * 86400000).toISOString() });
+  updateJob(id, { status: "applied", apply_state: null, apply_missing: null, follow_up_due: new Date(Date.now() + followUpDays * 86400000).toISOString() });
   return done(`Marked as applied. Follow-up reminder in ${followUpDays} days.`);
 }
 

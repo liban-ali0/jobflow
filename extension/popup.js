@@ -1,16 +1,14 @@
-// The Jobflow extension: sends the page you are reading to your local Jobflow
-// app (which picks out the jobs), and fills an application form from a job's
-// approved package. It never submits anything.
+// The Jobflow extension's popup: sends the page you are reading to your
+// Jobflow app (which picks out the jobs), fills the application form on this
+// page from a job's approved package, or starts an apply session for every
+// ready job. It never submits anything.
 const $ = (id) => document.getElementById(id);
 const status = (id, text, kind = "") => {
   $(id).textContent = text;
   $(id).className = `status ${kind}`;
 };
 
-async function settings() {
-  const { address = "http://localhost:3000", token = "" } = await chrome.storage.local.get(["address", "token"]);
-  return { address: address.replace(/\/+$/, ""), token };
-}
+const settings = jobflowSettings;
 
 function showSetup(show) {
   $("setup").hidden = !show;
@@ -18,20 +16,11 @@ function showSetup(show) {
 }
 
 async function call(path, options = {}) {
-  const { address, token } = await settings();
-  if (!token) {
+  if (!(await settings()).token) {
     showSetup(true);
     throw new Error("Paste your key first.");
   }
-  let response;
-  try {
-    response = await fetch(`${address}${path}`, { ...options, headers: { "Content-Type": "application/json", "X-Jobflow-Token": token, ...(options.headers || {}) } });
-  } catch {
-    throw new Error("Jobflow is not reachable. Is the app running?");
-  }
-  const reply = await response.json().catch(() => ({ ok: false, message: `Jobflow answered ${response.status}.` }));
-  if (!reply.ok) throw new Error(reply.message);
-  return reply;
+  return jobflowCall(path, options);
 }
 
 const activeTab = async () => (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
@@ -88,12 +77,6 @@ async function loadJobs() {
   }
 }
 
-async function toBase64(url) {
-  const bytes = new Uint8Array(await (await fetch(url)).arrayBuffer());
-  let binary = "";
-  for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(binary);
-}
 
 async function fill() {
   const id = $("job").value;
@@ -103,9 +86,8 @@ async function fill() {
   $("fillReport").hidden = true;
   status("fillStatus", "Getting the answers and PDFs…");
   try {
-    const { pack } = await call(`/api/apply/${id}`);
     // The page cannot reach the local app, so the PDFs are fetched here.
-    pack.files = await Promise.all(pack.files.map(async (file) => ({ ...file, base64: await toBase64(file.url) })));
+    const pack = await jobflowPack(id);
     const tab = await activeTab();
     await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, files: ["fill.js"] });
     const results = await chrome.scripting.executeScript({ target: { tabId: tab.id, allFrames: true }, func: (data) => globalThis.jobflowFill(data), args: [pack] });
@@ -114,11 +96,11 @@ async function fill() {
       status("fillStatus", "No form fields found here. Open the application form first.", "error");
       return;
     }
-    status("fillStatus", `Filled ${report.filled.length} fields${report.files.length ? `, attached ${report.files.length} files` : ""}. Green: filled. Red: left for you.`, "ok");
+    status("fillStatus", `Filled ${report.filled.length} fields${report.files.length ? `, attached ${report.files.length} files` : ""}. Green: filled. Yellow: left for you.`, "ok");
     $("fillReport").innerHTML = "";
     for (const left of report.left) {
       const item = document.createElement("li");
-      item.textContent = `Left for you: ${left}`;
+      item.textContent = left;
       $("fillReport").append(item);
     }
     $("fillReport").hidden = report.left.length === 0;
@@ -140,11 +122,27 @@ async function markApplied() {
   }
 }
 
+// An apply session: each ready job's form opens in turn, filled.
+async function applyAll() {
+  $("applyAllButton").disabled = true;
+  try {
+    const { jobs } = await call("/api/apply");
+    if (!jobs.length) throw new Error("No job is ready to apply yet.");
+    const reply = await chrome.runtime.sendMessage({ type: "apply", jobIds: jobs.map((job) => job.id) });
+    status("fillStatus", reply.message, reply.ok ? "ok" : "error");
+  } catch (error) {
+    status("fillStatus", error.message, "error");
+  } finally {
+    $("applyAllButton").disabled = false;
+  }
+}
+
 // ---------- setup ----------
 
 $("sendButton").addEventListener("click", send);
 $("fillButton").addEventListener("click", fill);
 $("appliedButton").addEventListener("click", markApplied);
+$("applyAllButton").addEventListener("click", applyAll);
 $("showSetup").addEventListener("click", async () => {
   const { address, token } = await settings();
   $("address").value = address;
@@ -157,6 +155,16 @@ $("setup").addEventListener("submit", async (event) => {
   showSetup(false);
   status("sendStatus", "Saved.", "ok");
   loadJobs();
+});
+
+// Firefox asks for the right to read sites after installing; Chrome grants it
+// on install.
+const SITES = { origins: ["<all_urls>"] };
+chrome.permissions?.contains(SITES).then((granted) => {
+  $("permission").hidden = granted;
+});
+$("permissionButton").addEventListener("click", async () => {
+  $("permission").hidden = await chrome.permissions.request(SITES);
 });
 
 settings().then(({ token }) => {

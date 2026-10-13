@@ -81,13 +81,25 @@ export function answerQuestion(id: number, answer: string) {
     }
     return;
   }
+  appendFact(question.text, answer);
+}
+
+// Adds "- question → answer (answered date)" under the facts file's answers,
+// the form every step and the form filler read.
+export function appendFact(question: string, answer: string) {
+  const day = new Date().toISOString().slice(0, 10);
   const facts = readFacts() ?? "# Facts not on the CV\n";
-  const line = `- ${question.text} → ${answer} (answered ${day})`;
+  const line = `- ${question.replace(/\s+/g, " ").trim()} → ${answer.replace(/\s+/g, " ").trim()} (answered ${day})`;
   writeFacts(
     facts.includes(ANSWERS_HEADING)
       ? facts.replace(ANSWERS_HEADING, `${ANSWERS_HEADING}\n\n${line}`).replace(/\n{3,}/g, "\n\n")
       : `${facts.trimEnd()}\n\n${ANSWERS_HEADING}\n\n${line}\n`,
   );
+}
+
+// The answered questions in the facts file, newest first.
+export function answeredFacts() {
+  return [...(readFacts() ?? "").matchAll(/^-\s*(.+?)\s*→\s*(.+?)\s*(?:\(answered [^)]*\))?\s*$/gm)].map((match) => ({ question: match[1], answer: match[2] }));
 }
 
 export const getSettings = () => core.getSettings(db()) as Settings;

@@ -40,6 +40,11 @@
   <body>
     <header><b>J</b><span>Jobflow</span><button id="showSetup" type="button">Settings</button></header>
     <main>
+      <section id="permission" hidden>
+        <h2>One more step</h2>
+        <p class="hint">Jobflow needs your OK to read job sites and fill application forms.</p>
+        <button id="permissionButton" type="button" style="margin-top: 8px">Allow Jobflow on job sites</button>
+      </section>
       <div id="work">
         <section>
           <h2>Find jobs</h2>
@@ -55,6 +60,8 @@
           <ul id="fillReport" class="report" hidden></ul>
           <button id="appliedButton" class="quiet" type="button" style="margin-top: 8px" hidden>I submitted it: mark as applied</button>
           <p class="hint">Open the job's application form first. Jobflow fills it and attaches your PDFs; it never presses Submit.</p>
+          <button id="applyAllButton" class="quiet" type="button" style="margin-top: 10px">Apply all ready jobs, one by one</button>
+          <p class="hint">Opens each ready job's form, filled. What it cannot fill waits for you, marked yellow.</p>
         </section>
       </div>
       <form id="setup" hidden>
@@ -62,11 +69,12 @@
           <h2>Connection</h2>
           <label>Jobflow address <input id="address" value="http://localhost:3000" spellcheck="false" /></label>
           <label>Key, from Settings → Sources <input id="token" spellcheck="false" autocomplete="off" /></label>
-          <p class="hint">Jobflow must be running on this computer.</p>
+          <p class="hint">Easier: open Jobflow → Settings → Sources and press Connect. Jobflow must be running on this computer.</p>
           <button type="submit" style="margin-top: 10px">Save</button>
         </section>
       </form>
     </main>
+    <script src="common.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>

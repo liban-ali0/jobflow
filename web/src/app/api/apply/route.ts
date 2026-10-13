@@ -6,6 +6,6 @@ import { listJobs } from "@/lib/data";
 export async function GET(request: Request) {
   const denied = extensionDenied(request);
   if (denied) return denied;
-  const jobs = listJobs({ status: "ready" }).map((job) => ({ id: job.id, title: job.title, company: job.company, url: job.url }));
+  const jobs = listJobs({ status: "ready" }).map((job) => ({ id: job.id, title: job.title, company: job.company, url: job.url, waiting: job.apply_missing ?? null }));
   return Response.json({ ok: true, jobs });
 }

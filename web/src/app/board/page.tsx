@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ApplyAllButton } from "@/components/apply-all";
 import { Flap } from "@/components/flap";
 import { PageHeader } from "@/components/page-header";
 import { SortLink } from "@/components/sort-link";
@@ -44,6 +45,11 @@ function Card({ job }: { job: Job }) {
           {job.score !== null && <span>Match {Math.round(job.score)}</span>}
           {job.applied_at && <span>Applied {formatDateTime(job.applied_at)}</span>}
           {due && <span className="rounded bg-saffron px-1.5 py-0.5 font-semibold text-on-saffron">Follow-up due</span>}
+          {job.status === "ready" && job.apply_state === "waiting" && (
+            <span className="rounded bg-saffron px-1.5 py-0.5 font-semibold text-on-saffron" title={job.apply_missing?.join("\n")}>
+              Waiting for you{job.apply_missing?.length ? ` · ${job.apply_missing.length}` : ""}
+            </span>
+          )}
         </span>
       </Link>
     </li>
@@ -162,11 +168,14 @@ export default async function BoardPage(props: PageProps<"/board">) {
                   </p>
                 ) : (
                   <div className="py-2">
-                    <h2 className="flex items-baseline gap-3 px-1">
-                      <span className="section-title">{STATUS_LABELS[gate.status]}</span>
-                      <span className="font-mono text-sm text-slate">{column.length}</span>
-                      <span className="text-sm text-slate">{gate.hint}</span>
-                    </h2>
+                    <div className="flex flex-wrap items-baseline gap-3 px-1">
+                      <h2 className="flex items-baseline gap-3">
+                        <span className="section-title">{STATUS_LABELS[gate.status]}</span>
+                        <span className="font-mono text-sm text-slate">{column.length}</span>
+                        <span className="text-sm text-slate">{gate.hint}</span>
+                      </h2>
+                      {gate.status === "ready" && <ApplyAllButton jobIds={column.filter((job) => job.apply_state !== "waiting").map((job) => job.id)} />}
+                    </div>
                     <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                       {column.map((job) => (
                         <Card key={job.id} job={job} />

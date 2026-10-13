@@ -150,6 +150,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
                 emailTo={pack.email?.to ?? null}
                 chrome={chrome}
                 filling={filling}
+                waiting={job.status === "ready" ? job.apply_missing : null}
               />
             </Panel>
           )}

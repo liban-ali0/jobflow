@@ -266,3 +266,43 @@ Requirements on a new machine: Claude Code (logged in) and Node 22 or newer.
 ## 9. Open decisions
 
 1. Earliest start date for the form answers (asked through Questions).
+
+## 10. Jobflow extension: collecting and applying (agreed 2026-10-13)
+
+The extension becomes the main way to read job sites that block automated access and to fill applications, for any engine and without AI usage. The Claude in Chrome steps stay as a backup for unusual sites.
+
+### Rules
+
+- It works in the user's own Chrome, at a slow pace. No captcha solving, no stealth, no proxies: a captcha or a login page stops it and the app says so.
+- It never presses Submit. The user always submits.
+- LinkedIn is never automated (applying or collecting through the extension).
+
+### Collecting
+
+1. The app tells the extension what to search: countries, role keywords (including the local language, for example Turkish), and the sites switched on in Settings → Sources.
+2. The extension opens each search page in a background tab, waits for the listings, and reads title, company, city, link, and posting date with a small reader per site. It sends them to the app, which stores them as found jobs (no AI needed), then opens each new job's page for its description.
+3. Runs from a "Collect now" button, or on a timer while Chrome is open (off by default).
+4. A captcha or login page stops that site for the run; Settings → Sources shows the last run per site and any stop.
+5. Sites first: Kariyer.net, Eleman.net, Techcareer.net (Türkiye), then Yenibiriş, SecretCV, Indeed, and the Gulf sites.
+
+### Applying
+
+| Step | What happens |
+|---|---|
+| 1. Start | "Apply in Chrome" on a ready job, or "Apply all ready jobs" (one after another). The app talks to the extension directly. |
+| 2. Open | The job's application page opens in a Chrome tab group "Jobflow applications". |
+| 3. Fill | Every step of the form is filled from the approved package and the saved facts; consent boxes are never ticked. |
+| 4. Skip | Fields it cannot fill are skipped and highlighted, and a Jobflow bar on the page lists them. Nothing is asked in Questions. |
+| 5. Flag | The job shows "Waiting for you" in the app with the reasons (missing fact, open question, unknown field, failed upload, captcha, login, closed posting). |
+| 6. User | The user fills the rest on the page; on multi-step forms the extension keeps filling each new step. |
+| 7. Submit | The user presses Submit. |
+| 8. Confirm | The extension registers it when the page confirms ("application submitted", a thank-you page, or the form gone without an error). Otherwise "I submitted it" on the bar or in the app. |
+| 9. Record | The job becomes applied, with a copy of everything sent saved in its folder. |
+| 10. Remember | The bar offers to save the answers the user typed (never passwords or one-off answers) to `facts.md`, so the next form fills them. |
+| 11. Next | In a session, the next ready job opens. |
+
+A tab closed before submitting keeps the job "Waiting for you" ("Form closed before submitting"); "Open form" reopens and refills it.
+
+App states for a ready job: Ready to apply → Waiting for you (with the reasons) → Applied.
+
+Status (2026-10-13): applying is built and tested on demo forms in Chrome and Firefox (fill every step, Waiting for you with reasons, submit confirmed and recorded, save typed answers, apply sessions, LinkedIn flagged). Install steps and Connect are in Settings → Sources. Collecting is next.
