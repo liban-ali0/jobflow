@@ -59,7 +59,20 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
           })}
         </ul>
 
-        <div className="ml-auto flex shrink-0 items-center pr-5 pl-3">
+        <div className="ml-auto flex shrink-0 items-center gap-3 pr-5 pl-3">
+          {/* Search every job, whatever its stage. */}
+          <form action="/search" role="search" className="flex items-center">
+            <label className="sr-only" htmlFor="nav-search">
+              Search all jobs
+            </label>
+            <input
+              id="nav-search"
+              name="q"
+              type="search"
+              placeholder="Search jobs…"
+              className="w-36 rounded-sm border border-primary/30 bg-surface px-2.5 py-1 text-sm text-ink placeholder:text-slate focus:w-52 focus:outline-2 focus:outline-primary motion-safe:transition-[width]"
+            />
+          </form>
           {running ? (
             <Link
               href="/activity"
