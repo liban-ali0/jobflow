@@ -1,6 +1,6 @@
 // Runs in every frame of a tab the extension opened to apply for a job.
 // Fills the form (fill.js) and fills again when the next step appears,
-// reports what it could not fill, shows the Jobflow bar in the top frame,
+// reports what it could not fill, shows the Offerbound bar in the top frame,
 // and notices when the user's submit is confirmed by the page. It never
 // presses Submit or any other button.
 (() => {
@@ -71,7 +71,7 @@
       else value = element.value.trim();
       if (!value) continue;
       fields.push({ label, value });
-      // Typed by the user (not filled by Jobflow), short, and reusable: a
+      // Typed by the user (not filled by Offerbound), short, and reusable: a
       // candidate for "save for next time".
       const own = !filledBefore.has(element) && !(type === "radio" && [...document.querySelectorAll(`input[name="${CSS.escape(element.name)}"]`)].some((radio) => filledBefore.has(radio)));
       if (own && type !== "file" && !(element instanceof HTMLTextAreaElement) && value.length <= 120 && !/e-?mail|phone|name|surname|ad soyad|password|şifre/i.test(label)) typed.push({ label, value });
@@ -110,7 +110,6 @@
       <style>
         .card { font: 13px/1.45 system-ui, sans-serif; color: #1b2433; background: #fff; width: 320px; max-height: 60vh; overflow: auto; border-radius: 10px; box-shadow: 0 8px 30px rgb(18 32 58 / 0.28); border: 1px solid #d9dee7; }
         header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #12203a; color: #fff; border-radius: 10px 10px 0 0; }
-        header b { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 4px; background: #e63946; font-size: 12px; }
         header span { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         header button { background: none; border: 0; color: #c9d1de; cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
         main { padding: 10px 12px 12px; }
@@ -126,18 +125,18 @@
         .hint { color: #5b6576; font-size: 12px; }
         .min main { display: none; }
       </style>
-      <div class="card ${s.min ? "min" : ""}" role="region" aria-label="Jobflow">
-        <header><b>J</b><span>${escapeHtml(s.title || "Jobflow")}</span><button data-act="min">${s.min ? "Show" : "Hide"}</button></header>
+      <div class="card ${s.min ? "min" : ""}" role="region" aria-label="Offerbound">
+        <header><svg viewBox="0 0 64 64" width="20" height="20" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#ffc20e"/><path d="M0 32h64" stroke="#12203a" stroke-width="2.5"/><path d="M20 44 44 20M28 20h16v16" fill="none" stroke="#12203a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${escapeHtml(s.title || "Offerbound")}</span><button data-act="min">${s.min ? "Show" : "Hide"}</button></header>
         <main>
           ${
             s.confirmed
-              ? `<p class="ok">Applied ✓ Recorded in Jobflow.</p>
+              ? `<p class="ok">Applied ✓ Recorded in Offerbound.</p>
                  ${typed ? `<p>Save what you typed, so the next forms fill it?</p>${typed}<div class="actions"><button class="main" data-act="save">Save for next time</button></div>` : ""}
                  ${s.message ? `<p class="hint">${escapeHtml(s.message)}</p>` : ""}
                  <div class="actions">${s.queue ? `<button class="main" data-act="next">Next job (${s.queue} left)</button>` : ""}</div>`
               : `<p>Filled ${s.filled} ${s.filled === 1 ? "field" : "fields"}${s.files ? ` and ${s.files} ${s.files === 1 ? "file" : "files"}` : ""}.</p>
                  ${s.reasons.length ? `<p class="need">${s.reasons.length} ${s.reasons.length === 1 ? "thing needs" : "things need"} you (yellow on the form):</p><ul>${items}</ul>` : `<p class="ok">Nothing left: check the form and submit it.</p>`}
-                 <p class="hint">Jobflow never presses Submit. When you submit, it records the application.</p>
+                 <p class="hint">Offerbound never presses Submit. When you submit, it records the application.</p>
                  ${s.message ? `<p class="hint">${escapeHtml(s.message)}</p>` : ""}
                  <div class="actions"><button data-act="submitted">I submitted it</button>${s.queue ? `<button data-act="skip">Skip to next</button>` : ""}</div>`
           }
@@ -155,12 +154,12 @@
       const { fields, typed } = snapshot();
       const reply = await send({ type: "submitted", by: "user", url: location.href, fields, typed });
       if (reply?.ok) Object.assign(barState, { confirmed: true, typed: reply.typed ?? typed, message: "" });
-      else barState.message = reply?.message || "Could not reach Jobflow.";
+      else barState.message = reply?.message || "Could not reach Offerbound.";
     }
     if (act === "save") {
       const chosen = [...bar.querySelectorAll("input[data-i]:checked")].map((box) => barState.typed[Number(box.dataset.i)]);
       const reply = await send({ type: "saveFacts", facts: chosen });
-      Object.assign(barState, { typed: [], message: reply?.message || "Could not reach Jobflow." });
+      Object.assign(barState, { typed: [], message: reply?.message || "Could not reach Offerbound." });
     }
     if (act === "next") send({ type: "next" });
     if (act === "skip") send({ type: "skip" });

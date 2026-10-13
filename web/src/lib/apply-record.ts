@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { ROOT, addEvent, getJob, updateJob } from "./data";
 
-// What the Jobflow extension reports while it applies: the job waits for the
+// What the Offerbound extension reports while it applies: the job waits for the
 // user while fields are left, and a copy of the sent form is kept.
 
 export type SentField = { label: string; value: string };

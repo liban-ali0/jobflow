@@ -1,5 +1,5 @@
 // Shared by the popup and the background worker: the connection to the
-// user's own Jobflow app (address and key from the extension's settings).
+// user's own Offerbound app (address and key from the extension's settings).
 
 async function jobflowSettings() {
   const { address = "http://localhost:3000", token = "" } = await chrome.storage.local.get(["address", "token"]);
@@ -8,14 +8,14 @@ async function jobflowSettings() {
 
 async function jobflowCall(path, options = {}) {
   const { address, token } = await jobflowSettings();
-  if (!token) throw new Error("Paste your key in the extension's settings first (from Jobflow → Settings → Sources).");
+  if (!token) throw new Error("Paste your key in the extension's settings first (from Offerbound → Settings → Sources).");
   let response;
   try {
     response = await fetch(`${address}${path}`, { ...options, headers: { "Content-Type": "application/json", "X-Jobflow-Token": token, ...(options.headers || {}) } });
   } catch {
-    throw new Error("Jobflow is not reachable. Is the app running?");
+    throw new Error("Offerbound is not reachable. Is the app running?");
   }
-  const reply = await response.json().catch(() => ({ ok: false, message: `Jobflow answered ${response.status}.` }));
+  const reply = await response.json().catch(() => ({ ok: false, message: `Offerbound answered ${response.status}.` }));
   if (!reply.ok) throw new Error(reply.message);
   return reply;
 }

@@ -56,7 +56,7 @@ export function AtsBadge({ score }: { score: number }) {
 }
 
 // The full check: the average and each of the six systems, the keywords the
-// strictest one is missing, what to improve, and Jobflow's own checks.
+// strictest one is missing, what to improve, and Offerbound's own checks.
 export function AtsPanel({
   result,
   source,
@@ -316,7 +316,7 @@ export function AtsPanel({
       )}
 
       <div>
-        <p className="mb-1 text-xs font-semibold text-slate">Jobflow checks {failing.length === 0 ? "· all pass" : `· ${failing.length} to fix`}</p>
+        <p className="mb-1 text-xs font-semibold text-slate">Offerbound checks {failing.length === 0 ? "· all pass" : `· ${failing.length} to fix`}</p>
         <ul className="space-y-1 text-sm">
           {checks.map((check) => (
             <li key={check.id} className="flex gap-2">

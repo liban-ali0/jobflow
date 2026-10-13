@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-// Talks to the Jobflow browser extension through its bridge script on this
+// Talks to the Offerbound browser extension through its bridge script on this
 // page (extension/bridge.js): is it installed, and open application forms.
 
 type Reply = { ok: boolean; message?: string; version?: string; connected?: boolean };
@@ -55,7 +55,7 @@ export function useJobflowExtension() {
 
   const apply = useCallback(async (jobIds: number[]) => {
     const reply = await ask("apply", jobIds, 30000);
-    return reply ?? { ok: false, message: "The Jobflow extension did not answer. Reload this page and try again." };
+    return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
   }, []);
 
   // Gives the extension this app's address and key.
@@ -63,7 +63,7 @@ export function useJobflowExtension() {
     async (token: string) => {
       const reply = await ask("connect", [], 5000, token);
       await check();
-      return reply ?? { ok: false, message: "The Jobflow extension did not answer. Reload this page and try again." };
+      return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
     },
     [check],
   );

@@ -670,7 +670,7 @@ function auditAts(html, opts = {}) {
   const hiddenSignals = [];
   if (styleBlobs.some(s => /display\s*:\s*none/i.test(s))) hiddenSignals.push('display:none');
   if (styleBlobs.some(s => /visibility\s*:\s*hidden/i.test(s))) hiddenSignals.push('visibility:hidden');
-  // Jobflow patch: "(?![.\d])" so "font-size: 0.92em" is not read as zero.
+  // Offerbound patch: "(?![.\d])" so "font-size: 0.92em" is not read as zero.
   if (styleBlobs.some(s => /font-size\s*:\s*0(?![.\d])(?:px|pt|em|rem|%)?\b/i.test(s))) hiddenSignals.push('font-size:0');
   // White text is checked on INLINE styles only, by design: a white color in a
   // <style> block is overwhelmingly legitimate (white-on-colored badges, section

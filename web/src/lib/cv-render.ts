@@ -10,7 +10,7 @@ export type TemplateOptions = {
   sectionOrder: string[];
 };
 
-// builtIn: shipped with Jobflow; edited: a built-in one the user has changed.
+// builtIn: shipped with Offerbound; edited: a built-in one the user has changed.
 export type CvTemplate = { id: string; name: string; description: string; builtIn: boolean; edited?: boolean; options: TemplateOptions; css: string };
 
 // Fonts that exist on Windows and macOS (with close stand-ins), so the PDF

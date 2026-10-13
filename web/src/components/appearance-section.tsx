@@ -135,10 +135,12 @@ export function AppearanceSection({ appearance }: { appearance: { mode: Mode; pr
         <div className="overflow-hidden rounded-lg border border-field">
           <div className="flex items-stretch" style={{ background: secondary, color: textOn(secondary) }}>
             <span className="flex items-center gap-2 px-3 py-2 font-display font-semibold uppercase" style={{ background: primary, color: textOn(primary) }}>
-              <span className="grid size-5 place-items-center rounded-sm text-xs font-bold" style={{ background: secondary, color: textOn(secondary) }}>
-                J
-              </span>
-              Jobflow
+              <svg viewBox="0 0 64 64" className="size-5" aria-hidden>
+                <rect width="64" height="64" rx="14" fill={secondary} />
+                <path d="M0 32h64" stroke={textOn(secondary)} strokeWidth="2.5" />
+                <path d="M20 44 44 20M28 20h16v16" fill="none" stroke={textOn(secondary)} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Offerbound
             </span>
             <span className="flex items-center px-3 font-display text-sm font-semibold uppercase">Today</span>
             <span className="flex items-center px-3 font-display text-sm font-semibold uppercase">Questions</span>

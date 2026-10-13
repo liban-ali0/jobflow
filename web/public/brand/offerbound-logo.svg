@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 64" role="img" aria-label="Offerbound">
+  <rect width="64" height="64" rx="14" fill="#ffc20e"/>
+  <path d="M0 32h64" stroke="#12203a" stroke-width="2.5"/>
+  <path d="M20 44 44 20M28 20h16v16" fill="none" stroke="#12203a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="80" y="47" font-family="'Barlow Condensed', 'Arial Narrow', sans-serif" font-weight="700" font-size="40" letter-spacing="3" fill="#12203a">OFFERBOUND</text>
+</svg>

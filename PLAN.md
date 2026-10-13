@@ -1,10 +1,10 @@
 # Job Application Workflow: Plan
 
-Status (2026-10-12): all phases built. Phase 5: schedule (fast-track checks every N minutes within active hours, ranked at once; daily full run). Phase 6: apply stage (form filling in Chrome or with the Jobflow extension, email drafts), statistics, interview pack. Sources: LinkedIn, Workable, and the blocked sites through the user's browser. Everything was tested on demo jobs and demo forms.
+Status (2026-10-12): all phases built. Phase 5: schedule (fast-track checks every N minutes within active hours, ranked at once; daily full run). Phase 6: apply stage (form filling in Chrome or with the Offerbound extension, email drafts), statistics, interview pack. Sources: LinkedIn, Workable, and the blocked sites through the user's browser. Everything was tested on demo jobs and demo forms.
 
 ## 1. Candidate profile
 
-Each user's own details live in `candidate/` (CV, `facts.md`, the generated `profile.md`), which is private and never shared. Jobflow works for any field and any level, from internships to executive roles; each user sets their levels, roles, and countries, and ranking judges every job against their own profile.
+Each user's own details live in `candidate/` (CV, `facts.md`, the generated `profile.md`), which is private and never shared. Offerbound works for any field and any level, from internships to executive roles; each user sets their levels, roles, and countries, and ranking judges every job against their own profile.
 
 ## 2. Targeting rules
 
@@ -45,14 +45,14 @@ Sources, as tested on 2026-09-27 and 2026-10-12:
 |---|---|---|
 | LinkedIn | Public job feed answers plain requests, no login | `scripts/collect.mjs` |
 | Workable | Public job search API (jobs.workable.com), filter by days, full descriptions | `scripts/collect.mjs` |
-| Indeed (all countries) | Blocks plain requests, headless browsers, and RSS; loads normally in the user's Chrome | `browse-jobs` step through Claude in Chrome (Claude Code), or the Jobflow extension |
+| Indeed (all countries) | Blocks plain requests, headless browsers, and RSS; loads normally in the user's Chrome | `browse-jobs` step through Claude in Chrome (Claude Code), or the Offerbound extension |
 | Bayt | Blocks Node and headless browsers (Cloudflare) | Same as Indeed |
 | GulfTalent | Cloudflare challenge | Same as Indeed |
 | Naukrigulf | Needs JavaScript; headless connection dropped | Same as Indeed |
 | Kariyer.net (Turkey) | Blocks headless browsers | Same as Indeed |
 | Company career pages | Not tested | Watchlist of target employers and graduate programs, to build |
 
-Bypassing the blocks (browser disguise, stealth plugins, VPN, proxies or IP rotation) is ruled out: it defeats the sites' bot protection and risks getting this machine's IP and the user's accounts blocked. Blocked sites are read in the user's own browser instead: Claude in Chrome for Claude Code users (tested 2026-10-12: Indeed loads normally), the Jobflow extension for everyone, including Codex users.
+Bypassing the blocks (browser disguise, stealth plugins, VPN, proxies or IP rotation) is ruled out: it defeats the sites' bot protection and risks getting this machine's IP and the user's accounts blocked. Blocked sites are read in the user's own browser instead: Claude in Chrome for Claude Code users (tested 2026-10-12: Indeed loads normally), the Offerbound extension for everyone, including Codex users.
 
 Countries are searched in the user's priority order. Tested 2026-10-12 and rejected: Secretcv (search results unrelated to the keywords), Glassdoor, Yenibiris and QatarLiving (Cloudflare).
 
@@ -202,7 +202,7 @@ The workflow is usable from the end of phase 4.
 | PDFs | Built in: the chosen template is filled with the document and printed to PDF with Playwright. Setup installs Playwright's Chromium (about 150 MB). |
 | CVs page (new) | Templates (three built in: Classic, Modern, Compact; editable with live preview: font, accent colour, margins, section order, spacing; new ones by duplicating or by describing them to the engine, checked against ATS-safe rules; default per user, override per role or job). Base CVs grouped by the roles in Settings. Tailored CVs and cover letters grouped by job with review state. Actions: download PDF, copy text, compare with the base CV, rebuild. |
 | Job page review | Read and edit each document, approve or request changes with a note, download, copy the email. All approved moves the job to `ready`. |
-| Questions as the single inbox | Grouped: About you, CV gaps, This job. CV gaps that need the user's input (projects, links, missing dates) and fixes Jobflow can apply itself (typos, after a yes) become questions; answers go to `facts.md` and the profile and CVs are rebuilt. The CV improvements list on Profile is retired. |
+| Questions as the single inbox | Grouped: About you, CV gaps, This job. CV gaps that need the user's input (projects, links, missing dates) and fixes Offerbound can apply itself (typos, after a yes) become questions; answers go to `facts.md` and the profile and CVs are rebuilt. The CV improvements list on Profile is retired. |
 | Bulk | "Research all selected", and a "Waiting for your review" list. |
 
 Out of scope for phase 3: sending emails, automated form submission (phase 6), the interview pack (when a job reaches interview).
@@ -267,7 +267,7 @@ Requirements on a new machine: Claude Code (logged in) and Node 22 or newer.
 
 1. Earliest start date for the form answers (asked through Questions).
 
-## 10. Jobflow extension: collecting and applying (agreed 2026-10-13)
+## 10. Offerbound extension: collecting and applying (agreed 2026-10-13)
 
 The extension becomes the main way to read job sites that block automated access and to fill applications, for any engine and without AI usage. The Claude in Chrome steps stay as a backup for unusual sites.
 
@@ -290,9 +290,9 @@ The extension becomes the main way to read job sites that block automated access
 | Step | What happens |
 |---|---|
 | 1. Start | "Apply in Chrome" on a ready job, or "Apply all ready jobs" (one after another). The app talks to the extension directly. |
-| 2. Open | The job's application page opens in a Chrome tab group "Jobflow applications". |
+| 2. Open | The job's application page opens in a Chrome tab group "Offerbound applications". |
 | 3. Fill | Every step of the form is filled from the approved package and the saved facts; consent boxes are never ticked. |
-| 4. Skip | Fields it cannot fill are skipped and highlighted, and a Jobflow bar on the page lists them. Nothing is asked in Questions. |
+| 4. Skip | Fields it cannot fill are skipped and highlighted, and a Offerbound bar on the page lists them. Nothing is asked in Questions. |
 | 5. Flag | The job shows "Waiting for you" in the app with the reasons (missing fact, open question, unknown field, failed upload, captcha, login, closed posting). |
 | 6. User | The user fills the rest on the page; on multi-step forms the extension keeps filling each new step. |
 | 7. Submit | The user presses Submit. |

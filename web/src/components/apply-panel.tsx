@@ -45,8 +45,8 @@ export type ApplyPanelProps = {
 
 // The extension's status, said plainly.
 const EXTENSION_HINT = {
-  checking: "Checking for the Jobflow extension…",
-  missing: "Install the Jobflow extension first: Settings → Sources shows how.",
+  checking: "Checking for the Offerbound extension…",
+  missing: "Install the Offerbound extension first: Settings → Sources shows how.",
   "no-key": "Connect the extension first: Settings → Sources → Connect.",
   ready: "",
 } as const;
@@ -78,7 +78,7 @@ export function ApplyPanel({ jobId, url, profile, answers, coverLetterText, file
       {waiting && waiting.length > 0 && (
         <div className="rounded-lg border border-saffron bg-saffron-soft p-3">
           <p className="text-sm font-semibold">Waiting for you</p>
-          <p className="mt-0.5 text-sm">The form is filled as far as Jobflow could. Finish these on the form, then submit it:</p>
+          <p className="mt-0.5 text-sm">The form is filled as far as Offerbound could. Finish these on the form, then submit it:</p>
           <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm">
             {waiting.map((reason) => (
               <li key={reason} dir="auto">
@@ -106,9 +106,9 @@ export function ApplyPanel({ jobId, url, profile, answers, coverLetterText, file
 
       <ol className="grid gap-3 md:grid-cols-3">
         <li className="rounded-lg border border-line p-3">
-          <p className="font-mono text-[10px] tracking-[0.18em] text-slate uppercase">Way 1 · Jobflow extension</p>
+          <p className="font-mono text-[10px] tracking-[0.18em] text-slate uppercase">Way 1 · Offerbound extension</p>
           <p className="mt-1 text-sm font-medium">Fill the form in your browser</p>
-          <p className="mt-0.5 text-xs text-slate">Opens the form, fills every step, and marks what it could not fill in yellow. You submit; Jobflow records it.</p>
+          <p className="mt-0.5 text-xs text-slate">Opens the form, fills every step, and marks what it could not fill in yellow. You submit; Offerbound records it.</p>
           <button type="button" disabled={extension.state !== "ready" || pending} onClick={openForm} className="btn btn-primary mt-2.5 w-full">
             Open and fill the form
           </button>

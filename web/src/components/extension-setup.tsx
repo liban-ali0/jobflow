@@ -57,7 +57,7 @@ const STEPS: Record<Browser, (folder: string) => React.ReactNode[]> = {
   ],
 };
 
-// Installing and connecting the Jobflow browser extension, in Chrome (or
+// Installing and connecting the Offerbound browser extension, in Chrome (or
 // Edge) and Firefox. Connect hands the extension this app's address and key,
 // so nothing is pasted.
 export function ExtensionSetup({ token, folder }: { token: string; folder: string }) {
@@ -81,13 +81,13 @@ export function ExtensionSetup({ token, folder }: { token: string; folder: strin
   return (
     <div className="border-t border-line/70 px-5 py-4 md:px-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <p className="text-sm font-medium">Jobflow browser extension</p>
+        <p className="text-sm font-medium">Offerbound browser extension</p>
         <p className={`text-sm font-medium ${status.tone}`} role="status">
           {status.text}
         </p>
       </div>
       <p className="mt-0.5 max-w-2xl text-sm text-slate">
-        Works with any engine. It fills application forms from your approved documents and marks what it cannot fill (you always press Submit), and it sends job pages to Jobflow from sites that block automated access.
+        Works with any engine. It fills application forms from your approved documents and marks what it cannot fill (you always press Submit), and it sends job pages to Offerbound from sites that block automated access.
       </p>
 
       {extension.state !== "ready" && (
@@ -112,7 +112,7 @@ export function ExtensionSetup({ token, folder }: { token: string; folder: strin
             ))}
           </ol>
           {browser === "firefox" && (
-            <p className="mt-2 max-w-2xl text-xs text-slate">Firefox removes a temporary add-on when it closes: repeat steps 1 and 2 after restarting Firefox (Jobflow stays connected).</p>
+            <p className="mt-2 max-w-2xl text-xs text-slate">Firefox removes a temporary add-on when it closes: repeat steps 1 and 2 after restarting Firefox (Offerbound stays connected).</p>
           )}
         </>
       )}
@@ -124,7 +124,7 @@ export function ExtensionSetup({ token, folder }: { token: string; folder: strin
           onClick={async () => {
             setBusy(true);
             const reply = await extension.connect(token);
-            setResult({ ok: reply.ok, message: reply.ok ? "Connected. The extension can now fill forms and send pages to Jobflow." : (reply.message ?? "") });
+            setResult({ ok: reply.ok, message: reply.ok ? "Connected. The extension can now fill forms and send pages to Offerbound." : (reply.message ?? "") });
             setBusy(false);
           }}
           className={`btn ${extension.state === "ready" ? "btn-quiet" : "btn-primary"}`}

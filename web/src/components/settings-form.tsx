@@ -633,7 +633,7 @@ export function SettingsForm({ settings, countryOptions, extension }: { settings
         <Section
           id="schedule"
           title="Schedule"
-          hint="While Jobflow is open on this computer: a quick check for fresh postings every few minutes (the fast track), and one full run a day. New fast-track jobs are ranked straight away."
+          hint="While Offerbound is open on this computer: a quick check for fresh postings every few minutes (the fast track), and one full run a day. New fast-track jobs are ranked straight away."
         >
           <div className="-mx-5 -mt-5 border-b border-line/70 md:-mx-6">
             <SwitchRow

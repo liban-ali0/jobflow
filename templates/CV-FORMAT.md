@@ -1,6 +1,6 @@
 # CV and cover letter format
 
-Every CV Jobflow writes (base CVs in `candidate/`, tailored CVs in job folders) uses this Markdown format, so any template can lay it out and automated CV readers (ATS) can parse the PDF. Write nothing outside these rules.
+Every CV Offerbound writes (base CVs in `candidate/`, tailored CVs in job folders) uses this Markdown format, so any template can lay it out and automated CV readers (ATS) can parse the PDF. Write nothing outside these rules.
 
 ## CV
 

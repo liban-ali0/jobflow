@@ -1,4 +1,4 @@
-# Jobflow
+# Offerbound
 
 Finds fresh job postings, ranks them against your CV, and tracks your applications. The AI work is done by Claude Code on your own computer with your own Claude subscription; a local web app is where you control it. Your CV and data never leave your computer except when Claude reads them to do the work.
 
@@ -55,9 +55,9 @@ Stop the app with Ctrl+C in its terminal.
 - **LinkedIn and Workable** are searched automatically, without logging in, country by country in your priority order.
 - **Indeed, Bayt, GulfTalent, Naukrigulf, Kariyer.net** block automated access, so they are read in your own browser:
   - With Claude Code: switch them on in Settings → Sources. After **Find new jobs**, Claude in Chrome reads their search pages in your Chrome (install the Claude in Chrome extension and allow it on those sites).
-  - With any engine: the **Jobflow extension** (below). On any job site press **Send this page to Jobflow**.
+  - With any engine: the **Offerbound extension** (below). On any job site press **Send this page to Offerbound**.
 
-## The Jobflow extension (Chrome, Edge, Firefox)
+## The Offerbound extension (Chrome, Edge, Firefox)
 
 Settings → Sources shows the steps for the browser you are using, with buttons to copy each address:
 
@@ -68,9 +68,9 @@ Then press **Connect** in Settings → Sources. Nothing to paste.
 
 ## Applying
 
-When every document of a job is approved, its page shows **Apply**. Jobflow never submits for you:
+When every document of a job is approved, its page shows **Apply**. Offerbound never submits for you:
 
-- **Open and fill the form** (the extension, any engine): opens the job's form, fills every step, and attaches the CV and cover letter. What it cannot fill is marked yellow on the form and listed on a Jobflow bar, and the job shows **Waiting for you** with the reasons. You fill the rest and press Submit; when the site confirms it, the job is marked applied, a copy of what was sent is kept in its folder, and the bar offers to save your typed answers for the next forms. On the Board, **Apply to all** goes through every ready job one by one. LinkedIn is never automated.
+- **Open and fill the form** (the extension, any engine): opens the job's form, fills every step, and attaches the CV and cover letter. What it cannot fill is marked yellow on the form and listed on a Offerbound bar, and the job shows **Waiting for you** with the reasons. You fill the rest and press Submit; when the site confirms it, the job is marked applied, a copy of what was sent is kept in its folder, and the bar offers to save your typed answers for the next forms. On the Board, **Apply to all** goes through every ready job one by one. LinkedIn is never automated.
 - **Fill with Claude** (Claude Code): Claude in Chrome fills unusual forms and stops before Submit.
 - **Email draft**: when research found a confirmed email address, an `.eml` draft with both PDFs opens in your mail app.
 

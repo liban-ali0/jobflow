@@ -1,4 +1,4 @@
-// Fills the application form on the current page from a Jobflow application
+// Fills the application form on the current page from a Offerbound application
 // pack. Loaded into the page by the popup or the background worker, then
 // called as jobflowFill(pack); calling it again fills fields that appeared
 // since (the next step of a form). It only fills empty fields it has not
@@ -48,13 +48,13 @@
     element.dispatchEvent(new Event("blur", { bubbles: true }));
   }
 
-  // Green: filled by Jobflow. Amber: needs the user.
+  // Green: filled by Offerbound. Amber: needs the user.
   const mark = (element, ok) => {
     element.style.outline = ok ? "2px solid #1d7a46" : "3px solid #f2a900";
     element.style.outlineOffset = "1px";
   };
 
-  // Fields Jobflow filled once are left alone after that, even if the user
+  // Fields Offerbound filled once are left alone after that, even if the user
   // clears them.
   const filledBefore = (globalThis.__jobflowFilled ||= new WeakSet());
 

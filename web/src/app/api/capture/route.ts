@@ -3,7 +3,7 @@ import { launch, stageRunning } from "@/lib/engine";
 
 const reply = (ok: boolean, message: string, status = 200) => Response.json({ ok, message }, { status });
 
-// A page sent by the Jobflow browser extension: saved, then the import-jobs
+// A page sent by the Offerbound browser extension: saved, then the import-jobs
 // step picks out the jobs with the engine chosen in Settings.
 export async function POST(request: Request) {
   // Only the extension may send pages (no website, and the user's key).
@@ -25,5 +25,5 @@ export async function POST(request: Request) {
   } catch (error) {
     return reply(false, (error as Error).message, 500);
   }
-  return reply(true, "Sent. Jobflow is picking out the jobs; they appear on Today in a minute or two.");
+  return reply(true, "Sent. Offerbound is picking out the jobs; they appear on Today in a minute or two.");
 }

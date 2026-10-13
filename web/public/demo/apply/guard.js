@@ -1,4 +1,4 @@
-// Demo forms for testing Jobflow's form filling. Nothing here is sent
+// Demo forms for testing Offerbound's form filling. Nothing here is sent
 // anywhere: a submit only records that it happened, which a filler must never
 // cause (window.__submitted, data-submitted on <body>, and a red banner).
 window.__submitted = false;

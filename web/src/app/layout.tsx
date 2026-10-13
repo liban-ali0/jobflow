@@ -15,7 +15,7 @@ const plexArabic = IBM_Plex_Sans_Arabic({ variable: "--font-plex-arabic", subset
 const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
-  title: "Jobflow",
+  title: "Offerbound",
   description: "Find, rank, research, and track job applications",
 };
 

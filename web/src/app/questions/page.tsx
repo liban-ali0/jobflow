@@ -10,7 +10,7 @@ import type { Question } from "@/lib/types";
 const categoryOf = (question: Question) => question.category ?? (question.job_id ? "job" : "you");
 
 const GROUPS = [
-  { key: "cv", title: "CV gaps", hint: "What your CV is missing or gets wrong. Answers are added to the CVs Jobflow writes." },
+  { key: "cv", title: "CV gaps", hint: "What your CV is missing or gets wrong. Answers are added to the CVs Offerbound writes." },
   { key: "you", title: "About you", hint: "Facts every application needs, like your start date or work permits." },
   { key: "job", title: "This job", hint: "Questions about one job. The answer is saved with that job and used for its documents." },
 ] as const;
@@ -59,7 +59,7 @@ export default function QuestionsPage() {
       <PageHeader
         eyebrow={open.length ? `${open.length} waiting for you` : "All answered"}
         title="Questions"
-        description="Everything Jobflow needs from you, in one place: gaps in your CV, facts about you, and questions about single jobs."
+        description="Everything Offerbound needs from you, in one place: gaps in your CV, facts about you, and questions about single jobs."
       />
 
       {notInProfile > 0 && (

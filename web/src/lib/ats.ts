@@ -3,7 +3,7 @@
 //   ATS Screener engine (src/vendor/ats-screener, MIT). Its own keyword step
 //   counts every word of a listing, so it is given research's clean keyword
 //   list instead of the raw listing text when there is one.
-// - Jobflow's keyword match: the job's keywords as phrases, with close
+// - Offerbound's keyword match: the job's keywords as phrases, with close
 //   variants and must-haves, which judges the fit to this job.
 // - The CV review from the open-source VeriWorkly ats-engine (npm, MIT): how an
 //   ATS parses it (roles, dates, degree, languages), a rubric of readiness
@@ -166,7 +166,7 @@ function scoringInput(doc: CvDocument, markdown: string, target: AtsTarget): Sco
     educationText: find("education")
       .flatMap((section) => [...section.text, ...section.entries.map((entry) => [entry.title, entry.org, entry.dates].join(" "))])
       .join("\n"),
-    // Jobflow's templates are one column of real text, without tables or images.
+    // Offerbound's templates are one column of real text, without tables or images.
     hasMultipleColumns: false,
     hasTables: /^\s*\|.*\|\s*$/m.test(markdown),
     hasImages: /!\[[^\]]*\]\(/.test(markdown),
@@ -178,7 +178,7 @@ function scoringInput(doc: CvDocument, markdown: string, target: AtsTarget): Sco
   };
 }
 
-// ---------- Jobflow's own checks ----------
+// ---------- Offerbound's own checks ----------
 
 const DATES = /((jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4}|\b\d{4}\b)/i;
 const FIRST_PERSON = /\b(i|my|me)\b/i;
@@ -425,13 +425,13 @@ function contextFix(doc: CvDocument, matched: AtsKeyword[]): AtsFix[] {
 
 // ---------- the VeriWorkly review ----------
 
-// Its rules that Jobflow's own fixes already cover, so the advice is not given
-// twice: the review's points go to Jobflow's fix instead.
+// Its rules that Offerbound's own fixes already cover, so the advice is not given
+// twice: the review's points go to Offerbound's fix instead.
 const COVERED: Record<string, string> = {
   "ats-v2.content.metrics": "Put numbers in more experience bullets",
   "ats-v2.content.verbs": "Start more bullets with a strong action verb",
 };
-// Its rules that match one of Jobflow's checks, which names the exact bullets.
+// Its rules that match one of Offerbound's checks, which names the exact bullets.
 const SAME_CHECK: Record<string, string> = {
   "ats-v2.writing.firstPerson": "voice",
   "ats-v2.writing.weakOpeners": "filler",
@@ -538,12 +538,12 @@ export function checkCv(markdown: string, target: AtsTarget): AtsResult {
   const systemsScore = average(results.map((result) => result.overallScore));
   const hasKeywordList = target.keywords.length > 0;
   const checks = jobflowChecks(doc, target);
-  // Jobflow's own checks carry no points, but recruiters notice them.
+  // Offerbound's own checks carry no points, but recruiters notice them.
   const checkFixes: AtsFix[] = checks.filter((check) => !check.ok).map((check) => ({ label: check.label, detail: check.detail, points: 0, kind: "fix" }));
   const sortFixes = (fixes: AtsFix[]) =>
     fixes.map((fix) => ({ ...fix, points: Math.round(fix.points * 10) / 10 })).sort((a, b) => (a.kind === "choice" ? 1 : 0) - (b.kind === "choice" ? 1 : 0) || b.points - a.points);
   const suggestions = [...new Set(results.flatMap((result) => result.suggestions.map(suggestionText)))]
-    // Keyword advice comes from Jobflow's keyword list instead.
+    // Keyword advice comes from Offerbound's keyword list instead.
     .filter((text) => !/missing keywords|keyword matching|exact terms/i.test(text))
     .slice(0, 5);
   const report = runReview(markdown, target);
@@ -556,7 +556,7 @@ export function checkCv(markdown: string, target: AtsTarget): AtsResult {
     checks,
   };
 
-  // A Jobflow check the review's fixes already carry is not listed twice.
+  // A Offerbound check the review's fixes already carry is not listed twice.
   const merge = (fixes: AtsFix[], fromReview: AtsFix[]) => [...fixes, ...fromReview, ...checkFixes.filter((fix) => !fromReview.some((item) => item.label === fix.label))];
   if (!hasKeywordList) {
     const fixes = systemFixes(results, input, false);

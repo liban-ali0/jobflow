@@ -1,5 +1,5 @@
-// The Jobflow extension's popup: sends the page you are reading to your
-// Jobflow app (which picks out the jobs), fills the application form on this
+// The Offerbound extension's popup: sends the page you are reading to your
+// Offerbound app (which picks out the jobs), fills the application form on this
 // page from a job's approved package, or starts an apply session for every
 // ready job. It never submits anything.
 const $ = (id) => document.getElementById(id);

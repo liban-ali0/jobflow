@@ -1,4 +1,4 @@
-// The Jobflow extension's background worker: opens application forms for
+// The Offerbound extension's background worker: opens application forms for
 // ready jobs (one after another in an apply session), fills them on every
 // page load, keeps the app told what is left for the user, and records the
 // application when the user's submit is confirmed. It never submits.
@@ -6,7 +6,7 @@
 // loads both files as background scripts (see manifest.json).
 if (typeof jobflowCall === "undefined") importScripts("common.js");
 
-const GROUP_TITLE = "Jobflow applications";
+const GROUP_TITLE = "Offerbound applications";
 
 // Tab state lives in session storage, so it survives the worker sleeping.
 const load = async (key, fallback) => (await chrome.storage.session.get(key))[key] ?? fallback;
@@ -24,7 +24,7 @@ function applyAddress(url) {
     return { stop: "No link to the listing" };
   }
   const host = address.hostname.replace(/^www\./, "");
-  if (/(^|\.)linkedin\.com$/.test(host)) return { stop: "LinkedIn: apply yourself (Jobflow never automates LinkedIn)" };
+  if (/(^|\.)linkedin\.com$/.test(host)) return { stop: "LinkedIn: apply yourself (Offerbound never automates LinkedIn)" };
   if (host === "apply.workable.com" && /\/j\/[^/]+\/?$/.test(address.pathname)) address.pathname = address.pathname.replace(/\/?$/, "/apply/");
   if (host === "jobs.lever.co" && !/\/apply\/?$/.test(address.pathname)) address.pathname = address.pathname.replace(/\/?$/, "/apply");
   return { url: address.toString() };
@@ -35,7 +35,7 @@ async function report(jobId, missing) {
     await jobflowCall(`/api/apply/${jobId}/state`, { method: "POST", body: JSON.stringify({ missing }) });
   } catch (error) {
     // The app is not reachable; the bar still shows what is left.
-    console.warn(`Jobflow: could not report job ${jobId}: ${error.message}`);
+    console.warn(`Offerbound: could not report job ${jobId}: ${error.message}`);
   }
 }
 
@@ -114,7 +114,7 @@ async function onReport(tabId, frameId, message) {
   const left = [...new Set(frames.flatMap((frame) => frame.left))];
   const { filled, files } = state;
   const anyFields = frames.some((frame) => frame.fields > 0);
-  const missing = anyFields || left.length ? left : ["No application form on this page yet: press the site's Apply button, and Jobflow fills the form when it appears"];
+  const missing = anyFields || left.length ? left : ["No application form on this page yet: press the site's Apply button, and Offerbound fills the form when it appears"];
   const sent = JSON.stringify(missing);
   if (state.reported !== sent) {
     state.reported = sent;
@@ -127,7 +127,7 @@ async function onReport(tabId, frameId, message) {
 
 async function onSubmitted(tabId, message) {
   const state = await load(tabKey(tabId), null);
-  if (!state) return { ok: false, message: "This tab is not an application Jobflow opened." };
+  if (!state) return { ok: false, message: "This tab is not an application Offerbound opened." };
   if (state.confirmed) return { ok: true, typed: [] };
   const fields = message.fields?.length ? message.fields : state.fields;
   try {
@@ -170,17 +170,17 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   const tabId = sender.tab?.id;
   const handle = async () => {
     switch (message?.type) {
-      // From the Jobflow app (through bridge.js).
+      // From the Offerbound app (through bridge.js).
       case "ping": {
         const { token, address } = await jobflowSettings();
         return { ok: true, version: chrome.runtime.getManifest().version, connected: Boolean(token) && address === message.origin };
       }
-      // "Connect" in Jobflow's settings: the app's address and key, so the
+      // "Connect" in Offerbound's settings: the app's address and key, so the
       // user never pastes them.
       case "connect":
-        if (!message.token || !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(message.origin || "")) return { ok: false, message: "Open Jobflow on this computer to connect." };
+        if (!message.token || !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(message.origin || "")) return { ok: false, message: "Open Offerbound on this computer to connect." };
         {
-          // Once connected, only that same Jobflow can connect again, so no
+          // Once connected, only that same Offerbound can connect again, so no
           // other page on this computer can point the extension at itself.
           // Moving to another address is done by hand in the extension's settings.
           const { address: current } = await chrome.storage.local.get("address");

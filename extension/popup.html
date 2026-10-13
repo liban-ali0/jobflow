@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>Jobflow</title>
+    <title>Offerbound</title>
     <style>
       :root {
         --navy: #12203a;
@@ -16,7 +16,6 @@
       }
       body { margin: 0; width: 320px; font: 14px/1.45 system-ui, sans-serif; color: var(--ink); background: #f6f7f9; }
       header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--navy); color: #fff; }
-      header b { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 4px; background: #e63946; font-weight: 700; }
       header span { font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
       header button { margin-left: auto; width: auto; padding: 2px 6px; background: transparent; color: #c9d1de; font-weight: 500; font-size: 12px; text-decoration: underline; }
       main { padding: 4px 14px 14px; }
@@ -38,17 +37,17 @@
     </style>
   </head>
   <body>
-    <header><b>J</b><span>Jobflow</span><button id="showSetup" type="button">Settings</button></header>
+    <header><img src="icons/icon-48.png" width="22" height="22" alt=""><span>Offerbound</span><button id="showSetup" type="button">Settings</button></header>
     <main>
       <section id="permission" hidden>
         <h2>One more step</h2>
-        <p class="hint">Jobflow needs your OK to read job sites and fill application forms.</p>
-        <button id="permissionButton" type="button" style="margin-top: 8px">Allow Jobflow on job sites</button>
+        <p class="hint">Offerbound needs your OK to read job sites and fill application forms.</p>
+        <button id="permissionButton" type="button" style="margin-top: 8px">Allow Offerbound on job sites</button>
       </section>
       <div id="work">
         <section>
           <h2>Find jobs</h2>
-          <button id="sendButton" type="button">Send this page to Jobflow</button>
+          <button id="sendButton" type="button">Send this page to Offerbound</button>
           <p id="sendStatus" class="status" role="status"></p>
           <p class="hint">Search results or one job's page, on any job site. The jobs on it appear on Today.</p>
         </section>
@@ -59,7 +58,7 @@
           <p id="fillStatus" class="status" role="status"></p>
           <ul id="fillReport" class="report" hidden></ul>
           <button id="appliedButton" class="quiet" type="button" style="margin-top: 8px" hidden>I submitted it: mark as applied</button>
-          <p class="hint">Open the job's application form first. Jobflow fills it and attaches your PDFs; it never presses Submit.</p>
+          <p class="hint">Open the job's application form first. Offerbound fills it and attaches your PDFs; it never presses Submit.</p>
           <button id="applyAllButton" class="quiet" type="button" style="margin-top: 10px">Apply all ready jobs, one by one</button>
           <p class="hint">Opens each ready job's form, filled. What it cannot fill waits for you, marked yellow.</p>
         </section>
@@ -67,9 +66,9 @@
       <form id="setup" hidden>
         <section>
           <h2>Connection</h2>
-          <label>Jobflow address <input id="address" value="http://localhost:3000" spellcheck="false" /></label>
+          <label>Offerbound address <input id="address" value="http://localhost:3000" spellcheck="false" /></label>
           <label>Key, from Settings → Sources <input id="token" spellcheck="false" autocomplete="off" /></label>
-          <p class="hint">Easier: open Jobflow → Settings → Sources and press Connect. Jobflow must be running on this computer.</p>
+          <p class="hint">Easier: open Offerbound → Settings → Sources and press Connect. Offerbound must be running on this computer.</p>
           <button type="submit" style="margin-top: 10px">Save</button>
         </section>
       </form>

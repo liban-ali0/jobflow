@@ -27,7 +27,7 @@ export type ApplyPack = {
   job: { id: number; title: string; company: string; url: string | null; status: string };
   profile: ApplyProfile;
   answers: ApplyAnswer[];
-  // Questions the user answered in Jobflow or saved from earlier forms, for
+  // Questions the user answered in Offerbound or saved from earlier forms, for
   // fields the job's own answers do not cover.
   facts: { question: string; answer: string }[];
   files: { type: "cv" | "cover_letter"; documentId: number; fileName: string }[];
@@ -63,7 +63,7 @@ export const UNANSWERED = /not known yet|open question|fill this in|\bTBD\b|to b
 
 const words = (text: string) => new Set(text.toLowerCase().split(/[^\p{L}\p{N}]+/u).filter((word) => word.length > 3));
 
-// An answer written before the user answered the question in Jobflow: the
+// An answer written before the user answered the question in Offerbound: the
 // answer saved in facts.md ("- question → answer (answered date)") replaces it.
 function fromFacts(answers: ApplyAnswer[], facts: string): ApplyAnswer[] {
   const answered = [...facts.matchAll(/^-\s*(.+?)\s*→\s*(.+?)\s*(?:\(answered [^)]*\))?\s*$/gm)].map((match) => ({ question: match[1], answer: match[2] }));
@@ -71,7 +71,7 @@ function fromFacts(answers: ApplyAnswer[], facts: string): ApplyAnswer[] {
     if (!UNANSWERED.test(item.answer)) return item;
     const asked = words(item.question);
     const fact = answered.find((entry) => [...words(entry.question)].filter((word) => asked.has(word)).length >= 1 && [...words(entry.question)].some((word) => /notice|start|salary|visa|relocat|nationality|licen/.test(word) && asked.has(word)));
-    return fact ? { ...item, answer: fact.answer, note: [item.note, `From your answer in Jobflow: “${fact.question}”.`].filter(Boolean).join(" ") } : item;
+    return fact ? { ...item, answer: fact.answer, note: [item.note, `From your answer in Offerbound: “${fact.question}”.`].filter(Boolean).join(" ") } : item;
   });
 }
 

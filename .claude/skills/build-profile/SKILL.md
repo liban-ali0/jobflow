@@ -25,7 +25,7 @@ Questions are the one place the candidate deals with gaps, so ask about every ga
 - `"category": "cv"`: gaps and problems in the CV, phrased so the answer fixes them:
   - Missing content: "Your CV has no projects. Describe one or two you built: what it was, your part, the tools." or "Do you have a portfolio or GitHub link to add?" (open answers).
   - Unclear facts: "Your CV gives no end date for the Vodobox internship. When did it end?"
-  - Fixes Jobflow can apply itself, as yes/no: "Your CV spells 'Univeristy'. Use 'University' in the CVs Jobflow makes?" with options `["Yes, fix it", "No, keep it"]`.
+  - Fixes Offerbound can apply itself, as yes/no: "Your CV spells 'Univeristy'. Use 'University' in the CVs Offerbound makes?" with options `["Yes, fix it", "No, keep it"]`.
   - A role in the settings with little supporting material: "Your CV shows little for the AI role. Any courses, projects, or work with AI tools to add?"
 
 For each question:
@@ -34,7 +34,7 @@ For each question:
 - Write the question to `jobs/_work/profile-q-<n>.json` and run `node scripts/jobs.mjs ask --file jobs/_work/profile-q-<n>.json`. Fields: `text` (one clear question), `why` (one sentence on what the answer changes), and `options` when a few fixed answers cover it (for example `["Yes", "No, the employer needs to apply"]`). Leave `options` out for open answers. The file can stay; it is overwritten next time.
 - Ask at most 8 questions per run, the ones that change the CVs most first.
 - Every gap still goes in the profile's "Gaps" list too, as the record of what is missing.
-- When rebuilding, apply the answers in `candidate/facts.md`: add the described projects, links, and dates, and apply the fixes the candidate agreed to (for example, correct the typo in the CVs Jobflow writes, never in the original PDF).
+- When rebuilding, apply the answers in `candidate/facts.md`: add the described projects, links, and dates, and apply the fixes the candidate agreed to (for example, correct the typo in the CVs Offerbound writes, never in the original PDF).
 
 Answers arrive in `candidate/facts.md` under "Answers to questions".
 

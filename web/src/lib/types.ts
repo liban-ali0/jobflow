@@ -154,7 +154,7 @@ export type Settings = {
   // What the research step covers, extra points to research, and free-text rules.
   research: { points: Record<ResearchPoint, boolean>; extraPoints: string[]; rules: string };
   // CV and cover letter templates: the default, and choices per role key.
-  // The key the Jobflow browser extension sends with each page.
+  // The key the Offerbound browser extension sends with each page.
   captureToken?: string;
   cvTemplates?: { default: string; byRole: Record<string, string>; byJob?: Record<string, string> };
   // Base CVs (by role key) the user edited; rebuilding the profile leaves them alone.

@@ -1,4 +1,4 @@
-// Runs on the Jobflow app's pages: tells the app the extension is installed,
+// Runs on the Offerbound app's pages: tells the app the extension is installed,
 // takes the app's address and key when the user presses Connect, and lets the
 // app open application forms.
 (() => {

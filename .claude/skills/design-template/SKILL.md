@@ -1,13 +1,13 @@
 ---
 name: design-template
-description: Create a new CV and cover letter template from the user's description, as a stylesheet over Jobflow's fixed CV markup. Argument - the description.
+description: Create a new CV and cover letter template from the user's description, as a stylesheet over Offerbound's fixed CV markup. Argument - the description.
 ---
 
 # Design a CV template
 
 The user described the template they want: `$ARGUMENTS`
 
-A template is a folder with two files, `template.json` (name, description, options) and `style.css`. Jobflow lays out every CV with the same HTML and the template restyles it, so the CSS is all you design. Read the three built-in templates in `templates/cv/` (classic, modern, compact) first: they show the markup's class names and how far a stylesheet can go.
+A template is a folder with two files, `template.json` (name, description, options) and `style.css`. Offerbound lays out every CV with the same HTML and the template restyles it, so the CSS is all you design. Read the three built-in templates in `templates/cv/` (classic, modern, compact) first: they show the markup's class names and how far a stylesheet can go.
 
 ## Steps
 

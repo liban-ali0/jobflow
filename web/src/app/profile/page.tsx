@@ -64,7 +64,7 @@ export default function ProfilePage() {
             <h2 className="card-title">CV gaps</h2>
             <p className="mt-1 text-sm text-slate">
               {cvQuestions > 0
-                ? `${cvQuestions} ${cvQuestions === 1 ? "question" : "questions"} about your CV ${cvQuestions === 1 ? "is" : "are"} waiting in Questions. Your answers are added to the CVs Jobflow writes.`
+                ? `${cvQuestions} ${cvQuestions === 1 ? "question" : "questions"} about your CV ${cvQuestions === 1 ? "is" : "are"} waiting in Questions. Your answers are added to the CVs Offerbound writes.`
                 : `Your profile lists ${gaps.length} gaps. Rebuild the profile to turn the ones you can help with into questions.`}
             </p>
           </div>

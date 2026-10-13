@@ -54,14 +54,14 @@ export async function writeFollowUp(jobId: number): Promise<ActionResult> {
 }
 
 // One follow-up per job. After it is sent, the job waits once more before
-// Jobflow suggests closing it as "No response".
+// Offerbound suggests closing it as "No response".
 export async function markFollowUpSent(jobId: number): Promise<ActionResult> {
   const job = getJob(jobId);
   if (!job) return { ok: false, message: "This job no longer exists." };
   addEvent(jobId, FOLLOW_UP_SENT);
   updateJob(jobId, { follow_up_due: nextFollowUpDate() });
   refresh(jobId);
-  return { ok: true, message: "Noted. Jobflow checks back if there is still no reply." };
+  return { ok: true, message: "Noted. Offerbound checks back if there is still no reply." };
 }
 
 export async function waitLonger(jobId: number): Promise<ActionResult> {

@@ -287,7 +287,7 @@ type Invocation = { command: string; args: string[]; shell: boolean; stdin: stri
 // shell (needed for npm's .cmd launchers) cannot split or alter them.
 const WINDOWS = process.platform === "win32";
 
-const ASSISTANT_INTRO = `You are the assistant inside the Jobflow web app, the job application workflow in this folder. The user is writing to you from the app's Assistant screen, not a terminal, and reads your reply there.
+const ASSISTANT_INTRO = `You are the assistant inside the Offerbound web app, the job application workflow in this folder. The user is writing to you from the app's Assistant screen, not a terminal, and reads your reply there.
 
 - Reply in short, plain language. The user sees your final message only, plus a list of the commands you ran.
 - Read and change job data only through \`node scripts/jobs.mjs\` (run it with \`help\` for the commands).

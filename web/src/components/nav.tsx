@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LogoMark } from "./logo-mark";
 import { usePathname } from "next/navigation";
 
 const LINKS = [
@@ -24,10 +25,8 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
     <header className="border-b-2 border-primary bg-saffron text-on-saffron">
       <nav className="flex h-14 items-stretch overflow-x-auto" aria-label="Main">
         <Link href="/" className="flex shrink-0 items-center gap-2.5 bg-primary px-5 text-on-primary">
-          <span className="grid size-7 place-items-center rounded-sm bg-saffron font-display text-lg font-bold text-on-saffron" aria-hidden>
-            J
-          </span>
-          <span className="font-display text-2xl font-semibold tracking-wider uppercase">Jobflow</span>
+          <LogoMark className="size-8" />
+          <span className="font-display text-2xl font-semibold tracking-wider uppercase">Offerbound</span>
         </Link>
 
         <ul className="flex items-stretch px-2">

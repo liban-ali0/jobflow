@@ -69,13 +69,13 @@ export default function SetupPage() {
       <PageHeader
         eyebrow={left === 0 ? "All set" : `${left} of 5 steps left`}
         title="Setup"
-        description="Everything Jobflow needs before it can find and rank jobs for you. Each step can be changed again later."
+        description="Everything Offerbound needs before it can find and rank jobs for you. Each step can be changed again later."
       />
 
       <div className="mt-8 space-y-6">
         <Step number={1} title={`Connect ${ENGINES[engine].label}`} done={done.engine}>
           <p>
-            Jobflow does its work through {ENGINES[engine].label} on this computer, using your {engine === "claude" ? "Claude" : "ChatGPT"} subscription. You can choose the engine for
+            Offerbound does its work through {ENGINES[engine].label} on this computer, using your {engine === "claude" ? "Claude" : "ChatGPT"} subscription. You can choose the engine for
             each step in Settings. Once per computer:
           </p>
           <ol className="list-decimal space-y-1.5 pl-5">
@@ -101,7 +101,7 @@ export default function SetupPage() {
         </Step>
 
         <Step number={2} title="Add your CV" done={done.cv}>
-          <p>A PDF of your current CV. Everything Jobflow writes is based on it, and nothing is added that it does not say.</p>
+          <p>A PDF of your current CV. Everything Offerbound writes is based on it, and nothing is added that it does not say.</p>
           <CvUpload current={cv} />
         </Step>
 
