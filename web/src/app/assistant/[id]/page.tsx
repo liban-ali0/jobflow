@@ -5,7 +5,7 @@ import { BackLink } from "@/components/back-link";
 import { Composer } from "@/components/composer";
 import { Markdown } from "@/components/markdown";
 import { ProgressList, parseProgress } from "@/components/progress-list";
-import { getConversation, getRun, listMessages, listRuns } from "@/lib/data";
+import { getConversation, getRun, listMessages, listRunningRuns } from "@/lib/data";
 import { ENGINES, closeAbandonedRuns } from "@/lib/engine";
 import { formatDateTime } from "@/lib/format";
 import type { Message } from "@/lib/types";
@@ -48,7 +48,9 @@ export default async function ConversationPage(props: PageProps<"/assistant/[id]
 
   closeAbandonedRuns();
   const messages = listMessages(conversation.id);
-  const active = listRuns(50).find((run) => run.status === "running" && run.conversation_id === conversation.id);
+  const running = listRunningRuns().find((run) => run.conversation_id === conversation.id);
+  // The live progress lines come with the full run.
+  const active = running ? getRun(running.id) : undefined;
   const engine = ENGINES[conversation.engine]?.label ?? conversation.engine;
 
   return (

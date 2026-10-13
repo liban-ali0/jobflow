@@ -4,7 +4,7 @@ import { NavigationTracker } from "@/components/back-link";
 import { Barlow_Condensed, IBM_Plex_Mono, IBM_Plex_Sans, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { Nav } from "@/components/nav";
 import { WorkflowStrip, type WorkflowStep } from "@/components/workflow-strip";
-import { countByStatus, countFoundWithin, getSettings, listQuestions, listRuns } from "@/lib/data";
+import { countByStatus, countFoundWithin, getSettings, listQuestions, listRunningRuns } from "@/lib/data";
 import { STAGES, isStage } from "@/lib/engine";
 import { DEFAULT_APPEARANCE, themeCss } from "@/lib/theme";
 import "./globals.css";
@@ -40,7 +40,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   const settings = getSettings();
   const questions = listQuestions("open").length;
   const foundToday = countFoundWithin(settings.freshness.maxHours);
-  const runningRuns = listRuns(30).filter((run) => run.status === "running");
+  const runningRuns = listRunningRuns();
   const running = runningRuns.length
     ? `${RUNNING_LABELS[runningRuns[0].stage] ?? (isStage(runningRuns[0].stage) ? STAGES[runningRuns[0].stage].label : "Working…")}${
         runningRuns.length > 1 ? ` +${runningRuns.length - 1}` : ""

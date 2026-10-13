@@ -1,5 +1,5 @@
 import { csvResponse, type CsvValue } from "@/lib/csv";
-import { listContacts, listDocuments, listEvents, listJobs } from "@/lib/data";
+import { listContacts, listDocuments, listEventsByJob, listJobs } from "@/lib/data";
 import { FOLLOW_UP_SENT } from "@/lib/followups";
 import { STATUS_LABELS, type Job, type Status } from "@/lib/types";
 
@@ -26,9 +26,11 @@ export function GET() {
     "Listing",
     "Notes",
   ];
-  const rows: CsvValue[][] = listJobs({ status: STATUSES }).map((job: Job) => {
+  const jobs = listJobs({ status: STATUSES });
+  const eventsByJob = listEventsByJob(jobs.map((job) => job.id));
+  const rows: CsvValue[][] = jobs.map((job: Job) => {
     const docs = listDocuments(job.id).filter((doc) => ["cv", "cover_letter", "email", "answers"].includes(doc.type));
-    const followedUp = listEvents(job.id).find((event) => event.type === FOLLOW_UP_SENT);
+    const followedUp = eventsByJob.get(job.id)?.find((event) => event.type === FOLLOW_UP_SENT);
     const contacts = listContacts(job.id)
       .map((contact) => [contact.name, contact.role, contact.email].filter(Boolean).join(", "))
       .join("; ");

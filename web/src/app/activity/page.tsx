@@ -100,7 +100,7 @@ function RunRow({ run, conversationExists }: { run: Run; conversationExists: boo
 export default async function ActivityPage(props: PageProps<"/activity">) {
   const { show } = await props.searchParams;
   closeAbandonedRuns();
-  const all = listRuns(100);
+  const all = listRuns(100, { full: true });
   // A deleted conversation keeps its runs, but there is nothing to open.
   const conversations = new Set(listConversations().map((conversation) => conversation.id));
   const failedOnly = show === "failed";

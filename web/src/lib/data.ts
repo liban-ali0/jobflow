@@ -105,12 +105,14 @@ export function answeredFacts() {
 export const getSettings = () => core.getSettings(db()) as Settings;
 export const setSettings = (patch: Partial<Settings>) => core.setSettings(db(), patch) as Settings;
 
-export const listJobs = (filter: { status?: Status | Status[]; since?: string } = {}) =>
-  core.listJobs(db(), filter) as Job[];
+// Jobs for lists: every match, without the long description (use getJob for it).
+export const listJobs = (filter: { status?: Status | Status[]; since?: string; limit?: number } = {}) =>
+  core.listJobs(db(), { ...filter, slim: true }) as Job[];
+export const countJobs = (filter: { status?: Status | Status[]; since?: string } = {}) => core.countJobs(db(), filter);
 // Jobs stored within the last `hours`, whatever their status.
 export const listFoundWithin = (hours: number) =>
   listJobs({ since: new Date(Date.now() - hours * 3600000).toISOString() });
-export const countFoundWithin = (hours: number) => listFoundWithin(hours).length;
+export const countFoundWithin = (hours: number) => countJobs({ since: new Date(Date.now() - hours * 3600000).toISOString() });
 export const getJob =(id: number) => core.getJob(db(), id) as Job | null;
 export const updateJob = (id: number, patch: Partial<Job>) => core.updateJob(db(), id, patch) as Job;
 export const countByStatus = () => core.countByStatus(db()) as Record<Status, number>;
@@ -124,6 +126,7 @@ export const unapprovedDocuments = (jobId: number) =>
 export type DocumentWithJob = JobDocument & { job_title: string; job_company: string; job_role: string | null; job_status: Status };
 export const listAllDocuments = (types?: string[]) => core.listAllDocuments(db(), types) as DocumentWithJob[];
 export const listEvents = (jobId: number) => core.listEvents(db(), jobId) as JobEvent[];
+export const listEventsByJob = (jobIds: number[]) => core.listEventsByJob(db(), jobIds) as Map<number, JobEvent[]>;
 export const addEvent = (jobId: number, type: string, detail: string | null = null) => core.addEvent(db(), jobId, type, detail);
 export const reviewDocument = (id: number, review: JobDocument["review"], note: string | null = null) =>
   core.reviewDocument(db(), id, review, note);
@@ -149,7 +152,9 @@ export const addMessage = (conversationId: number, message: { role: Message["rol
 export const listMessages = (conversationId: number) => core.listMessages(db(), conversationId) as Message[];
 export const finishRun = (id: number, result: { status: Run["status"]; summary?: string | null; log?: string | null }) =>
   core.finishRun(db(), id, result);
-export const listRuns = (limit = 50) => core.listRuns(db(), limit) as Run[];
+// Recent runs without their long progress and log; `full` includes them.
+export const listRuns = (limit = 50, options: { full?: boolean } = {}) => core.listRuns(db(), limit, options) as Run[];
+export const listRunningRuns = () => core.listRunningRuns(db()) as Run[];
 export const getRun = (id: number) => core.getRun(db(), id) as Run | undefined;
 
 const CONFIRMED_HEADING = "## Skills I confirmed";

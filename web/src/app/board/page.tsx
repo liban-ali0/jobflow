@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { ApplicationsFilters } from "@/components/applications-filters";
 import { ApplyAllButton } from "@/components/apply-all";
 import { Flap } from "@/components/flap";
 import { PageHeader } from "@/components/page-header";
-import { SortLink } from "@/components/sort-link";
-import { tableSort, type SortDir } from "@/lib/sort";
-import { listJobs } from "@/lib/data";
+import { Pagination } from "@/components/pagination";
+import { TABLE_STATUSES, applicationsTable, currentTime, dateOf, parseQuery, queryHref, type AppQuery } from "@/lib/applications";
+import { getSettings, listJobs } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
 import { placeCode } from "@/lib/places";
 import { STATUS_LABELS, type Job, type Status } from "@/lib/types";
@@ -20,16 +21,20 @@ const GATES: { status: Status; hint: string; empty: string; phase: "prepare" | "
   { status: "interview", hint: "Interview scheduled", empty: "Interviews, with a pack to prepare.", phase: "wait" },
   { status: "offer", hint: "Offer received", empty: "Offers.", phase: "wait" },
 ];
-const CLOSED: Status[] = ["rejected", "no_response", "excluded"];
+const PREPARING: Status[] = ["selected", "researched", "ready"];
+// Cards shown per preparing stage before "Show all".
+const CARDS = 6;
+// A gate for a waiting stage opens the table on that stage.
+const GATE_STAGE: Partial<Record<Status, AppQuery["stage"]>> = { applied: "waiting", replied: "replied", interview: "interview", offer: "offer" };
 
-function followUpDue(job: Job) {
-  return job.status === "applied" && job.follow_up_due !== null && Date.parse(job.follow_up_due) <= Date.now();
+function followUpDue(job: Job, now: number) {
+  return job.status === "applied" && job.follow_up_due !== null && Date.parse(job.follow_up_due) <= now;
 }
 
-function Card({ job }: { job: Job }) {
-  const due = followUpDue(job);
+function Card({ job, all }: { job: Job; all: boolean }) {
   return (
-    <li>
+    // Phones show three per stage, wider screens six (CARDS), until "Show all".
+    <li className={all ? "" : "max-sm:nth-[n+4]:hidden"}>
       <Link href={`/jobs/${job.id}`} className="card group flex h-full flex-col rounded-lg p-3.5 text-sm shadow-sm transition-colors hover:border-ink">
         <span className="flex items-start justify-between gap-3">
           <span className="font-medium group-hover:underline" dir="auto">
@@ -38,13 +43,10 @@ function Card({ job }: { job: Job }) {
           <Flap code={placeCode(job)} className="shrink-0 text-[11px]" />
         </span>
         <span className="mt-0.5 truncate text-slate" dir="auto">
-          {job.company}
-          {job.city ? ` · ${job.city}` : ""}
+          {[job.company, job.city ?? job.country].filter(Boolean).join(" · ")}
         </span>
         <span className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2.5 font-mono text-[11px] text-slate">
           {job.score !== null && <span>Match {Math.round(job.score)}</span>}
-          {job.applied_at && <span>Applied {formatDateTime(job.applied_at)}</span>}
-          {due && <span className="rounded bg-saffron px-1.5 py-0.5 font-semibold text-on-saffron">Follow-up due</span>}
           {job.status === "ready" && job.apply_state === "waiting" && (
             <span className="rounded bg-saffron px-1.5 py-0.5 font-semibold text-on-saffron" title={job.apply_missing?.join("\n")}>
               Waiting for you{job.apply_missing?.length ? ` · ${job.apply_missing.length}` : ""}
@@ -56,66 +58,71 @@ function Card({ job }: { job: Job }) {
   );
 }
 
-const CLOSED_KEYS = ["job", "company", "status", "updated"] as const;
-type ClosedKey = (typeof CLOSED_KEYS)[number];
-const CLOSED_LABELS: Record<ClosedKey, string> = { job: "Job", company: "Company", status: "Status", updated: "Updated" };
-const CLOSED_FIRST_DIR: Record<ClosedKey, SortDir> = { job: "asc", company: "asc", status: "asc", updated: "desc" };
-const CLOSED_PAGE = 20;
+// The stage of a sent application, as a small label.
+const STAGE_STYLE: Partial<Record<Status, string>> = {
+  applied: "bg-mist text-ink",
+  replied: "bg-teal-soft text-teal",
+  interview: "bg-go-soft text-go",
+  offer: "bg-go text-surface",
+  rejected: "bg-coral-soft text-coral",
+  no_response: "bg-mist text-slate",
+  excluded: "bg-mist text-slate",
+};
+const STAGE_TEXT: Partial<Record<Status, string>> = { applied: "Sent" };
 
-function sortClosed(jobs: Job[], key: ClosedKey, dir: SortDir) {
-  const sign = dir === "asc" ? 1 : -1;
-  const text = (a: string, b: string) => a.localeCompare(b, "en", { sensitivity: "base" });
-  const compare = (a: Job, b: Job) => {
-    switch (key) {
-      case "job":
-        return text(a.title, b.title);
-      case "company":
-        return text(a.company, b.company);
-      case "status":
-        return text(STATUS_LABELS[a.status], STATUS_LABELS[b.status]);
-      case "updated":
-        return Date.parse(a.updated_at) - Date.parse(b.updated_at);
-    }
-  };
-  return [...jobs].sort((a, b) => sign * compare(a, b) || Date.parse(b.updated_at) - Date.parse(a.updated_at));
+function Row({ job, now }: { job: Job; now: number }) {
+  const due = followUpDue(job, now);
+  const date = dateOf(job);
+  const days = Math.max(0, Math.floor((now - Date.parse(date)) / 86400000));
+  return (
+    <li className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 px-4 py-3 text-sm md:grid-cols-[7.5rem_minmax(0,1fr)_4rem_9rem_minmax(0,11rem)] md:items-center">
+      <div className="order-3 col-span-2 font-mono text-xs text-slate md:order-none md:col-span-1">
+        <span className="text-ink">{formatDateTime(date).split(",")[0]}</span>
+        <span className="ml-2 md:ml-0 md:block">{days === 0 ? "today" : `${days} ${days === 1 ? "day" : "days"} ago`}</span>
+      </div>
+      <div className="min-w-0">
+        <Link href={`/jobs/${job.id}`} className="font-medium hover:text-teal hover:underline" dir="auto">
+          {job.title}
+        </Link>
+        <div className="truncate text-slate" dir="auto">
+          {[job.company, job.city, job.country].filter(Boolean).join(" · ")}
+        </div>
+      </div>
+      <div className="hidden md:block">
+        <Flap code={placeCode(job)} className="text-[11px]" />
+      </div>
+      <div className="flex flex-wrap items-start justify-end gap-1.5 md:justify-start">
+        <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${STAGE_STYLE[job.status] ?? "bg-mist"}`}>{STAGE_TEXT[job.status] ?? STATUS_LABELS[job.status]}</span>
+        {due && <span className="rounded bg-saffron px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-on-saffron">Follow-up due</span>}
+      </div>
+      <div className="order-4 col-span-2 truncate text-xs text-slate md:order-none md:col-span-1" title={job.excluded_reason ?? undefined}>
+        {job.excluded_reason ?? (job.source ? `via ${job.source}` : "")}
+      </div>
+    </li>
+  );
 }
 
 export default async function BoardPage(props: PageProps<"/board">) {
-  const query = await props.searchParams;
-  const sort = tableSort({
-    query: { csort: typeof query.csort === "string" ? query.csort : undefined, cdir: typeof query.cdir === "string" ? query.cdir : undefined },
-    keys: CLOSED_KEYS,
-    firstDir: CLOSED_FIRST_DIR,
-    defaultSort: { key: "updated", dir: "desc" },
-    param: { key: "csort", dir: "cdir" },
-    path: "/board",
-    anchor: "closed",
-  });
-  const closedFilter = CLOSED.includes(query.closed as Status) ? (query.closed as Status) : null;
-  const showAll = query.all === "1";
-  // Links in the closed list keep the other choices.
-  const closedHref = (change: Record<string, string | null>) => {
-    const params = new URLSearchParams();
-    const next = { csort: typeof query.csort === "string" ? query.csort : null, cdir: typeof query.cdir === "string" ? query.cdir : null, closed: closedFilter, all: showAll ? "1" : null, ...change };
-    for (const [key, value] of Object.entries(next)) if (value) params.set(key, value);
-    return `/board${params.size ? `?${params}` : ""}#closed`;
-  };
+  const params = await props.searchParams;
+  const query = parseQuery(params);
+  const now = currentTime();
+  const showAllCards = params.prep === "all";
+  const settings = getSettings();
+  const roleLabel = new Map(settings.roles.map((role) => [role.key, role.label]));
 
-  const jobs = listJobs({ status: [...GATES.map((gate) => gate.status), ...CLOSED] });
-  const open = jobs.filter((job) => !CLOSED.includes(job.status));
-  const allClosed = jobs.filter((job) => CLOSED.includes(job.status));
-  const filtered = closedFilter ? allClosed.filter((job) => job.status === closedFilter) : allClosed;
-  // Sort everything first, then show the first rows, so sorting looks across
-  // all closed jobs and not only the most recent ones.
-  const sorted = sortClosed(filtered, sort.key, sort.dir);
-  const closed = showAll ? sorted : sorted.slice(0, CLOSED_PAGE);
-  const count = (status: Status) => open.filter((job) => job.status === status).length;
-  const dueCount = open.filter(followUpDue).length;
+  const jobs = listJobs({ status: [...PREPARING, ...TABLE_STATUSES] });
+  const preparing = jobs.filter((job) => PREPARING.includes(job.status));
+  const count = (status: Status) => jobs.filter((job) => job.status === status).length;
+  const dueCount = jobs.filter((job) => followUpDue(job, now)).length;
+  const sentCount = jobs.filter((job) => job.status !== "excluded" && TABLE_STATUSES.includes(job.status)).length;
+  const countryOrder = [...settings.countries].sort((a, b) => a.priority - b.priority).map((country) => country.name);
+  const table = applicationsTable(jobs, query, now, countryOrder);
+  const filtered = query.q || query.country || query.role || query.period !== "all";
 
   return (
     <div>
       <PageHeader
-        eyebrow={`${open.length} in progress${dueCount ? ` · ${dueCount} follow-up${dueCount === 1 ? "" : "s"} due` : ""}`}
+        eyebrow={`${preparing.length} preparing · ${sentCount} sent${dueCount ? ` · ${dueCount} follow-up${dueCount === 1 ? "" : "s"} due` : ""}`}
         title="Board"
         description="Every job you picked, from research to outcome."
         actions={
@@ -130,10 +137,11 @@ export default async function BoardPage(props: PageProps<"/board">) {
         <ol className="flex min-w-max">
           {GATES.map((gate, index) => {
             const n = count(gate.status);
+            const stage = GATE_STAGE[gate.status];
             return (
               <li key={gate.status} className="flex items-center">
                 {index === 3 && <span aria-hidden className="h-10 border-l-2 border-dashed border-chrome-line" />}
-                <a href={`#${gate.status}`} className={`block px-5 py-3.5 hover:bg-white/5 ${n ? "text-chrome-text" : "text-chrome-dim"}`}>
+                <a href={stage ? queryHref(query, { stage }) : `#${gate.status}`} className={`block px-5 py-3.5 hover:bg-white/5 ${n ? "text-chrome-text" : "text-chrome-dim"}`}>
                   <span className="block font-mono text-[10px] tracking-[0.18em] uppercase opacity-80">Gate {index + 1}</span>
                   <span className="mt-0.5 flex items-baseline gap-2">
                     <span className="font-display text-lg font-semibold tracking-wide uppercase">{STATUS_LABELS[gate.status]}</span>
@@ -146,118 +154,134 @@ export default async function BoardPage(props: PageProps<"/board">) {
         </ol>
       </nav>
 
-      {open.length === 0 ? (
-        <p className="card mt-6 rounded-xl px-5 py-6 text-sm text-slate">
-          Nothing in progress yet. Pick jobs on{" "}
-          <Link href="/" className="text-teal underline">
-            Today
-          </Link>{" "}
-          and they move through these gates as you research, apply, and hear back.
-        </p>
-      ) : (
-        <div className="mt-6 space-y-2">
-          {GATES.map((gate, index) => {
-            const column = open.filter((job) => job.status === gate.status);
-            return (
-              <section key={gate.status} id={gate.status} className={`anchor scroll-mt-32 ${index === 3 ? "pt-4" : ""}`}>
-                {column.length === 0 ? (
-                  // An empty stage is one quiet line.
-                  <p className="flex items-baseline gap-3 border-b border-line/70 px-1 py-2 text-sm text-slate">
-                    <span className="font-display font-semibold tracking-wide text-ink/50 uppercase">{STATUS_LABELS[gate.status]}</span>
-                    <span>{gate.empty}</span>
-                  </p>
-                ) : (
-                  <div className="py-2">
-                    <div className="flex flex-wrap items-baseline gap-3 px-1">
-                      <h2 className="flex items-baseline gap-3">
-                        <span className="section-title">{STATUS_LABELS[gate.status]}</span>
-                        <span className="font-mono text-sm text-slate">{column.length}</span>
-                        <span className="text-sm text-slate">{gate.hint}</span>
-                      </h2>
-                      {gate.status === "ready" && <ApplyAllButton jobIds={column.filter((job) => job.apply_state !== "waiting").map((job) => job.id)} />}
-                    </div>
-                    <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {column.map((job) => (
-                        <Card key={job.id} job={job} />
-                      ))}
-                    </ul>
+      {/* Preparing: the few jobs still on their way to being sent. */}
+      <div className="mt-6 space-y-2">
+        {GATES.filter((gate) => gate.phase === "prepare").map((gate) => {
+          const column = preparing.filter((job) => job.status === gate.status);
+          const shown = showAllCards ? column : column.slice(0, CARDS);
+          return (
+            <section key={gate.status} id={gate.status} className="anchor scroll-mt-32">
+              {column.length === 0 ? (
+                <p className="flex items-baseline gap-3 border-b border-line/70 px-1 py-2 text-sm text-slate">
+                  <span className="font-display font-semibold tracking-wide text-ink/50 uppercase">{STATUS_LABELS[gate.status]}</span>
+                  <span>{gate.empty}</span>
+                </p>
+              ) : (
+                <div className="py-2">
+                  <div className="flex flex-wrap items-baseline gap-3 px-1">
+                    <h2 className="flex items-baseline gap-3">
+                      <span className="section-title">{STATUS_LABELS[gate.status]}</span>
+                      <span className="font-mono text-sm text-slate">{column.length}</span>
+                      <span className="text-sm text-slate">{gate.hint}</span>
+                    </h2>
+                    {gate.status === "ready" && <ApplyAllButton jobIds={column.filter((job) => job.apply_state !== "waiting").map((job) => job.id)} />}
+                  </div>
+                  <ul className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {shown.map((job) => (
+                      <Card key={job.id} job={job} all={showAllCards} />
+                    ))}
+                  </ul>
+                  {(column.length > shown.length || (!showAllCards && column.length > 3)) && (
+                    <Link
+                      href={`/board?prep=all#${gate.status}`}
+                      className={`mt-2 inline-block px-1 text-sm font-medium text-teal hover:underline ${column.length > shown.length ? "" : "sm:hidden"}`}
+                    >
+                      Show all {column.length}
+                    </Link>
+                  )}
+                </div>
+              )}
+            </section>
+          );
+        })}
+      </div>
+
+      {/* Applications: everything sent, closed, or excluded, in one table. */}
+      <section id="applications" className="anchor mt-12 scroll-mt-32">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="section-title">Applications</h2>
+            <p className="mt-1 text-sm text-slate" aria-live="polite">
+              {table.summary.total === 0 ? (
+                "None match these choices."
+              ) : query.stage === "excluded" ? (
+                `${table.summary.total} excluded ${table.summary.total === 1 ? "job" : "jobs"}, with the reason.`
+              ) : (
+                <>
+                  <b className="font-mono text-ink">{table.summary.sent}</b> sent
+                  {table.summary.sent > 0 && (
+                    <>
+                      {" · "}
+                      <b className="font-mono text-ink">{table.summary.heardBack}</b> heard back ({Math.round((table.summary.heardBack / table.summary.sent) * 100)}%)
+                      {" · "}
+                      <b className="font-mono text-ink">{table.summary.interviews}</b> {table.summary.interviews === 1 ? "interview" : "interviews"}
+                      {table.summary.offers > 0 && (
+                        <>
+                          {" · "}
+                          <b className="font-mono text-ink">{table.summary.offers}</b> {table.summary.offers === 1 ? "offer" : "offers"}
+                        </>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </p>
+          </div>
+          {filtered && (
+            <Link href={queryHref(query, { q: "", country: "", role: "", period: "all" })} className="text-sm font-medium text-teal hover:underline">
+              Clear filters
+            </Link>
+          )}
+        </div>
+
+        <div className="card mt-3 rounded-xl p-3 shadow-sm">
+          <ApplicationsFilters
+            query={query}
+            countries={table.facets.countries}
+            roles={table.facets.roles.map((role) => ({ ...role, label: roleLabel.get(role.value) ?? role.value }))}
+            years={table.facets.years}
+          />
+        </div>
+
+        {table.groups.length > 0 && (
+          <div className="mt-4 space-y-4">
+            {table.groups.map((group) => (
+              <div key={group.key || "all"} className="card overflow-hidden rounded-xl shadow-sm">
+                {group.label && (
+                  <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-board-line bg-board px-4 py-2.5 text-board-text">
+                    <h3 className="font-display text-base font-semibold tracking-wide uppercase">{group.label}</h3>
+                    <p className="font-mono text-xs text-board-dim">
+                      {group.total} {group.total === 1 ? "job" : "jobs"}
+                      {query.stage !== "excluded" && (
+                        <>
+                          {" · "}
+                          {group.replies} heard back
+                          {group.interviews > 0 && ` · ${group.interviews} ${group.interviews === 1 ? "interview" : "interviews"}`}
+                        </>
+                      )}
+                      {group.jobs.length < group.total && ` · ${group.jobs.length} on this page`}
+                    </p>
                   </div>
                 )}
-              </section>
-            );
-          })}
-        </div>
-      )}
+                <div className="hidden gap-x-4 border-b border-line bg-mist px-4 py-1.5 font-mono text-[10px] tracking-[0.14em] text-slate uppercase md:grid md:grid-cols-[7.5rem_minmax(0,1fr)_4rem_9rem_minmax(0,11rem)]">
+                  <span>{query.stage === "excluded" ? "Excluded" : "Sent"}</span>
+                  <span>Job</span>
+                  <span>Place</span>
+                  <span>Stage</span>
+                  <span>{query.stage === "excluded" ? "Reason" : "Source"}</span>
+                </div>
+                <ul className="divide-y divide-line/70">
+                  {group.jobs.map((job) => (
+                    <Row key={job.id} job={job} now={now} />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
 
-      {allClosed.length > 0 && (
-        <section id="closed" className="anchor mt-12 scroll-mt-32">
-          <div className="flex flex-wrap items-baseline justify-between gap-3">
-            <div>
-              <h2 className="section-title">Closed</h2>
-              <p className="mt-1 text-sm text-slate">Rejected, unanswered, and excluded jobs, with the reason.</p>
-            </div>
-            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Show">
-              <Link href={closedHref({ closed: null, all: null })} className={`chip ${closedFilter === null ? "chip-on" : ""}`}>
-                All {allClosed.length}
-              </Link>
-              {CLOSED.map((status) => {
-                const n = allClosed.filter((job) => job.status === status).length;
-                return n ? (
-                  <Link key={status} href={closedHref({ closed: status, all: null })} className={`chip ${closedFilter === status ? "chip-on" : ""}`}>
-                    {STATUS_LABELS[status]} {n}
-                  </Link>
-                ) : null;
-              })}
-            </div>
-          </div>
-          <div className="card mt-3 overflow-hidden rounded-xl shadow-sm">
-            <div className="hidden gap-x-6 border-b border-line bg-mist px-4 py-2 font-mono text-[11px] tracking-[0.12em] text-slate uppercase md:grid md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto]">
-              <span className="flex gap-2">
-                <SortLink label="Job" active={sort.key === "job"} dir={sort.dir} href={sort.href("job")} />
-                <span aria-hidden>·</span>
-                <SortLink label="Company" active={sort.key === "company"} dir={sort.dir} href={sort.href("company")} />
-              </span>
-              <SortLink label="Status" active={sort.key === "status"} dir={sort.dir} href={sort.href("status")} />
-              <SortLink label="Updated" active={sort.key === "updated"} dir={sort.dir} href={sort.href("updated")} />
-            </div>
-            <div className="flex flex-wrap items-center gap-1.5 border-b border-line px-4 py-2.5 md:hidden">
-              <span className="label mr-1 mb-0">Sort</span>
-              {CLOSED_KEYS.map((key) => (
-                <Link key={key} href={sort.href(key)} className={`chip ${sort.key === key ? "chip-on" : ""}`}>
-                  {CLOSED_LABELS[key]}
-                  {sort.key === key && (sort.dir === "asc" ? " ↑" : " ↓")}
-                </Link>
-              ))}
-            </div>
-            <ul className="divide-y divide-line/70">
-              {closed.map((job) => (
-                <li key={job.id} className="grid gap-x-6 gap-y-1 px-4 py-3 text-sm md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto]">
-                  <div className="min-w-0">
-                    <Link href={`/jobs/${job.id}`} className="font-medium hover:text-teal hover:underline" dir="auto">
-                      {job.title}
-                    </Link>
-                    <div className="truncate text-slate" dir="auto">
-                      {job.company} · {job.city ?? job.country}
-                    </div>
-                  </div>
-                  <div className="text-slate">
-                    <span className={`mr-2 rounded px-1.5 py-0.5 text-[11px] font-medium ${job.status === "excluded" ? "bg-mist text-ink" : "bg-coral-soft text-coral"}`}>
-                      {STATUS_LABELS[job.status]}
-                    </span>
-                    {job.excluded_reason}
-                  </div>
-                  <div className="font-mono text-xs whitespace-nowrap text-slate">{formatDateTime(job.updated_at)}</div>
-                </li>
-              ))}
-            </ul>
-            {sorted.length > closed.length && (
-              <Link href={closedHref({ all: "1" })} className="block border-t border-line px-4 py-3 text-center text-sm font-medium text-teal hover:bg-mist">
-                Show all {sorted.length}
-              </Link>
-            )}
-          </div>
-        </section>
-      )}
+        <Pagination page={table.page} pages={table.pages} start={table.start} shown={table.shown} total={table.rows} href={(page) => queryHref(query, { page })} />
+      </section>
     </div>
   );
 }

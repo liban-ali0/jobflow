@@ -128,6 +128,12 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS jobs_found_at ON jobs(found_at);
+CREATE INDEX IF NOT EXISTS jobs_applied_at ON jobs(applied_at);
+CREATE INDEX IF NOT EXISTS events_job ON events(job_id);
+CREATE INDEX IF NOT EXISTS contacts_job ON contacts(job_id);
+CREATE INDEX IF NOT EXISTS runs_status ON runs(status);
+CREATE INDEX IF NOT EXISTS runs_stage ON runs(stage, id);
+CREATE INDEX IF NOT EXISTS questions_status ON questions(status);
 `;
 
 const JOB_COLUMNS = [
@@ -283,7 +289,10 @@ export function getJob(db, id) {
   return parseJob(db.prepare("SELECT * FROM jobs WHERE id = ?").get(id));
 }
 
-export function listJobs(db, { status, since, limit = 500 } = {}) {
+// Every column but the long description, for lists.
+const JOB_LIST_COLUMNS = `id, ${JOB_COLUMNS.filter((column) => column !== "description").join(", ")}, found_at, updated_at, description IS NOT NULL AS has_description`;
+
+function jobFilter({ status, since }) {
   const where = [];
   const params = [];
   if (status) {
@@ -295,9 +304,21 @@ export function listJobs(db, { status, since, limit = 500 } = {}) {
     where.push("found_at >= ?");
     params.push(since);
   }
-  const sql = `SELECT * FROM jobs ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
-    ORDER BY score IS NULL, score DESC, posted_at DESC LIMIT ?`;
-  return db.prepare(sql).all(...params, limit).map(parseJob);
+  return { where: where.length ? `WHERE ${where.join(" AND ")}` : "", params };
+}
+
+// All matching jobs (no limit unless one is given). `slim` leaves out the
+// description, which lists never show.
+export function listJobs(db, { status, since, limit = null, slim = false } = {}) {
+  const { where, params } = jobFilter({ status, since });
+  const sql = `SELECT ${slim ? JOB_LIST_COLUMNS : "*"} FROM jobs ${where}
+    ORDER BY score IS NULL, score DESC, posted_at DESC${limit ? " LIMIT ?" : ""}`;
+  return db.prepare(sql).all(...params, ...(limit ? [limit] : [])).map(parseJob);
+}
+
+export function countJobs(db, filter = {}) {
+  const { where, params } = jobFilter(filter);
+  return db.prepare(`SELECT COUNT(*) AS n FROM jobs ${where}`).get(...params).n;
 }
 
 export function addContact(db, jobId, contact) {
@@ -363,6 +384,16 @@ export function listAllDocuments(db, types = DOCUMENT_TYPES) {
 
 export function listEvents(db, jobId) {
   return db.prepare("SELECT * FROM events WHERE job_id = ? ORDER BY id DESC").all(jobId);
+}
+
+// Events of many jobs in one query, newest first, grouped by job.
+export function listEventsByJob(db, jobIds) {
+  const byJob = new Map(jobIds.map((id) => [id, []]));
+  if (!jobIds.length) return byJob;
+  for (const row of db.prepare(`SELECT * FROM events WHERE job_id IN (SELECT value FROM json_each(?)) ORDER BY id DESC`).all(JSON.stringify(jobIds))) {
+    byJob.get(row.job_id)?.push(row);
+  }
+  return byJob;
 }
 
 export function startRun(db, { stage, jobId = null, trigger = "manual", engine = null, conversationId = null }) {
@@ -482,8 +513,15 @@ export function finishRun(db, id, { status, summary = null, log = null }) {
   );
 }
 
-export function listRuns(db, limit = 50) {
-  return db.prepare("SELECT * FROM runs ORDER BY id DESC LIMIT ?").all(limit);
+// Recent runs. Without `full`, the long progress and log are left out and the
+// summary is shortened: enough for status checks and lists.
+export function listRuns(db, limit = 50, { full = false } = {}) {
+  const columns = full ? "*" : "id, stage, job_id, trigger, engine, conversation_id, status, started_at, finished_at, substr(summary, 1, 3000) AS summary, NULL AS progress, NULL AS log";
+  return db.prepare(`SELECT ${columns} FROM runs ORDER BY id DESC LIMIT ?`).all(limit);
+}
+
+export function listRunningRuns(db) {
+  return db.prepare("SELECT id, stage, job_id, trigger, engine, conversation_id, status, started_at FROM runs WHERE status = 'running' ORDER BY id DESC").all();
 }
 
 export function getRun(db, id) {

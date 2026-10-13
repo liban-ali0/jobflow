@@ -1,5 +1,5 @@
 import "server-only";
-import { getSettings, listEvents, listJobs } from "./data";
+import { getSettings, listEventsByJob, listJobs } from "./data";
 import { STATUS_LABELS, type Job, type JobEvent, type Settings, type Status } from "./types";
 
 const STAGES = ["found", "ranked", "selected", "researched", "ready", "applied", "replied", "interview", "offer"] as const;
@@ -96,9 +96,8 @@ export function calculateStats(jobs: Job[], events: ReadonlyMap<number, JobEvent
 }
 
 export function getStats() {
-  // The wrapper forwards this option to core.listJobs, whose default is 500.
-  const filter: Parameters<typeof listJobs>[0] & { limit: number } = { limit: -1 };
-  const jobs = listJobs(filter);
-  const events = new Map(jobs.map((job) => [job.id, listEvents(job.id)]));
+  const jobs = listJobs();
+  // All their events in one query.
+  const events = listEventsByJob(jobs.map((job) => job.id));
   return calculateStats(jobs, events, getSettings(), Date.now());
 }

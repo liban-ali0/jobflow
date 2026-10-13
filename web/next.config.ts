@@ -14,6 +14,9 @@ const extraOrigins = (process.env.JOBFLOW_DEV_ORIGINS ?? "")
   .filter(Boolean);
 
 const nextConfig: NextConfig = {
+  // A second copy (for example a test copy with JOBFLOW_ROOT pointing at
+  // other data) needs its own build folder next to the running one.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   allowedDevOrigins: [...ownAddresses, ...extraOrigins],
   experimental: {
     // CV uploads on the Setup screen (10 MB plus form overhead).

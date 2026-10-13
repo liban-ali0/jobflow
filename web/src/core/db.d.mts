@@ -13,7 +13,8 @@ export function setSettings(db: Db, patch: Row): Row;
 export function addJob(db: Db, job: Row): { id: number; created: boolean };
 export function updateJob(db: Db, id: number, patch: Row): Row;
 export function getJob(db: Db, id: number): Row | null;
-export function listJobs(db: Db, filter?: { status?: string | string[]; since?: string; limit?: number }): Row[];
+export function listJobs(db: Db, filter?: { status?: string | string[]; since?: string; limit?: number | null; slim?: boolean }): Row[];
+export function countJobs(db: Db, filter?: { status?: string | string[]; since?: string }): number;
 export function countByStatus(db: Db): Record<string, number>;
 
 export function addContact(db: Db, jobId: number, contact: Row): number;
@@ -27,6 +28,7 @@ export function listAllDocuments(db: Db, types?: string[]): Row[];
 
 export function addEvent(db: Db, jobId: number, type: string, detail?: string | null): void;
 export function listEvents(db: Db, jobId: number): Row[];
+export function listEventsByJob(db: Db, jobIds: number[]): Map<number, Row[]>;
 
 export function startRun(
   db: Db,
@@ -58,6 +60,7 @@ export function finishRun(
   id: number,
   result: { status: string; summary?: string | null; log?: string | null },
 ): void;
-export function listRuns(db: Db, limit?: number): Row[];
+export function listRuns(db: Db, limit?: number, options?: { full?: boolean }): Row[];
+export function listRunningRuns(db: Db): Row[];
 export function getRun(db: Db, id: number): Row | undefined;
 export { EXPERIENCE_LEVELS } from "./levels.mjs";
