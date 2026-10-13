@@ -5,13 +5,13 @@ import type { Job, Status } from "./types";
 // The state lives in the URL, like Today's.
 
 export const STAGES = [
-  { value: "all", label: "All applications", statuses: ["applied", "replied", "interview", "offer", "rejected", "no_response"] },
+  { value: "all", label: "All applications", statuses: ["applied", "replied", "interview", "offer", "accepted", "declined", "rejected", "withdrawn", "no_response"] },
   { value: "waiting", label: "Waiting for a reply", statuses: ["applied"] },
   { value: "stale", label: "No reply for 30+ days", statuses: ["applied"] },
   { value: "replied", label: "Replied", statuses: ["replied"] },
   { value: "interview", label: "Interview", statuses: ["interview"] },
-  { value: "offer", label: "Offer", statuses: ["offer"] },
-  { value: "closed", label: "Closed (rejected, no response)", statuses: ["rejected", "no_response"] },
+  { value: "offer", label: "Offers (open, accepted, declined)", statuses: ["offer", "accepted", "declined"] },
+  { value: "closed", label: "Closed (rejected, withdrawn, no response)", statuses: ["rejected", "withdrawn", "no_response"] },
   { value: "excluded", label: "Excluded (never applied)", statuses: ["excluded"] },
 ] as const satisfies readonly { value: string; label: string; statuses: readonly Status[] }[];
 
@@ -52,7 +52,7 @@ export const ORDERS = [
 
 export const PAGE_SIZE = 50;
 // Every job that ever reached the applications table.
-export const TABLE_STATUSES: Status[] = ["applied", "replied", "interview", "offer", "rejected", "no_response", "excluded"];
+export const TABLE_STATUSES: Status[] = ["applied", "replied", "interview", "offer", "accepted", "declined", "rejected", "withdrawn", "no_response", "excluded"];
 
 export type AppQuery = {
   stage: (typeof STAGES)[number]["value"];
@@ -122,13 +122,16 @@ function weekStart(date: Date) {
   return start;
 }
 
-const STAGE_ORDER: Status[] = ["offer", "interview", "replied", "applied", "no_response", "rejected", "excluded"];
+const STAGE_ORDER: Status[] = ["accepted", "offer", "declined", "interview", "replied", "applied", "withdrawn", "no_response", "rejected", "excluded"];
 const STAGE_LABEL: Partial<Record<Status, string>> = {
   applied: "Waiting for a reply",
   replied: "Replied",
   interview: "Interview",
   offer: "Offer",
+  accepted: "Offer accepted",
+  declined: "Offer declined",
   rejected: "Rejected",
+  withdrawn: "Withdrawn",
   no_response: "No response",
   excluded: "Excluded",
 };
@@ -171,8 +174,8 @@ function groupOf(job: Job, group: AppQuery["group"], now: number, countryOrder: 
 export type AppGroup = { key: string; label: string; jobs: Job[]; total: number; replies: number; interviews: number };
 
 // Heard back: any answer from the employer, including a rejection.
-const HEARD_BACK: Status[] = ["replied", "interview", "offer", "rejected"];
-const INTERVIEWED: Status[] = ["interview", "offer"];
+const HEARD_BACK: Status[] = ["replied", "interview", "offer", "accepted", "declined", "rejected"];
+const INTERVIEWED: Status[] = ["interview", "offer", "accepted", "declined"];
 
 export function applicationsTable(all: Job[], query: AppQuery, now: number, countryOrder: string[] = []) {
   const stage = STAGES.find((item) => item.value === query.stage)!;
@@ -246,7 +249,7 @@ export function applicationsTable(all: Job[], query: AppQuery, now: number, coun
     sent: sent.length,
     heardBack: sent.filter((job) => HEARD_BACK.includes(job.status)).length,
     interviews: sent.filter((job) => INTERVIEWED.includes(job.status)).length,
-    offers: sent.filter((job) => job.status === "offer").length,
+    offers: sent.filter((job) => ["offer", "accepted", "declined"].includes(job.status)).length,
   };
   return { rows: keyed.length, page, pages, start, shown: slice.length, groups, summary, facets };
 }

@@ -65,6 +65,9 @@ const STAGE_STYLE: Partial<Record<Status, string>> = {
   replied: "bg-teal-soft text-teal",
   interview: "bg-go-soft text-go",
   offer: "bg-go text-surface",
+  accepted: "bg-go text-surface",
+  declined: "bg-mist text-ink",
+  withdrawn: "bg-mist text-slate",
   rejected: "bg-coral-soft text-coral",
   no_response: "bg-mist text-slate",
   excluded: "bg-mist text-slate",
@@ -121,7 +124,8 @@ export default async function BoardPage(props: PageProps<"/board">) {
 
   const jobs = listJobs({ status: [...PREPARING, ...TABLE_STATUSES] });
   const preparing = jobs.filter((job) => PREPARING.includes(job.status));
-  const count = (status: Status) => jobs.filter((job) => job.status === status).length;
+  // The Offer gate counts offers answered too.
+  const count = (status: Status) => jobs.filter((job) => job.status === status || (status === "offer" && (job.status === "accepted" || job.status === "declined"))).length;
   const dueCount = jobs.filter((job) => followUpDue(job, now)).length;
   const sentCount = jobs.filter((job) => job.status !== "excluded" && TABLE_STATUSES.includes(job.status)).length;
   const countryOrder = [...settings.countries].sort((a, b) => a.priority - b.priority).map((country) => country.name);

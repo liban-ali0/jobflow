@@ -1,10 +1,10 @@
 import "server-only";
 import { getSettings, listEventsByJob, listJobs } from "./data";
-import { STATUS_LABELS, type Job, type JobEvent, type Settings, type Status } from "./types";
+import { SENT_STATUSES, STATUS_LABELS, type Job, type JobEvent, type Settings, type Status } from "./types";
 
 const STAGES = ["found", "ranked", "selected", "researched", "ready", "applied", "replied", "interview", "offer"] as const;
 type Stage = (typeof STAGES)[number];
-const APPLICATION_STATUSES: Status[] = ["applied", "replied", "interview", "offer", "rejected", "no_response"];
+const APPLICATION_STATUSES: Status[] = SENT_STATUSES;
 
 export type OutcomeCounts = { applied: number; replied: number; interview: number };
 export type Breakdown = OutcomeCounts & { key: string; label: string };
@@ -19,6 +19,8 @@ function reachedStages(job: Job, events: JobEvent[]) {
   const reached = new Set<Stage>(["found"]);
   const add = (status: string) => {
     if (STAGES.includes(status as Stage)) reached.add(status as Stage);
+    // Accepting or declining means there was an offer.
+    if (status === "accepted" || status === "declined") reached.add("offer");
     if (APPLICATION_STATUSES.includes(status as Status)) reached.add("applied");
   };
   add(job.status);

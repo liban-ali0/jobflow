@@ -5,9 +5,9 @@ import type { ActionResult } from "@/app/actions";
 import { addEvent, getJob, listDocuments, updateJob } from "@/lib/data";
 import { launch, stageRunning } from "@/lib/engine";
 import { FOLLOW_UP_SENT, nextFollowUpDate } from "@/lib/followups";
-import { STATUS_LABELS, type Status } from "@/lib/types";
+import { SENT_STATUSES, STATUS_LABELS, type Status } from "@/lib/types";
 
-const OUTCOMES: Status[] = ["replied", "interview", "offer", "rejected", "no_response"];
+const OUTCOMES: Status[] = ["replied", "interview", "offer", "accepted", "declined", "rejected", "withdrawn", "no_response"];
 
 function refresh(jobId: number) {
   revalidatePath(`/jobs/${jobId}`);
@@ -117,8 +117,8 @@ export async function writeInterviewPack(jobId: number): Promise<ActionResult> {
 // rejection, or closing the ones that never answered. Only jobs already
 // sent can change; the rest are left as they are.
 export async function bulkOutcome(jobIds: number[], status: string): Promise<ActionResult> {
-  if (!["replied", "rejected", "no_response"].includes(status)) return { ok: false, message: `Unknown outcome "${status}".` };
-  const sent: Status[] = ["applied", "replied", "interview", "offer", "rejected", "no_response"];
+  if (!["replied", "rejected", "withdrawn", "no_response"].includes(status)) return { ok: false, message: `Unknown outcome "${status}".` };
+  const sent = SENT_STATUSES;
   let changed = 0;
   for (const id of [...new Set(jobIds.map(Number))].slice(0, 500)) {
     const job = getJob(id);

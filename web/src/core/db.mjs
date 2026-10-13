@@ -17,7 +17,10 @@ export const STATUSES = [
   "replied",
   "interview",
   "offer",
+  "accepted",
+  "declined",
   "rejected",
+  "withdrawn",
   "no_response",
   "excluded",
 ];

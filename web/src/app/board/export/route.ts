@@ -1,10 +1,10 @@
 import { csvResponse, type CsvValue } from "@/lib/csv";
 import { listContacts, listDocuments, listEventsByJob, listJobs } from "@/lib/data";
 import { FOLLOW_UP_SENT } from "@/lib/followups";
-import { STATUS_LABELS, type Job, type Status } from "@/lib/types";
+import { SENT_STATUSES, STATUS_LABELS, type Job, type Status } from "@/lib/types";
 
 // Every application on the Board, with its dates, contacts, and documents.
-const STATUSES: Status[] = ["selected", "researched", "ready", "applied", "replied", "interview", "offer", "rejected", "no_response"];
+const STATUSES: Status[] = ["selected", "researched", "ready", ...SENT_STATUSES];
 const day = (iso: string | null | undefined) => (iso ? iso.slice(0, 10) : null);
 
 export function GET() {

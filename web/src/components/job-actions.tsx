@@ -1,5 +1,6 @@
 "use client";
 
+import { SENT_STATUSES, type Status } from "@/lib/types";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { runStage, type ActionResult } from "@/app/actions";
@@ -169,7 +170,7 @@ export function RowMenu({ job }: { job: JobSummary }) {
                 Ask the Assistant about it
               </button>
               {/* Only before applying: later stages would lose their place. */}
-              {!["applied", "replied", "interview", "offer", "rejected", "no_response"].includes(job.status) && (
+              {!SENT_STATUSES.includes(job.status as Status) && (
                 <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => markApplied(job.id))}>
                   Mark as applied
                 </button>
@@ -235,7 +236,7 @@ export function JobActionBar({ job, hasResearch, working }: { job: JobSummary; h
   const { pending, result, run } = useRunner();
   const excluded = job.status === "excluded";
   const selected = job.status === "selected";
-  const applied = ["applied", "replied", "interview", "offer", "rejected", "no_response"].includes(job.status);
+  const applied = SENT_STATUSES.includes(job.status as Status);
   const busy = pending || working;
   const quiet = "btn btn-quiet px-3 py-1.5 text-xs";
 

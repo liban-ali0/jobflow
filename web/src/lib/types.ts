@@ -8,9 +8,15 @@ export type Status =
   | "replied"
   | "interview"
   | "offer"
+  | "accepted"
+  | "declined"
   | "rejected"
+  | "withdrawn"
   | "no_response"
   | "excluded";
+
+// Every stage of a job that was sent to the employer.
+export const SENT_STATUSES: Status[] = ["applied", "replied", "interview", "offer", "accepted", "declined", "rejected", "withdrawn", "no_response"];
 
 export type Job = {
   id: number;
@@ -175,7 +181,10 @@ export const STATUS_LABELS: Record<Status, string> = {
   replied: "Replied",
   interview: "Interview",
   offer: "Offer",
+  accepted: "Offer accepted",
+  declined: "Offer declined",
   rejected: "Rejected",
+  withdrawn: "Withdrawn",
   no_response: "No response",
   excluded: "Excluded",
 };

@@ -10,16 +10,20 @@ const OUTCOMES: { status: Status; label: string; tone: string }[] = [
   { status: "replied", label: "They replied", tone: "btn-quiet" },
   { status: "interview", label: "Interview", tone: "btn-quiet" },
   { status: "offer", label: "Offer", tone: "btn-quiet" },
+  { status: "accepted", label: "I accepted", tone: "btn-quiet text-go" },
+  { status: "declined", label: "I declined", tone: "btn-quiet" },
   { status: "rejected", label: "Rejected", tone: "btn-quiet text-coral" },
+  { status: "withdrawn", label: "I withdrew", tone: "btn-quiet" },
   { status: "no_response", label: "No response", tone: "btn-quiet" },
 ];
 
 // What comes after each stage of an application.
 const NEXT: Partial<Record<Status, Status[]>> = {
-  applied: ["replied", "interview", "rejected", "no_response"],
-  replied: ["interview", "offer", "rejected"],
-  interview: ["offer", "rejected"],
-  offer: ["rejected"],
+  applied: ["replied", "interview", "rejected", "withdrawn", "no_response"],
+  replied: ["interview", "offer", "rejected", "withdrawn"],
+  interview: ["offer", "rejected", "withdrawn"],
+  // An offer: yours to accept or decline, or taken back by the employer.
+  offer: ["accepted", "declined", "rejected"],
 };
 
 function useRun() {

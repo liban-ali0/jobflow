@@ -22,7 +22,7 @@ import { stageReady, stageRunning } from "@/lib/engine";
 import { followUpState } from "@/lib/followups";
 import { formatDateTime } from "@/lib/format";
 import { describeEvent } from "@/lib/history";
-import { DOCUMENT_LABELS } from "@/lib/types";
+import { DOCUMENT_LABELS, SENT_STATUSES } from "@/lib/types";
 import { ASSESSED } from "@/core/score.mjs";
 
 // The most each part of the score can contribute (see core/score.mjs).
@@ -103,7 +103,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .filter((document) => ["cv", "cover_letter", "email", "answers"].includes(document.type))
     .map((document) => ({ type: document.type, approved: document.review === "approved" }));
   // Applied, or closed: no Apply section any more.
-  const afterApplying = ["applied", "replied", "interview", "offer", "rejected", "no_response", "excluded"].includes(job.status);
+  const afterApplying = [...SENT_STATUSES, "excluded"].includes(job.status);
   // The Apply section: once the package is written, until the job is applied to.
   // Shown once every document is approved; before that, Documents is the next step.
   const fullPack = !afterApplying && documents.some((document) => document.type === "answers") ? applyPack(job.id) : null;
