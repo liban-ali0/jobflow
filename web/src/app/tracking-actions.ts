@@ -100,3 +100,21 @@ export async function writeInterviewPack(jobId: number): Promise<ActionResult> {
   refresh(jobId);
   return { ok: true, message: "Writing it now. It appears under Documents in a few minutes." };
 }
+
+// One outcome for many applications at once, from the Board: a reply, a
+// rejection, or closing the ones that never answered. Only jobs already
+// sent can change; the rest are left as they are.
+export async function bulkOutcome(jobIds: number[], status: string): Promise<ActionResult> {
+  if (!["replied", "rejected", "no_response"].includes(status)) return { ok: false, message: `Unknown outcome "${status}".` };
+  const sent: Status[] = ["applied", "replied", "interview", "offer", "rejected", "no_response"];
+  let changed = 0;
+  for (const id of [...new Set(jobIds.map(Number))].slice(0, 500)) {
+    const job = getJob(id);
+    if (!job || !sent.includes(job.status) || job.status === status) continue;
+    updateJob(id, { status: status as Status, follow_up_due: null });
+    changed += 1;
+  }
+  revalidatePath("/", "layout");
+  const label = STATUS_LABELS[status as Status];
+  return changed ? { ok: true, message: `Marked ${changed} ${changed === 1 ? "application" : "applications"} as ${label}.` } : { ok: false, message: "Nothing to change: pick sent applications." };
+}

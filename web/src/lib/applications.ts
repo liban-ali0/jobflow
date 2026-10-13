@@ -7,6 +7,7 @@ import type { Job, Status } from "./types";
 export const STAGES = [
   { value: "all", label: "All applications", statuses: ["applied", "replied", "interview", "offer", "rejected", "no_response"] },
   { value: "waiting", label: "Waiting for a reply", statuses: ["applied"] },
+  { value: "stale", label: "No reply for 30+ days", statuses: ["applied"] },
   { value: "replied", label: "Replied", statuses: ["replied"] },
   { value: "interview", label: "Interview", statuses: ["interview"] },
   { value: "offer", label: "Offer", statuses: ["offer"] },
@@ -176,7 +177,9 @@ const INTERVIEWED: Status[] = ["interview", "offer"];
 export function applicationsTable(all: Job[], query: AppQuery, now: number, countryOrder: string[] = []) {
   const stage = STAGES.find((item) => item.value === query.stage)!;
   const statuses = stage.statuses as readonly Status[];
-  const inStage = all.filter((job) => statuses.includes(job.status));
+  // "No reply for 30+ days": sent a month ago or more, still waiting.
+  const stale = (job: Job) => query.stage !== "stale" || now - Date.parse(dateOf(job)) >= 30 * DAY;
+  const inStage = all.filter((job) => statuses.includes(job.status) && stale(job));
   // Choices for the filters, from the jobs of this stage.
   const tally = (pick: (job: Job) => string | null) => {
     const counts = new Map<string, number>();

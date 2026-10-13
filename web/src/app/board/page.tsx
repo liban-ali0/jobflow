@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ApplicationsFilters } from "@/components/applications-filters";
+import { ApplicationsBulk } from "@/components/applications-bulk";
 import { ApplyAllButton } from "@/components/apply-all";
 import { Flap } from "@/components/flap";
 import { PageHeader } from "@/components/page-header";
@@ -48,7 +49,7 @@ function Card({ job, all }: { job: Job; all: boolean }) {
         <span className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2.5 font-mono text-[11px] text-slate">
           {job.score !== null && <span>Match {Math.round(job.score)}</span>}
           {job.status === "ready" && job.apply_state === "waiting" && (
-            <span className="rounded bg-saffron px-1.5 py-0.5 font-semibold text-on-saffron" title={job.apply_missing?.join("\n")}>
+            <span className="rounded bg-coral-soft px-1.5 py-0.5 font-semibold text-coral" title={job.apply_missing?.join("\n")}>
               Waiting for you{job.apply_missing?.length ? ` · ${job.apply_missing.length}` : ""}
             </span>
           )}
@@ -70,15 +71,18 @@ const STAGE_STYLE: Partial<Record<Status, string>> = {
 };
 const STAGE_TEXT: Partial<Record<Status, string>> = { applied: "Sent" };
 
-function Row({ job, now }: { job: Job; now: number }) {
+function Row({ job, now, selectable }: { job: Job; now: number; selectable: boolean }) {
   const due = followUpDue(job, now);
   const date = dateOf(job);
   const days = Math.max(0, Math.floor((now - Date.parse(date)) / 86400000));
   return (
     <li className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-4 gap-y-1 px-4 py-3 text-sm md:grid-cols-[7.5rem_minmax(0,1fr)_4rem_9rem_minmax(0,11rem)] md:items-center">
-      <div className="order-3 col-span-2 font-mono text-xs text-slate md:order-none md:col-span-1">
+      <div className="order-3 col-span-2 flex items-start gap-2.5 font-mono text-xs text-slate md:order-none md:col-span-1">
+        {selectable && <input type="checkbox" name="application" value={job.id} aria-label={`Select ${job.title} at ${job.company}`} className="mt-0.5 size-4 shrink-0 accent-teal" />}
+        <span>
         <span className="text-ink">{formatDateTime(date).split(",")[0]}</span>
         <span className="ml-2 md:ml-0 md:block">{days === 0 ? "today" : `${days} ${days === 1 ? "day" : "days"} ago`}</span>
+        </span>
       </div>
       <div className="min-w-0">
         <Link href={`/jobs/${job.id}`} className="font-medium hover:text-teal hover:underline" dir="auto">
@@ -93,7 +97,7 @@ function Row({ job, now }: { job: Job; now: number }) {
       </div>
       <div className="flex flex-wrap items-start justify-end gap-1.5 md:justify-start">
         <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap ${STAGE_STYLE[job.status] ?? "bg-mist"}`}>{STAGE_TEXT[job.status] ?? STATUS_LABELS[job.status]}</span>
-        {due && <span className="rounded bg-saffron px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-on-saffron">Follow-up due</span>}
+        {due && <span className="rounded bg-teal-soft px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-teal">Follow-up due</span>}
         {job.status === "interview" && job.interview_at && Date.parse(job.interview_at) > now - 2 * 3600000 && (
           <span className="rounded bg-go-soft px-1.5 py-0.5 text-[11px] font-semibold whitespace-nowrap text-go">
             {new Date(job.interview_at).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
@@ -249,12 +253,17 @@ export default async function BoardPage(props: PageProps<"/board">) {
         </div>
 
         {table.groups.length > 0 && (
+          <ApplicationsBulk>
           <div className="mt-4 space-y-4">
             {table.groups.map((group) => (
-              <div key={group.key || "all"} className="card overflow-hidden rounded-xl shadow-sm">
+              <div key={group.key || "all"} data-group className="card overflow-hidden rounded-xl shadow-sm">
                 {group.label && (
                   <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-board-line bg-board px-4 py-2.5 text-board-text">
-                    <h3 className="font-display text-base font-semibold tracking-wide uppercase">{group.label}</h3>
+                    <h3 className="flex items-center gap-2.5 font-display text-base font-semibold tracking-wide uppercase">
+                      {/* Phones have no column header: tick the whole group here. */}
+                      {query.stage !== "excluded" && <input type="checkbox" data-select-group aria-label={`Select all in ${group.label}`} className="size-4 accent-teal md:hidden" />}
+                      {group.label}
+                    </h3>
                     <p className="font-mono text-xs text-board-dim">
                       {group.total} {group.total === 1 ? "job" : "jobs"}
                       {query.stage !== "excluded" && (
@@ -269,7 +278,10 @@ export default async function BoardPage(props: PageProps<"/board">) {
                   </div>
                 )}
                 <div className="hidden gap-x-4 border-b border-line bg-mist px-4 py-1.5 font-mono text-[10px] tracking-[0.14em] text-slate uppercase md:grid md:grid-cols-[7.5rem_minmax(0,1fr)_4rem_9rem_minmax(0,11rem)]">
-                  <span>{query.stage === "excluded" ? "Excluded" : "Sent"}</span>
+                  <span className="flex items-center gap-2.5">
+                    {query.stage !== "excluded" && <input type="checkbox" data-select-group aria-label={`Select all in ${group.label || "this list"}`} className="size-4 accent-teal" />}
+                    {query.stage === "excluded" ? "Excluded" : "Sent"}
+                  </span>
                   <span>Job</span>
                   <span>Place</span>
                   <span>Stage</span>
@@ -277,12 +289,13 @@ export default async function BoardPage(props: PageProps<"/board">) {
                 </div>
                 <ul className="divide-y divide-line/70">
                   {group.jobs.map((job) => (
-                    <Row key={job.id} job={job} now={now} />
+                    <Row key={job.id} job={job} now={now} selectable={query.stage !== "excluded"} />
                   ))}
                 </ul>
               </div>
             ))}
           </div>
+          </ApplicationsBulk>
         )}
 
         <Pagination page={table.page} pages={table.pages} start={table.start} shown={table.shown} total={table.rows} href={(page) => queryHref(query, { page })} />
