@@ -1,6 +1,53 @@
 import { PageHeader } from "@/components/page-header";
 import { Panel } from "@/components/panel";
-import { getStats, type Breakdown } from "@/lib/stats";
+import Link from "next/link";
+import { PERIOD_UNITS, getStats, type Breakdown, type PeriodRow, type PeriodUnit } from "@/lib/stats";
+
+// Applications per period as rows: sent, with the replies and interviews
+// inside the bar, so busy and quiet weeks stand out.
+function OverTime({ rows, unit }: { rows: PeriodRow[]; unit: PeriodUnit }) {
+  const largest = Math.max(1, ...rows.map((row) => row.applied));
+  return (
+    <Panel
+      title="Applications over time"
+      hint={`Sent per ${unit}, newest first${unit === "week" ? " (each week starts on the Monday shown)" : ""}. Inside each bar: the ones that got a reply, and the ones that reached an interview.`}
+    >
+      <div className="mb-4 flex flex-wrap items-center gap-1.5" role="group" aria-label="Show by">
+        {PERIOD_UNITS.map((item) => (
+          <Link key={item.value} href={`/stats?over=${item.value}#over-time`} scroll={false} className={`chip ${item.value === unit ? "chip-on" : ""}`}>
+            {item.label}
+          </Link>
+        ))}
+        <span className="ml-auto flex items-center gap-3 text-xs text-slate">
+          <span className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-sm bg-teal/35" />Sent</span>
+          <span className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-sm bg-teal" />Replied</span>
+          <span className="flex items-center gap-1.5"><span aria-hidden className="size-2.5 rounded-sm bg-go" />Interview</span>
+        </span>
+      </div>
+      <ul className="space-y-1.5">
+        {rows.map((row) => (
+          <li key={row.key} className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-center gap-3 text-sm sm:grid-cols-[7rem_minmax(0,1fr)_17rem]">
+            <span className="truncate font-mono text-xs text-slate">{row.label}</span>
+            <span aria-hidden className="relative h-4 overflow-hidden rounded bg-mist">
+              <span className="absolute inset-y-0 left-0 rounded bg-teal/35" style={{ width: `${(row.applied / largest) * 100}%` }} />
+              <span className="absolute inset-y-0 left-0 rounded bg-teal" style={{ width: `${(row.replied / largest) * 100}%` }} />
+              <span className="absolute inset-y-0 left-0 rounded bg-go" style={{ width: `${(row.interview / largest) * 100}%` }} />
+            </span>
+            <span className="col-start-2 font-mono text-xs text-slate sm:col-start-auto">
+              {row.applied === 0 ? (
+                "none"
+              ) : (
+                <>
+                  <b className="text-ink">{row.applied}</b> sent · {row.replied} replied{row.interview ? ` · ${row.interview} interview${row.interview === 1 ? "" : "s"}` : ""}
+                </>
+              )}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </Panel>
+  );
+}
 
 function Rate({ count, total, interview = false }: { count: number; total: number; interview?: boolean }) {
   const percent = total ? (count / total) * 100 : 0;
@@ -40,7 +87,9 @@ function BreakdownPanel({ title, rows, hint }: { title: string; rows: Breakdown[
   );
 }
 
-export default function StatsPage() {
+export default async function StatsPage(props: PageProps<"/stats">) {
+  const { over } = await props.searchParams;
+  const unit: PeriodUnit = PERIOD_UNITS.find((item) => item.value === over)?.value ?? "week";
   const stats = getStats();
   return (
     <div>
@@ -76,6 +125,12 @@ export default function StatsPage() {
           </dl>
         </Panel>
       </div>
+      )}
+
+      {stats.applied > 0 && (
+        <div id="over-time" className="mt-6 scroll-mt-32">
+          <OverTime rows={stats.overTime[unit]} unit={unit} />
+        </div>
       )}
 
       <div className="mt-6">

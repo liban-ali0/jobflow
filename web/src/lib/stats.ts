@@ -61,6 +61,58 @@ function group(rows: History[], field: "source" | "country" | "role", preferred:
     .sort((a, b) => (order.get(a.key) ?? Infinity) - (order.get(b.key) ?? Infinity) || a.label.localeCompare(b.label));
 }
 
+export const PERIOD_UNITS = [
+  { value: "day", label: "Days", count: 30 },
+  { value: "week", label: "Weeks", count: 16 },
+  { value: "month", label: "Months", count: 12 },
+  { value: "year", label: "Years", count: 10 },
+] as const;
+export type PeriodUnit = (typeof PERIOD_UNITS)[number]["value"];
+export type PeriodRow = OutcomeCounts & { key: string; label: string };
+
+// The start of the period a moment falls in (local time; weeks start Monday).
+function periodStart(at: number, unit: PeriodUnit) {
+  const date = new Date(at);
+  if (unit === "year") return new Date(date.getFullYear(), 0, 1);
+  if (unit === "month") return new Date(date.getFullYear(), date.getMonth(), 1);
+  const day = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  if (unit === "week") day.setDate(day.getDate() - ((day.getDay() + 6) % 7));
+  return day;
+}
+
+function periodLabel(start: Date, unit: PeriodUnit, now: number) {
+  const thisYear = start.getFullYear() === new Date(now).getFullYear();
+  if (unit === "year") return String(start.getFullYear());
+  if (unit === "month") return start.toLocaleDateString("en-GB", { month: "short", ...(thisYear ? {} : { year: "numeric" }) });
+  if (unit === "week") return start.toLocaleDateString("en-GB", { day: "numeric", month: "short", ...(thisYear ? {} : { year: "numeric" }) });
+  return start.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+}
+
+// Applications per period, the most recent periods (empty ones included, so
+// gaps show), newest first. Filed under the day they were sent.
+function overTime(applications: History[], unit: PeriodUnit, now: number): PeriodRow[] {
+  const count = PERIOD_UNITS.find((item) => item.value === unit)!.count;
+  const groups = new Map<number, History[]>();
+  for (const entry of applications) {
+    const at = timestamp(entry.job.applied_at ?? entry.job.updated_at);
+    if (!Number.isFinite(at)) continue;
+    const key = periodStart(at, unit).getTime();
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+  const starts: Date[] = [];
+  let cursor = periodStart(now, unit);
+  const oldest = Math.min(...groups.keys(), cursor.getTime());
+  while (starts.length < count && cursor.getTime() >= oldest) {
+    starts.push(cursor);
+    const next = new Date(cursor);
+    if (unit === "year") next.setFullYear(next.getFullYear() - 1);
+    else if (unit === "month") next.setMonth(next.getMonth() - 1);
+    else next.setDate(next.getDate() - (unit === "week" ? 7 : 1));
+    cursor = periodStart(next.getTime(), unit);
+  }
+  return starts.map((start) => ({ key: String(start.getTime()), label: periodLabel(start, unit, now), ...counts(groups.get(start.getTime()) ?? []) }));
+}
+
 // Pure aggregation also allows checking edge cases without opening the database.
 export function calculateStats(jobs: Job[], events: ReadonlyMap<number, JobEvent[]>, settings: Settings, now: number) {
   const histories = jobs.map((job) => ({ job, reached: reachedStages(job, events.get(job.id) ?? []) }));
@@ -88,6 +140,7 @@ export function calculateStats(jobs: Job[], events: ReadonlyMap<number, JobEvent
     sources: group(applications, "source", settings.sources.map((source) => ({ key: source.key, label: source.name }))),
     countries: group(applications, "country", [...settings.countries].sort((a, b) => a.priority - b.priority).map((country) => ({ key: country.name, label: country.name }))),
     roles: group(applications, "role", [...settings.roles].sort((a, b) => a.priority - b.priority).map((role) => ({ key: role.key, label: role.label }))),
+    overTime: Object.fromEntries(PERIOD_UNITS.map((unit) => [unit.value, overTime(applications, unit.value, now)])) as Record<PeriodUnit, PeriodRow[]>,
     tracks: [
       { key: "fast", label: "Fast track", ...counts(applications.filter(({ job }) => job.track === "fast")) },
       { key: "standard", label: "Standard", ...counts(applications.filter(({ job }) => job.track === "standard")) },
