@@ -161,6 +161,94 @@ chrome.tabs.onRemoved.addListener(async (tabId) => {
   await report(state.jobId, [...left.filter((reason) => !/^Form closed/.test(reason)), "Form closed before submitting"]);
 });
 
+// ---------- collecting jobs from sites that block automated access ----------
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+// Pauses between pages: a person's pace, not a crawler's.
+const PAGE_PAUSE = 4000;
+const LISTINGS_PER_SITE = 8;
+let collecting = false;
+
+// Loads a page in the collect tab and waits until it has finished loading.
+function visit(tabId, url) {
+  return new Promise((resolve) => {
+    const done = () => {
+      chrome.tabs.onUpdated.removeListener(listen);
+      clearTimeout(timer);
+      resolve();
+    };
+    const listen = (id, info) => {
+      if (id === tabId && info.status === "complete") done();
+    };
+    const timer = setTimeout(done, 30000);
+    chrome.tabs.onUpdated.addListener(listen);
+    chrome.tabs.update(tabId, { url });
+  });
+}
+
+async function read(tabId, func, args = []) {
+  await chrome.scripting.executeScript({ target: { tabId }, files: ["collect.js"] });
+  const [{ result } = {}] = await chrome.scripting.executeScript({ target: { tabId }, func, args });
+  return result;
+}
+
+// One collect run: every planned search page of every enabled site, then the
+// full text of the new jobs, in a minimized window of the user's browser.
+async function collect(trigger = "manual") {
+  if (collecting) return { ok: false, message: "Already collecting." };
+  collecting = true;
+  let windowId = null;
+  try {
+    const plan = await jobflowCall(`/api/collect/plan?trigger=${trigger}`);
+    const created = [];
+    const stopped = [];
+    const win = await chrome.windows.create({ url: "about:blank", focused: false, state: "minimized" });
+    windowId = win.id;
+    const tabId = win.tabs[0].id;
+    for (const site of plan.sites) {
+      for (const page of site.pages) {
+        await visit(tabId, page.url);
+        await sleep(2500);
+        let result;
+        try {
+          result = await read(tabId, (link) => globalThis.jobflowReadCards(link), [site.link]);
+        } catch (error) {
+          result = { blocked: `the page could not be read (${error.message})`, cards: [] };
+        }
+        const reply = await jobflowCall("/api/collect", {
+          method: "POST",
+          body: JSON.stringify({ runId: plan.runId, site: site.key, siteName: site.name, page, cards: result?.cards ?? [], blocked: result?.blocked ?? null }),
+        });
+        if (result?.blocked) {
+          stopped.push(`${site.name}: ${result.blocked}`);
+          break;
+        }
+        created.push(...reply.created.map((job) => ({ ...job, site: site.key })));
+        await sleep(PAGE_PAUSE);
+      }
+    }
+    // The full listing of each new job, a few per site.
+    const perSite = new Map();
+    for (const job of created) {
+      const count = perSite.get(job.site) ?? 0;
+      if (count >= LISTINGS_PER_SITE) continue;
+      perSite.set(job.site, count + 1);
+      await visit(tabId, job.url);
+      await sleep(2000);
+      const listing = await read(tabId, () => globalThis.jobflowReadListing()).catch(() => null);
+      if (listing?.text) await jobflowCall("/api/collect/description", { method: "POST", body: JSON.stringify({ id: job.id, text: listing.text, postedAt: listing.postedAt }) }).catch(() => null);
+      await sleep(PAGE_PAUSE);
+    }
+    const done = await jobflowCall("/api/collect/done", { method: "POST", body: JSON.stringify({ runId: plan.runId, created: created.length, stopped }) });
+    return { ok: true, message: done.message };
+  } catch (error) {
+    return { ok: false, message: error.message };
+  } finally {
+    collecting = false;
+    if (windowId !== null) chrome.windows.remove(windowId).catch(() => null);
+  }
+}
+
 // Requests are handled one at a time, so frames reporting together do not
 // overwrite each other's state.
 let chain = Promise.resolve();
@@ -211,6 +299,11 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         if (sender.url !== chrome.runtime.getURL("connect.html")) return { ok: false };
         return { ok: true, pending: await load("pendingConnect", null) };
       }
+      case "collect":
+        // Runs for a few minutes: answer now, progress shows on Activity.
+        if (collecting) return { ok: false, message: "Already collecting." };
+        collect(message.trigger === "timer" ? "timer" : "manual");
+        return { ok: true, message: "Collecting in your browser, in a minimized window. Follow it on Activity." };
       case "apply": {
         const ids = [...new Set((message.jobIds || []).map(Number).filter(Boolean))];
         if (!ids.length) return { ok: false, message: "No job to apply for." };
@@ -249,7 +342,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     }
   };
   // Opening the next form waits for nothing else; the rest is serialised.
-  const run = ["apply", "next", "skip", "ping"].includes(message?.type) ? handle() : serial(handle);
+  const run = ["apply", "next", "skip", "ping", "collect"].includes(message?.type) ? handle() : serial(handle);
   run.then(reply, (error) => reply({ ok: false, message: error.message }));
   return true;
 });

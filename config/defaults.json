@@ -63,31 +63,43 @@
       "key": "bayt",
       "name": "Bayt",
       "enabled": false,
-      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Offerbound extension below."
+      "method": "Blocks automated access: read in your own browser by the Offerbound extension (Collect on Today), or by Claude in Chrome with Claude Code."
     },
     {
       "key": "gulftalent",
       "name": "GulfTalent",
       "enabled": false,
-      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Offerbound extension below."
+      "method": "Blocks automated access: read in your own browser by the Offerbound extension (Collect on Today), or by Claude in Chrome with Claude Code."
     },
     {
       "key": "naukrigulf",
       "name": "Naukrigulf",
       "enabled": false,
-      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Offerbound extension below."
+      "method": "Blocks automated access: read in your own browser by the Offerbound extension (Collect on Today), or by Claude in Chrome with Claude Code."
     },
     {
       "key": "indeed",
       "name": "Indeed",
       "enabled": false,
-      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Offerbound extension below."
+      "method": "Blocks automated access: read in your own browser by the Offerbound extension (Collect on Today), or by Claude in Chrome with Claude Code."
     },
     {
       "key": "kariyer",
       "name": "Kariyer.net",
       "enabled": false,
-      "method": "Blocks automated access: read in your own Chrome by Claude in Chrome (Claude Code). With Codex, send its pages with the Offerbound extension below."
+      "method": "Blocks automated access: read in your own browser by the Offerbound extension (Collect on Today), or by Claude in Chrome with Claude Code."
+    },
+    {
+      "key": "eleman",
+      "name": "Eleman.net",
+      "enabled": false,
+      "method": "Blocks automated access: read in your own browser by the Offerbound extension (Collect on Today), or by Claude in Chrome with Claude Code."
+    },
+    {
+      "key": "techcareer",
+      "name": "Techcareer.net",
+      "enabled": false,
+      "method": "Tech jobs in Türkiye: read in your own browser by the Offerbound extension (Collect on Today)."
     },
     {
       "key": "careers",

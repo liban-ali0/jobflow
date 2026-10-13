@@ -143,6 +143,10 @@ $("sendButton").addEventListener("click", send);
 $("fillButton").addEventListener("click", fill);
 $("appliedButton").addEventListener("click", markApplied);
 $("applyAllButton").addEventListener("click", applyAll);
+$("collectButton").addEventListener("click", async () => {
+  const reply = await chrome.runtime.sendMessage({ type: "collect" });
+  status("collectStatus", reply.message, reply.ok ? "ok" : "error");
+});
 $("showSetup").addEventListener("click", async () => {
   const { address, token } = await settings();
   $("address").value = address;

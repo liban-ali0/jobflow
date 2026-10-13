@@ -6,7 +6,7 @@
   window.addEventListener("message", async (event) => {
     if (event.source !== window || event.origin !== location.origin || event.data?.source !== "jobflow-app") return;
     const { id, type, jobIds, token } = event.data;
-    if (!["ping", "apply", "connect"].includes(type)) return;
+    if (!["ping", "apply", "connect", "collect"].includes(type)) return;
     try {
       answer(id, await chrome.runtime.sendMessage({ type, jobIds, token, origin: location.origin }));
     } catch (error) {

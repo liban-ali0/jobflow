@@ -6,7 +6,7 @@ import { ProgressList, parseProgress } from "@/components/progress-list";
 import { Pagination } from "@/components/pagination";
 import { StopButton } from "@/components/stop-button";
 import { countRuns, getRun, listConversations, listRuns } from "@/lib/data";
-import { ENGINES, STAGES, closeAbandonedRuns, isStage, type EngineKey } from "@/lib/engine";
+import { ENGINES, closeAbandonedRuns, runLabel, type EngineKey } from "@/lib/engine";
 import { dayLabel, firstLine, timeOf } from "@/lib/format";
 import type { Run } from "@/lib/types";
 
@@ -51,7 +51,7 @@ function RunRow({ run, conversationExists }: { run: Run; conversationExists: boo
         <span className="min-w-0">
           <span aria-hidden className={`mr-1.5 inline-block size-2 rounded-full align-middle sm:hidden ${run.status === "failed" ? "bg-coral" : run.status === "running" ? "bg-signal" : "bg-go"}`} />
           <span className="sr-only sm:hidden">{status.label}: </span>
-          <span className="font-medium">{isStage(run.stage) ? STAGES[run.stage].label : run.stage}</span>
+          <span className="font-medium">{runLabel(run.stage)}</span>
           {run.job_id !== null && <span className="ml-2 font-mono text-xs text-slate">JF-{String(run.job_id).padStart(3, "0")}</span>}
           {preview && (
             <span className="block truncate text-sm text-slate group-open:hidden" dir="auto">

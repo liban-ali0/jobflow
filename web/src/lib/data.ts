@@ -115,6 +115,8 @@ export const listFoundWithin = (hours: number) =>
 export const countFoundWithin = (hours: number) => countJobs({ since: new Date(Date.now() - hours * 3600000).toISOString() });
 export const getJob =(id: number) => core.getJob(db(), id) as Job | null;
 export const updateJob = (id: number, patch: Partial<Job>) => core.updateJob(db(), id, patch) as Job;
+// Adds a job, or finds the one already stored (same link, or same title and company lately).
+export const addJob = (job: Partial<Job> & { title: string; company: string }) => core.addJob(db(), job) as { id: number; created: boolean };
 export const countByStatus = () => core.countByStatus(db()) as Record<Status, number>;
 
 export const listContacts = (jobId: number) => core.listContacts(db(), jobId) as Contact[];

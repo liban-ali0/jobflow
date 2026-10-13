@@ -466,7 +466,7 @@ function GroupHeading({ gate }: { gate: string }) {
 
 // Only LinkedIn is collected automatically; the others wait for job alert
 // emails, so they cannot be switched on yet.
-const BUILT_SOURCES = new Set(["linkedin", "workable", "indeed", "bayt", "gulftalent", "naukrigulf", "kariyer"]);
+const BUILT_SOURCES = new Set(["linkedin", "workable", "indeed", "bayt", "gulftalent", "naukrigulf", "kariyer", "eleman", "techcareer"]);
 
 const SECTION_IDS = GROUPS.flatMap((group) => group.sections.map((section) => section.id));
 

@@ -9,7 +9,7 @@ type Reply = { ok: boolean; message?: string; version?: string; connected?: bool
 
 let counter = 0;
 
-function ask(type: "ping" | "apply" | "connect", jobIds: number[] = [], timeout = 1500, token?: string): Promise<Reply | null> {
+function ask(type: "ping" | "apply" | "connect" | "collect", jobIds: number[] = [], timeout = 1500, token?: string): Promise<Reply | null> {
   return new Promise((resolve) => {
     const id = `jobflow-${Date.now()}-${(counter += 1)}`;
     const done = (reply: Reply | null) => {
@@ -76,5 +76,11 @@ export function useJobflowExtension() {
     [check],
   );
 
-  return { state, version, apply, connect, recheck: check };
+  // Starts a collect run in the extension (it answers at once).
+  const collect = useCallback(async () => {
+    const reply = await ask("collect", [], 10000);
+    return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
+  }, []);
+
+  return { state, version, apply, connect, collect, recheck: check };
 }

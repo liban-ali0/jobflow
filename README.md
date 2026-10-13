@@ -66,6 +66,8 @@ Settings → Sources shows the steps for the browser you are using, with buttons
 
 Then press **Connect** in Settings → Sources. Nothing to paste.
 
+**Collect in your browser** (on Today, or in the extension's popup) reads the sites switched on in Settings → Sources that block automated access (Kariyer.net, Eleman.net, Techcareer.net, Indeed) in a minimized window of your browser: a few search pages per site, one at a time, then the full listing of the new jobs. Only titles that fit your roles are kept. A site that shows a captcha or a robot check is skipped for that run (open it yourself once). Follow it on Activity.
+
 ## Applying
 
 When every document of a job is approved, its page shows **Apply**. Offerbound never submits for you:

@@ -12,6 +12,8 @@ import { QuestionCard } from "@/components/question-card";
 import { researchSelected } from "@/app/job-actions";
 import { FollowUpRow } from "@/components/tracking";
 import { followUpsDue, upcomingInterviews } from "@/lib/followups";
+import { CollectButton } from "@/components/collect-button";
+import { BROWSER_SITES } from "@/lib/browser-sites";
 import { countByStatus, getJob, hasCv, listDocuments, listJobs, listQuestions, listRuns, readProfile } from "@/lib/data";
 import { SHOW_VIEWS, buildDepartures } from "@/lib/departures";
 import { scheduleStatus } from "@/lib/scheduler";
@@ -161,6 +163,8 @@ export default async function TodayPage(props: PageProps<"/">) {
     .filter((row) => row.waiting + row.changes > 0);
 
   const followUps = followUpsDue();
+  // Enabled sites the extension reads in the browser.
+  const browserSites = BROWSER_SITES.filter((site) => settings.sources.some((source) => source.key === site.key && source.enabled)).map((site) => site.name);
   const allInterviews = upcomingInterviews();
   // The scheduled ones (a few), and a count of those without a time.
   const interviews = allInterviews.filter(({ inHours }) => inHours !== null).slice(0, 8);
@@ -195,6 +199,7 @@ export default async function TodayPage(props: PageProps<"/">) {
             >
               Find new jobs
             </ActionButton>
+            <CollectButton sites={browserSites} />
             <ActionButton
               action={runStage.bind(null, "rank-jobs", null)}
               disabled={!rankReady || unranked === 0}

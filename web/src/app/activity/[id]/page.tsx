@@ -8,7 +8,7 @@ import { Panel } from "@/components/panel";
 import { ProgressList, parseProgress } from "@/components/progress-list";
 import { StopButton } from "@/components/stop-button";
 import { getConversation, getRun } from "@/lib/data";
-import { ENGINES, STAGES, isStage, type EngineKey } from "@/lib/engine";
+import { ENGINES, runLabel, type EngineKey } from "@/lib/engine";
 import { formatDateTime } from "@/lib/format";
 
 const STATUS = { running: "Running", done: "Done", failed: "Failed" } as const;
@@ -19,7 +19,7 @@ export default async function RunPage(props: PageProps<"/activity/[id]">) {
   const run = getRun(Number(id));
   if (!run) notFound();
   const steps = parseProgress(run.progress);
-  const stage = isStage(run.stage) ? STAGES[run.stage].label : run.stage;
+  const stage = runLabel(run.stage);
   const engine = run.engine === "script" ? "Script" : run.engine ? (ENGINES[run.engine as EngineKey]?.label ?? run.engine) : null;
   const conversation = run.conversation_id !== null ? getConversation(run.conversation_id) : null;
   return (
