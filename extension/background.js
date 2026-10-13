@@ -179,6 +179,15 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       // user never pastes them.
       case "connect":
         if (!message.token || !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(message.origin || "")) return { ok: false, message: "Open Jobflow on this computer to connect." };
+        {
+          // Once connected, only that same Jobflow can connect again, so no
+          // other page on this computer can point the extension at itself.
+          // Moving to another address is done by hand in the extension's settings.
+          const { address: current } = await chrome.storage.local.get("address");
+          if (current && current !== message.origin) {
+            return { ok: false, message: `The extension is connected to ${current}. To switch, change the address in the extension's Settings.` };
+          }
+        }
         await chrome.storage.local.set({ address: message.origin, token: message.token });
         return { ok: true, message: "Connected." };
       case "apply": {
