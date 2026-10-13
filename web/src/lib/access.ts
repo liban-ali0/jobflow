@@ -10,24 +10,31 @@ const ROOT = process.env.JOBFLOW_ROOT ?? path.resolve(process.cwd(), "..");
 const FILE = path.join(ROOT, "data", "access.key");
 export const ACCESS_COOKIE = "offerbound_access";
 
-let cached: string | null = null;
+// Cached with the file's change time: the request proxy and the app may hold
+// separate copies, and a new key (sign out) must reach both at once.
+let cached: { key: string; changed: number } | null = null;
 
 export function accessKey() {
-  if (cached) return cached;
+  let changed = -1;
   try {
-    cached = fs.readFileSync(FILE, "utf8").trim() || null;
+    changed = fs.statSync(FILE).mtimeMs;
   } catch {
-    cached = null;
+    return resetAccessKey();
   }
-  if (!cached) cached = resetAccessKey();
-  return cached;
+  if (cached && cached.changed === changed) return cached.key;
+  const key = fs.readFileSync(FILE, "utf8").trim();
+  if (!key) return resetAccessKey();
+  cached = { key, changed };
+  return key;
 }
 
 export function resetAccessKey() {
   const key = crypto.randomBytes(24).toString("base64url");
   fs.mkdirSync(path.dirname(FILE), { recursive: true });
-  fs.writeFileSync(FILE, key);
-  cached = key;
+  // Readable by this user only.
+  fs.writeFileSync(FILE, key, { mode: 0o600 });
+  fs.chmodSync(FILE, 0o600);
+  cached = { key, changed: fs.statSync(FILE).mtimeMs };
   return key;
 }
 
@@ -37,5 +44,8 @@ export function keyMatches(given: string | undefined | null) {
   return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
 }
 
-// Requests made on this computer (the app listens on 127.0.0.1 only).
+// Requests made on this computer (the app listens on 127.0.0.1 only). A
+// device in the user's own Tailscale network arrives the same way and could
+// claim this name; the tailnet sign-in is the boundary there. The access
+// cookie is what stops web pages that point their own name at this computer.
 export const isLocalHost = (host: string) => /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(host);
