@@ -4,6 +4,7 @@ import { Markdown } from "@/components/markdown";
 import { PageHeader } from "@/components/page-header";
 import { ProgressList, parseProgress } from "@/components/progress-list";
 import { Pagination } from "@/components/pagination";
+import { StopButton } from "@/components/stop-button";
 import { countRuns, getRun, listConversations, listRuns } from "@/lib/data";
 import { ENGINES, STAGES, closeAbandonedRuns, isStage, type EngineKey } from "@/lib/engine";
 import { dayLabel, firstLine, timeOf } from "@/lib/format";
@@ -73,7 +74,12 @@ function RunRow({ run, conversationExists }: { run: Run; conversationExists: boo
             </Link>
           )}
         </p>
-        {run.status === "running" && <ProgressList lines={steps} live />}
+        {run.status === "running" && (
+          <>
+            <ProgressList lines={steps} live />
+            <StopButton runId={run.id} />
+          </>
+        )}
         {run.summary && (
           <div className="max-h-96 overflow-y-auto rounded-lg bg-mist/50 px-4 py-3">
             {/* The start of the report; the run's own page has all of it. */}

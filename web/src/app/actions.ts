@@ -20,7 +20,7 @@ import {
   updateJob,
   writeFacts,
 } from "@/lib/data";
-import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssistant } from "@/lib/engine";
+import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssistant, stopRun } from "@/lib/engine";
 import { isHex } from "@/lib/theme";
 import { resetAccessKey } from "@/lib/access";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
@@ -351,4 +351,11 @@ export async function signOutDevices(): Promise<ActionResult> {
   resetAccessKey();
   revalidatePath("/settings");
   return { ok: true, message: "Signed out. Use the new link on each device you still want to use." };
+}
+
+// "Stop" on a running step (Activity, a job page, or a conversation).
+export async function stopStep(runId: number): Promise<ActionResult> {
+  stopRun(runId);
+  revalidatePath("/", "layout");
+  return { ok: true, message: "Stopping…" };
 }

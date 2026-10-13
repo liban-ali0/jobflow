@@ -1,8 +1,8 @@
 import "server-only";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, addMessage, addProgress, finishRun, getJob, getSettings, listRuns, startRun, updateConversation } from "./data";
+import { ROOT, addMessage, addProgress, finishRun, getJob, getRun, getSettings, listRuns, startRun, updateConversation } from "./data";
 import type { Conversation, EngineChoice } from "./types";
 
 // Skill stages follow .claude/skills/<key>/SKILL.md and run on the engine
@@ -40,8 +40,17 @@ export const ENGINES = {
 export type EngineKey = keyof typeof ENGINES;
 
 const LOG_LIMIT = 200_000;
-const holder = globalThis as unknown as { jobflowRunning?: Set<number>; jobflowCleaned?: boolean; jobflowQueue?: number[] };
+const holder = globalThis as unknown as {
+  jobflowRunning?: Set<number>;
+  jobflowCleaned?: boolean;
+  jobflowQueue?: number[];
+  jobflowChildren?: Map<number, ChildProcess>;
+  jobflowStopped?: Set<number>;
+};
 const running = (holder.jobflowRunning ??= new Set<number>());
+// The engine process of each running run, so the user can stop it.
+const children = (holder.jobflowChildren ??= new Map<number, ChildProcess>());
+const stopped = (holder.jobflowStopped ??= new Set<number>());
 // Jobs waiting for research. They run one at a time (research, then its
 // tailoring), so several engine sessions never compete for the subscription.
 const queue = (holder.jobflowQueue ??= []);
@@ -430,8 +439,17 @@ function start({ stage, jobId = null, trigger = "manual", conversation, message,
   });
   child.stderr.on("data", (chunk) => (errors = (errors + chunk).slice(-LOG_LIMIT)));
 
-  const finish = ({ status, summary, sessionId }: Outcome) => {
+  const finish = (outcome: Outcome) => {
     if (!running.delete(runId)) return;
+    children.delete(runId);
+    // Stopped by the user: nothing follows it.
+    if (stopped.delete(runId)) {
+      finishRun(runId, { status: "failed", summary: "Stopped by you.", log: errors });
+      if (stage === "research-job" || stage === "tailor-job") startNextQueued();
+      if (conversation) addMessage(conversation.id, { role: "error", text: "Stopped by you.", runId });
+      return;
+    }
+    const { status, summary, sessionId } = outcome;
     finishRun(runId, { status, summary: summary.slice(0, 20000), log: errors });
     // Research is followed straight away by tailoring, so the whole
     // package for a job arrives in one go; not when research excluded the
@@ -480,8 +498,26 @@ function start({ stage, jobId = null, trigger = "manual", conversation, message,
     finish(invocation.stream.outcome(code, errors));
   });
 
+  children.set(runId, child);
   child.stdin.end(invocation.stdin);
   return runId;
+}
+
+// Stops a running step: its engine process and everything it started.
+export function stopRun(runId: number) {
+  const child = children.get(runId);
+  if (!child) {
+    // Not started by this app session: it cannot finish any more.
+    if (getRun(runId)?.status === "running") finishRun(runId, { status: "failed", summary: "Stopped by you." });
+    return;
+  }
+  stopped.add(runId);
+  if (process.platform === "win32" && child.pid) {
+    // Through the Windows shell the engine is a child of cmd.exe: end the tree.
+    spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true });
+  } else {
+    child.kill("SIGTERM");
+  }
 }
 
 // ---------- checking an engine (Setup screen) ----------

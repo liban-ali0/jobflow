@@ -6,6 +6,7 @@ import { Markdown } from "@/components/markdown";
 import { PageHeader } from "@/components/page-header";
 import { Panel } from "@/components/panel";
 import { ProgressList, parseProgress } from "@/components/progress-list";
+import { StopButton } from "@/components/stop-button";
 import { getConversation, getRun } from "@/lib/data";
 import { ENGINES, STAGES, isStage, type EngineKey } from "@/lib/engine";
 import { formatDateTime } from "@/lib/format";
@@ -41,6 +42,7 @@ export default async function RunPage(props: PageProps<"/activity/[id]">) {
               </Link>
             )}
             {run.finished_at && <span>Finished {formatDateTime(run.finished_at)}</span>}
+            {run.status === "running" && <StopButton runId={run.id} />}
           </span>
         }
       />
