@@ -96,6 +96,17 @@ const clean = (text) => decode(text.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " 
 const slug = (text) => text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 const isLatin = (text) => /^[\x20-\x7e]+$/.test(text);
 
+// Keywords in a country's own language are searched in that country only,
+// next to the English ones: Turkish titles ("yazılım mühendisi") in Türkiye.
+const LOCAL_KEYWORDS = { TR: /[çğıöşüÇĞİÖŞÜ]|mühendis|geliştirici|uzman|bilimci|yönetici|sorumlu|destek/i };
+const LOCAL_PER_ROLE = 2;
+function keywordsFor(role, country) {
+  const local = LOCAL_KEYWORDS[country.code];
+  const english = role.keywords.filter((keyword) => isLatin(keyword) && !Object.values(LOCAL_KEYWORDS).some((pattern) => pattern.test(keyword)));
+  const own = local ? role.keywords.filter((keyword) => local.test(keyword) && !/[؀-ۿ]/.test(keyword)) : [];
+  return [...english.slice(0, KEYWORDS_PER_ROLE), ...own.slice(0, LOCAL_PER_ROLE)];
+}
+
 // "3 hours ago", "55 minutes ago", "1 day ago" → ISO time
 function fromAgo(text, now) {
   const match = /(\d+)\s*(second|minute|hour|day|week|month)/i.exec(text ?? "");
@@ -244,7 +255,7 @@ async function main() {
     // 1. Every country's search pages, highest priority first.
     for (const country of countries) {
       for (const role of roles) {
-        const keywords = role.keywords.filter(isLatin).slice(0, KEYWORDS_PER_ROLE);
+        const keywords = keywordsFor(role, country);
         for (const keyword of keywords) {
           for (const source of sources) {
             const found = await SOURCES[source.key].search({ keyword, country: country.name, maxHours, levels });
