@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
-import { markFollowUpSent, recordOutcome, setInterviewTime, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
+import { markFollowUpSent, recordOutcome, setInterviewTime, setReminder, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
 import { STATUS_LABELS, type Status } from "@/lib/types";
 
 const OUTCOMES: { status: Status; label: string; tone: string }[] = [
@@ -55,7 +55,7 @@ export function OutcomeBar({
   status: Status;
   // For example "Applied 11 Oct", formatted on the server.
   applied: string | null;
-  followUp: { due: boolean; sent: boolean; draft: boolean } | null;
+  followUp: { due: boolean; sent: boolean; draft: boolean; at: string | null } | null;
   // At the interview stage: whether the pack exists or is being written,
   // and when the interview is.
   interviewPack?: { exists: boolean; running: boolean; at: string | null } | null;
@@ -65,6 +65,8 @@ export function OutcomeBar({
   // A datetime-local value ("2026-10-16T10:00"), in this device's time.
   const [when, setWhen] = useState("");
   const [editingTime, setEditingTime] = useState(false);
+  const [editingReminder, setEditingReminder] = useState(false);
+  const [reminderDay, setReminderDay] = useState(followUp?.at ? followUp.at.slice(0, 10) : "");
   const toIso = (local: string) => (local ? new Date(local).toISOString() : null);
   const { pending, result, run } = useRun();
   const next = NEXT[status] ?? [];
@@ -189,6 +191,46 @@ export function OutcomeBar({
             Save
           </button>
         </form>
+      )}
+      {followUp && !followUp.sent && (
+        <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3 text-sm">
+          {editingReminder ? (
+            <form
+              className="flex flex-wrap items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                run(() => setReminder(jobId, reminderDay || null), () => setEditingReminder(false));
+              }}
+            >
+              <label htmlFor="reminder-day" className="font-medium">
+                Remind me on
+              </label>
+              <input id="reminder-day" type="date" value={reminderDay} onChange={(event) => setReminderDay(event.target.value)} className="field w-auto" />
+              <button type="submit" disabled={pending} className="btn btn-primary px-3 py-1.5 text-xs">
+                Save
+              </button>
+              <button type="button" disabled={pending} onClick={() => run(() => setReminder(jobId, null), () => setEditingReminder(false))} className="text-xs text-slate underline">
+                No reminder
+              </button>
+            </form>
+          ) : (
+            <>
+              <span className="mr-auto text-slate">
+                Reminder:{" "}
+                {followUp.at ? (
+                  <span className="text-ink" suppressHydrationWarning>
+                    {new Date(followUp.at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "long" })}
+                  </span>
+                ) : (
+                  "off"
+                )}
+              </span>
+              <button type="button" onClick={() => setEditingReminder(true)} className="btn btn-quiet px-3 py-1.5 text-xs">
+                Change
+              </button>
+            </>
+          )}
+        </div>
       )}
       {followUp && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3 text-sm">

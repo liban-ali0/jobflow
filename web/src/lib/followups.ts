@@ -29,6 +29,8 @@ export function followUpState(job: Job) {
   if (job.status !== "applied") return null;
   return {
     due: job.follow_up_due !== null && Date.parse(job.follow_up_due) <= Date.now(),
+    // The reminder's date (ISO), which the user can move.
+    at: job.follow_up_due,
     sent: listEvents(job.id).some((event) => event.type === FOLLOW_UP_SENT),
     draft: listDocuments(job.id).some((doc) => doc.type === "follow_up"),
   };

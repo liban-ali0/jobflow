@@ -51,6 +51,18 @@ export async function recordOutcome(jobId: number, status: string, note: string,
   return { ok: true, message: `Marked as ${label}.${extra}` };
 }
 
+// Moves the follow-up reminder to a day the user picks ("2026-10-20"), or
+// turns it off.
+export async function setReminder(jobId: number, day: string | null): Promise<ActionResult> {
+  const job = getJob(jobId);
+  if (!job) return { ok: false, message: "This job no longer exists." };
+  if (job.status !== "applied") return { ok: false, message: "Reminders are for applications waiting for a reply." };
+  const at = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(`${day}T09:00:00`).toISOString() : null;
+  updateJob(jobId, { follow_up_due: at });
+  refresh(jobId);
+  return { ok: true, message: at ? `Reminder set for ${day}.` : "Reminder turned off." };
+}
+
 // Sets or clears the interview's date and time.
 export async function setInterviewTime(jobId: number, interviewAt: string | null): Promise<ActionResult> {
   const job = getJob(jobId);
