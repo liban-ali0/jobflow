@@ -11,7 +11,7 @@ import type { Run } from "@/lib/types";
 
 // Each run's state, as departure-board statuses.
 const STATUS = {
-  running: { label: "Running", flap: "bg-saffron text-on-saffron" },
+  running: { label: "Running", flap: "bg-saffron text-on-saffron ring-1 ring-signal" },
   done: { label: "Done", flap: "border border-line text-go" },
   failed: { label: "Failed", flap: "bg-coral-soft text-coral" },
 } as const;
@@ -48,7 +48,7 @@ function RunRow({ run, conversationExists }: { run: Run; conversationExists: boo
           {status.label}
         </span>
         <span className="min-w-0">
-          <span aria-hidden className={`mr-1.5 inline-block size-2 rounded-full align-middle sm:hidden ${run.status === "failed" ? "bg-coral" : run.status === "running" ? "bg-saffron" : "bg-go"}`} />
+          <span aria-hidden className={`mr-1.5 inline-block size-2 rounded-full align-middle sm:hidden ${run.status === "failed" ? "bg-coral" : run.status === "running" ? "bg-signal" : "bg-go"}`} />
           <span className="sr-only sm:hidden">{status.label}: </span>
           <span className="font-medium">{isStage(run.stage) ? STAGES[run.stage].label : run.stage}</span>
           {run.job_id !== null && <span className="ml-2 font-mono text-xs text-slate">JF-{String(run.job_id).padStart(3, "0")}</span>}

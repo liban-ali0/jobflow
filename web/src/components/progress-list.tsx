@@ -27,7 +27,7 @@ export function ProgressList({ lines, live = false }: { lines: ProgressLine[]; l
       ))}
       {live && (
         <li className="flex items-center gap-2 text-slate">
-          <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
+          <span className="fresh-dot size-2 rounded-full bg-signal" aria-hidden />
           working
         </li>
       )}

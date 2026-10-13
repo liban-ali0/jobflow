@@ -101,7 +101,7 @@ export default function CvsPage() {
         <div className="card rounded-xl p-5">
           {designing ? (
             <p className="flex items-center gap-2 text-sm">
-              <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
+              <span className="fresh-dot size-2 rounded-full bg-signal" aria-hidden />
               Designing a new template. It appears above when ready.
             </p>
           ) : (

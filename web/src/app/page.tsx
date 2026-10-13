@@ -42,7 +42,7 @@ function LastRun({ run }: { run: Run }) {
       <span className="text-slate"> · </span>
       {run.status === "running" ? (
         <span className="inline-flex items-center gap-1.5">
-          <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
+          <span className="fresh-dot size-2 rounded-full bg-signal" aria-hidden />
           running since {formatDateTime(run.started_at)}
         </span>
       ) : (
@@ -270,7 +270,7 @@ export default async function TodayPage(props: PageProps<"/">) {
           <p className="flex items-center gap-2 text-sm">
             {pipeline ? (
               <>
-                <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
+                <span className="fresh-dot size-2 rounded-full bg-signal" aria-hidden />
                 {pipeline}
               </>
             ) : (

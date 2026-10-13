@@ -9,7 +9,7 @@ import { STATUS_LABELS, type Job, type Settings } from "@/lib/types";
 import { Flap } from "@/components/flap";
 
 const TONES: Record<Boarding["tone"], string> = {
-  boarding: "bg-saffron text-on-saffron",
+  boarding: "bg-saffron text-on-saffron ring-1 ring-signal",
   ontime: "bg-go-soft text-go",
   lastcall: "bg-coral-soft text-coral",
   departed: "bg-board-row text-board-dim line-through",

@@ -19,7 +19,7 @@ export function Freshness({
   return (
     <div className="w-28 shrink-0">
       <div className="flex items-center gap-1.5 font-mono text-xs">
-        {fresh && <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />}
+        {fresh && <span className="fresh-dot size-2 rounded-full bg-signal" aria-hidden />}
         <span className={expired ? "text-coral" : fresh ? "font-medium text-ink" : "text-slate"}>
           {formatAge(minutes)}
         </span>
@@ -30,7 +30,7 @@ export function Freshness({
         aria-label={minutes === null ? "Posting age unknown" : `Posted ${formatAge(minutes)} ago`}
       >
         <div
-          className={`h-full rounded-full ${fresh ? "bg-saffron" : "bg-teal"}`}
+          className={`h-full rounded-full ${fresh ? "bg-signal" : "bg-teal"}`}
           style={{ width: `${Math.round(left * 100)}%` }}
         />
       </div>

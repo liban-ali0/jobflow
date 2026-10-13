@@ -200,7 +200,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
           >
             {working && (
               <p className="mb-4 flex items-center gap-2 rounded-md bg-saffron-soft px-3 py-2 text-sm">
-                <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
+                <span className="fresh-dot size-2 rounded-full bg-signal" aria-hidden />
                 {working}
               </p>
             )}
