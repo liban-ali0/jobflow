@@ -17,6 +17,10 @@ const nextConfig: NextConfig = {
   // A second copy (for example a test copy with JOBFLOW_ROOT pointing at
   // other data) needs its own build folder next to the running one.
   distDir: process.env.NEXT_DIST_DIR ?? ".next",
+  // The app is the web folder (the project folder above it has its own
+  // package files for the scripts); without this a fresh copy picks the
+  // wrong root and the build fails.
+  turbopack: { root: process.cwd() },
   allowedDevOrigins: [...ownAddresses, ...extraOrigins],
   experimental: {
     // CV uploads on the Setup screen (10 MB plus form overhead).

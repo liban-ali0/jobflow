@@ -39,9 +39,11 @@ if (!fs.existsSync(built) || fs.statSync(built).mtimeMs < sources || process.arg
 }
 
 console.log(`Offerbound is starting at http://localhost:${PORT} (stop it with Ctrl+C).`);
-// Only this computer by default; other devices (a phone over Tailscale) are
-// let in by the access key, see Settings → Other devices.
-const host = process.env.HOST ?? "127.0.0.1";
-const server = spawn(process.execPath, [next, "start", "-H", host, "-p", PORT], { cwd: WEB, env, stdio: "inherit" });
+// Always this computer only, never the network: the access gate
+// (web/src/proxy.ts) lets in requests addressed to localhost, which is safe
+// only because nothing outside this computer can reach the app directly.
+// Other devices come in through Tailscale with the access key, see
+// Settings → Other devices.
+const server = spawn(process.execPath, [next, "start", "-H", "127.0.0.1", "-p", PORT], { cwd: WEB, env, stdio: "inherit" });
 server.on("exit", (code) => process.exit(code ?? 0));
 for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => server.kill(signal));
