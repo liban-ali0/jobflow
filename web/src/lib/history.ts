@@ -16,6 +16,8 @@ export function describeEvent(event: JobEvent): string {
     }
     case "document":
       return `${DOCUMENT_LABELS[event.detail ?? ""] ?? "Document"} written`;
+    case "thank-you sent":
+      return event.detail === "skipped" ? "Thank-you note skipped" : "Thank-you note sent";
     case "follow-up sent":
       // "Sent from Gmail to …" when the extension saw it go.
       return event.detail ? `Follow-up sent ${event.detail.replace(/^Sent /, "")}` : "Follow-up sent";

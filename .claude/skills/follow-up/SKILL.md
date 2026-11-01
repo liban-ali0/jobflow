@@ -7,14 +7,16 @@ description: Write one short, polite follow-up email for a job the candidate app
 
 The job id is: `$ARGUMENTS`
 
-The candidate applied some days ago and has had no reply. One follow-up is sent per job, so it must be short, specific, and easy to answer.
+The candidate applied some days ago and has had no reply. At most two follow-ups are sent per job, so each must be short, specific, and easy to answer.
+
+Count the `follow-up sent` events in the job's history. None: write the first follow-up. One: write the second and last one: shorter (40 to 70 words), it refers to the earlier message without repeating it, adds nothing pushy, and leaves the door open ("if the role has been filled, a short note would help me too"). Two or more: do not write a third; say so in the report and stop.
 
 ## Steps
 
 1. Read the job with `node scripts/jobs.mjs get <id>`: the applied date, contacts, documents, notes, and history.
 2. Get the folder with `node scripts/jobs.mjs folder <id>`, then read `<folder>/research.md`, `<folder>/email.md` (the first outreach, if any), and `<folder>/cover-letter.md`.
 3. Read `candidate/profile.md` and `candidate/facts.md` for anything new since applying (for example a new answer or skill).
-4. Write `<folder>/follow-up.md` and register it with `node scripts/jobs.mjs document <id> follow_up <folder>/follow-up.md`.
+4. Write `<folder>/follow-up.md` (replacing an earlier one that was already sent) and register it with `node scripts/jobs.mjs document <id> follow_up <folder>/follow-up.md`.
 5. End with two lines: who it goes to and the one new point it makes.
 
 ## The email

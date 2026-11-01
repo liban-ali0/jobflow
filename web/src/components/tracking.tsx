@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
 import { OpenInGmail, type GmailEmail } from "@/components/gmail";
-import { markFollowUpSent, recordOutcome, setInterviewTime, setReminder, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
+import { markFollowUpSent, markThankYouSent, recordOutcome, setInterviewTime, setReminder, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
 import { STATUS_LABELS, type Status } from "@/lib/types";
 
 const OUTCOMES: { status: Status; label: string; tone: string }[] = [
@@ -61,7 +61,7 @@ export function OutcomeBar({
   status: Status;
   // For example "Applied 11 Oct", formatted on the server.
   applied: string | null;
-  followUp: { due: boolean; sent: boolean; draft: boolean; at: string | null } | null;
+  followUp: { due: boolean; sent: number; max: number; draft: boolean; at: string | null } | null;
   // At the interview stage: whether the pack exists or is being written,
   // and when the interview is.
   interviewPack?: { exists: boolean; running: boolean; at: string | null } | null;
@@ -200,7 +200,7 @@ export function OutcomeBar({
           </button>
         </form>
       )}
-      {followUp && !followUp.sent && (
+      {followUp && followUp.sent < followUp.max && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3 text-sm">
           {editingReminder ? (
             <form
@@ -243,12 +243,22 @@ export function OutcomeBar({
       {followUp && (
         <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3 text-sm">
           <span className="mr-auto text-slate">
-            {followUp.sent ? "Follow-up sent." : followUp.due ? "No reply yet: time for a follow-up." : "A follow-up is suggested if there is no reply."}
+            {followUp.draft
+              ? "A follow-up is written and waiting to be sent."
+              : followUp.sent >= followUp.max
+                ? `Followed up ${followUp.sent} times. If there is still no reply, close it as no response.`
+                : followUp.sent > 0
+                  ? followUp.due
+                    ? "Followed up once, still no reply: one more short follow-up is fine."
+                    : "Follow-up sent."
+                  : followUp.due
+                    ? "No reply yet: time for a follow-up."
+                    : "A follow-up is suggested if there is no reply."}
           </span>
-          {!followUp.sent && (
+          {(followUp.draft || (followUp.sent < followUp.max && (followUp.sent === 0 || followUp.due))) && (
             <>
               <button type="button" disabled={pending} onClick={() => run(() => writeFollowUp(jobId))} className="btn btn-quiet px-3 py-1.5 text-xs">
-                {followUp.draft ? "Write it again" : "Write follow-up"}
+                {followUp.draft ? "Write it again" : followUp.sent > 0 ? "Write a second follow-up" : "Write follow-up"}
               </button>
               {followUp.draft && gmail && <OpenInGmail email={gmail} className="btn btn-primary px-3 py-1.5 text-xs" />}
               {followUp.draft && (
@@ -265,25 +275,43 @@ export function OutcomeBar({
   );
 }
 
-// One row of "Follow-ups due" on Today.
+// One row of "Follow-ups due" on Today: what to do now for one application,
+// from its stage (lib/followups.ts).
 export function FollowUpRow({
   jobId,
   title,
   company,
+  kind,
   days,
   sent,
   draftId,
+  draftFresh,
   gmail = null,
 }: {
   jobId: number;
   title: string;
   company: string;
+  kind: "follow-up" | "quiet" | "replied" | "thank-you" | "after-interview";
   days: number | null;
-  sent: boolean;
+  sent: number;
   draftId: number | null;
+  draftFresh: boolean;
   gmail?: GmailEmail | null;
 }) {
   const { pending, result, run } = useRun();
+  const ago = days === null ? "" : days === 0 ? "today" : `${days} ${days === 1 ? "day" : "days"} ago`;
+  const line = {
+    "follow-up": sent === 0 ? `Applied ${ago}, no reply yet.` : `Followed up ${ago}, still no reply. One more short follow-up is fine.`,
+    quiet: `Followed up ${sent} times, the last ${ago}, and no reply. It has gone quiet.`,
+    replied: `They replied ${ago} and nothing has moved since. Check in, or note what happened.`,
+    "thank-you": "The interview is over: a short thank-you note today keeps you in mind.",
+    "after-interview": `No news since the interview ${ago}. A short check-in is fine, or note what happened.`,
+  }[kind];
+  const button = (label: string, action: () => Promise<ActionResult>, primary = false) => (
+    <button type="button" disabled={pending} onClick={() => run(action)} className={`btn px-3 py-1.5 text-xs ${primary ? "btn-primary" : "btn-quiet"}`}>
+      {label}
+    </button>
+  );
   return (
     <li className="flex flex-wrap items-center gap-3 px-4 py-3">
       <div className="mr-auto min-w-0">
@@ -294,39 +322,51 @@ export function FollowUpRow({
           {" "}
           · {company}
         </span>
-        <p className="text-xs text-slate">
-          {days !== null ? `Applied ${days} ${days === 1 ? "day" : "days"} ago, ` : ""}
-          {sent ? "followed up, still no reply." : "no reply yet."}
-        </p>
+        <p className="text-xs text-slate">{line}</p>
       </div>
       <div className="flex flex-wrap gap-1.5">
-        {sent ? (
+        {kind === "follow-up" &&
+          (draftFresh && draftId ? (
+            <>
+              <Link href={`/jobs/${jobId}#documents`} className="btn btn-quiet px-3 py-1.5 text-xs">
+                Review email
+              </Link>
+              {gmail && <OpenInGmail email={gmail} className="btn btn-primary px-3 py-1.5 text-xs" />}
+              {button("Mark as sent", () => markFollowUpSent(jobId), !gmail)}
+            </>
+          ) : (
+            <>
+              {button(sent > 0 ? "Write a second follow-up" : "Write follow-up", () => writeFollowUp(jobId), true)}
+              {sent > 0 && button("Close as no response", () => recordOutcome(jobId, "no_response", ""))}
+            </>
+          ))}
+        {kind === "quiet" && (
           <>
-            <button type="button" disabled={pending} onClick={() => run(() => recordOutcome(jobId, "no_response", ""))} className="btn btn-quiet px-3 py-1.5 text-xs">
-              Close as no response
-            </button>
-            <button type="button" disabled={pending} onClick={() => run(() => waitLonger(jobId))} className="btn btn-quiet px-3 py-1.5 text-xs">
-              Wait longer
-            </button>
+            {button("Close as no response", () => recordOutcome(jobId, "no_response", ""), true)}
+            {button("Wait longer", () => waitLonger(jobId))}
           </>
-        ) : draftId ? (
-          <>
-            <Link href={`/jobs/${jobId}#documents`} className="btn btn-quiet px-3 py-1.5 text-xs">
-              Review email
-            </Link>
-            {gmail && <OpenInGmail email={gmail} className="btn btn-primary px-3 py-1.5 text-xs" />}
-            <button type="button" disabled={pending} onClick={() => run(() => markFollowUpSent(jobId))} className={`btn px-3 py-1.5 text-xs ${gmail ? "btn-quiet" : "btn-primary"}`}>
-              Mark as sent
-            </button>
-          </>
-        ) : (
-          <button type="button" disabled={pending} onClick={() => run(() => writeFollowUp(jobId))} className="btn btn-primary px-3 py-1.5 text-xs">
-            Write follow-up
-          </button>
         )}
-        <button type="button" disabled={pending} onClick={() => run(() => recordOutcome(jobId, "replied", ""))} className="btn btn-quiet px-3 py-1.5 text-xs">
-          They replied
-        </button>
+        {(kind === "follow-up" || kind === "quiet") && button("They replied", () => recordOutcome(jobId, "replied", ""))}
+        {kind === "replied" && (
+          <>
+            {button("Interview", () => recordOutcome(jobId, "interview", ""), true)}
+            {button("Rejected", () => recordOutcome(jobId, "rejected", ""))}
+            {button("Check again later", () => waitLonger(jobId))}
+          </>
+        )}
+        {kind === "thank-you" && (
+          <>
+            {button("Thank-you sent", () => markThankYouSent(jobId), true)}
+            {button("Skip", () => markThankYouSent(jobId, true))}
+          </>
+        )}
+        {kind === "after-interview" && (
+          <>
+            {button("Offer", () => recordOutcome(jobId, "offer", ""), true)}
+            {button("Rejected", () => recordOutcome(jobId, "rejected", ""))}
+            {button("Wait longer", () => waitLonger(jobId))}
+          </>
+        )}
       </div>
       {result && (
         <div className="basis-full">

@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/app/actions";
-import { addEvent, getJob, listDocuments, updateJob } from "@/lib/data";
+import { addEvent, getJob, listDocuments, listEvents, updateJob } from "@/lib/data";
 import { launch, stageRunning } from "@/lib/engine";
-import { FOLLOW_UP_SENT, nextFollowUpDate } from "@/lib/followups";
+import { FOLLOW_UP_SENT, THANK_YOU_SENT, nextFollowUpDate, thankYouDate } from "@/lib/followups";
 import { SENT_STATUSES, STATUS_LABELS, type Status } from "@/lib/types";
 
 const OUTCOMES: Status[] = ["replied", "interview", "offer", "accepted", "declined", "rejected", "withdrawn", "no_response"];
@@ -30,11 +30,13 @@ export async function recordOutcome(jobId: number, status: string, note: string,
   const label = STATUS_LABELS[status as Status];
   const text = note.trim().slice(0, 2000);
   const day = new Date().toISOString().slice(0, 10);
+  const interview = status === "interview" ? cleanTime(interviewAt) : null;
   updateJob(jobId, {
     status: status as Status,
-    // Any answer, or closing the job, ends the follow-up reminders.
-    follow_up_due: null,
-    ...(status === "interview" ? { interview_at: cleanTime(interviewAt) } : {}),
+    // A reply gets a check-in reminder, an interview a thank-you after it;
+    // closing the job ends the reminders.
+    follow_up_due: status === "replied" ? nextFollowUpDate("replied") : status === "interview" ? thankYouDate(interview) : null,
+    ...(status === "interview" ? { interview_at: interview } : {}),
     ...(text ? { notes: `${job.notes ? `${job.notes}\n\n` : ""}${day} ${label}: ${text}` } : {}),
   });
   // An interview: the pack is written straight away.
@@ -56,7 +58,7 @@ export async function recordOutcome(jobId: number, status: string, note: string,
 export async function setReminder(jobId: number, day: string | null): Promise<ActionResult> {
   const job = getJob(jobId);
   if (!job) return { ok: false, message: "This job no longer exists." };
-  if (job.status !== "applied") return { ok: false, message: "Reminders are for applications waiting for a reply." };
+  if (!["applied", "replied", "interview"].includes(job.status)) return { ok: false, message: "Reminders are for applications still open." };
   const at = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? new Date(`${day}T09:00:00`).toISOString() : null;
   updateJob(jobId, { follow_up_due: at });
   refresh(jobId);
@@ -68,7 +70,8 @@ export async function setInterviewTime(jobId: number, interviewAt: string | null
   const job = getJob(jobId);
   if (!job) return { ok: false, message: "This job no longer exists." };
   const at = cleanTime(interviewAt);
-  updateJob(jobId, { interview_at: at });
+  const thanked = listEvents(jobId).some((event) => event.type === THANK_YOU_SENT);
+  updateJob(jobId, { interview_at: at, ...(job.status === "interview" && !thanked ? { follow_up_due: thankYouDate(at) } : {}) });
   addEvent(jobId, "interview", at ? `Interview on ${at}` : "Interview time cleared");
   refresh(jobId);
   return { ok: true, message: at ? "Interview time saved." : "Interview time cleared." };
@@ -85,19 +88,32 @@ export async function writeFollowUp(jobId: number): Promise<ActionResult> {
   return { ok: true, message: "Writing it now. It appears under Documents in a minute." };
 }
 
-// One follow-up per job. After it is sent, the job waits once more before
-// Offerbound suggests closing it as "No response".
+// Up to two follow-ups per job (lib/followups.ts CADENCE). After the last
+// one, the job waits once more before Offerbound suggests closing it.
 export async function markFollowUpSent(jobId: number): Promise<ActionResult> {
   const job = getJob(jobId);
   if (!job) return { ok: false, message: "This job no longer exists." };
   addEvent(jobId, FOLLOW_UP_SENT);
-  updateJob(jobId, { follow_up_due: nextFollowUpDate() });
+  updateJob(jobId, { follow_up_due: nextFollowUpDate("applied") });
   refresh(jobId);
   return { ok: true, message: "Noted. Offerbound checks back if there is still no reply." };
 }
 
+// The interview's thank-you note went out (or the user skips it): next, a
+// check-in if nothing is heard.
+export async function markThankYouSent(jobId: number, skipped = false): Promise<ActionResult> {
+  const job = getJob(jobId);
+  if (!job) return { ok: false, message: "This job no longer exists." };
+  addEvent(jobId, THANK_YOU_SENT, skipped ? "skipped" : null);
+  updateJob(jobId, { follow_up_due: nextFollowUpDate("interview") });
+  refresh(jobId);
+  return { ok: true, message: skipped ? "Skipped. Offerbound checks back if you hear nothing." : "Noted. Offerbound checks back if you hear nothing." };
+}
+
 export async function waitLonger(jobId: number): Promise<ActionResult> {
-  updateJob(jobId, { follow_up_due: nextFollowUpDate() });
+  const job = getJob(jobId);
+  if (!job) return { ok: false, message: "This job no longer exists." };
+  updateJob(jobId, { follow_up_due: nextFollowUpDate(job.status) });
   refresh(jobId);
   return { ok: true, message: "Snoozed." };
 }
@@ -123,7 +139,7 @@ export async function bulkOutcome(jobIds: number[], status: string): Promise<Act
   for (const id of [...new Set(jobIds.map(Number))].slice(0, 500)) {
     const job = getJob(id);
     if (!job || !sent.includes(job.status) || job.status === status) continue;
-    updateJob(id, { status: status as Status, follow_up_due: null });
+    updateJob(id, { status: status as Status, follow_up_due: status === "replied" ? nextFollowUpDate("replied") : null });
     changed += 1;
   }
   revalidatePath("/", "layout");
