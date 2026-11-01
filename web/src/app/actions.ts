@@ -24,6 +24,7 @@ import {
 import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssistant, stopRun } from "@/lib/engine";
 import { isHex } from "@/lib/theme";
 import { recordOutcome } from "@/app/tracking-actions";
+import { ensureLan } from "@/lib/lan";
 import { resetAccessKey } from "@/lib/access";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
 import type { Settings, Status } from "@/lib/types";
@@ -317,6 +318,7 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
       activeFrom: /^\d{2}:\d{2}$/.test(String(formData.get("schedule.activeFrom"))) ? String(formData.get("schedule.activeFrom")) : (current.schedule.activeFrom ?? "07:00"),
       activeTo: /^\d{2}:\d{2}$/.test(String(formData.get("schedule.activeTo"))) ? String(formData.get("schedule.activeTo")) : (current.schedule.activeTo ?? "23:00"),
     },
+    network: { lan: formData.get("network.lan") === "on" },
     email: {
       sendingEnabled: current.email.sendingEnabled,
       watchReplies: formData.get("email.watchReplies") === "on",
@@ -357,6 +359,7 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
   }
 
   setSettings(patch);
+  ensureLan(getSettings().network?.lan ?? false);
   revalidatePath("/", "layout");
   return { ok: true, message: "Settings saved." };
 }

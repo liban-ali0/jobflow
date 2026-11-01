@@ -486,7 +486,7 @@ export function SettingsForm({
   settings: Settings;
   countryOptions: CountryOption[];
   extension: { token: string; folder: string };
-  devices: { links: string[]; path: string };
+  devices: { links: string[]; path: string; lan: { enabled: boolean; open: boolean; links: { link: string; qr: string }[] } };
 }) {
   const [result, action, pending] = useActionState(saveSettings, null);
   const form = useRef<HTMLFormElement>(null);
@@ -839,8 +839,18 @@ export function SettingsForm({
           <AppearanceSection appearance={settings.appearance} />
         </Section>
 
-        <Section id="devices" title="Other devices" hint="Open Offerbound on your phone, through Tailscale.">
-          <OtherDevices {...devices} />
+        <Section id="devices" title="Other devices" hint="Open Offerbound on your phone: on your home Wi-Fi, or anywhere through Tailscale." flush>
+          <SwitchList>
+            <SwitchRow
+              name="network.lan"
+              label="Open on my home Wi-Fi"
+              hint="A phone or laptop on the same Wi-Fi can open Offerbound after scanning the pairing code once. Only devices on your home network get in, never the internet. Windows may ask once to allow Node.js on private networks: allow it."
+              checked={devices.lan.enabled}
+            />
+          </SwitchList>
+          <div className="border-t border-line/70 px-5 py-4 md:px-6">
+            <OtherDevices {...devices} />
+          </div>
         </Section>
 
         <div className="sticky bottom-4 z-10 flex items-center gap-4 rounded-xl border border-line bg-surface/95 px-5 py-3 shadow-lg backdrop-blur">

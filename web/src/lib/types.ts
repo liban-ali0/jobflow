@@ -171,6 +171,8 @@ export type Settings = {
   // watchReplies: the extension reads new Gmail for replies; account: which
   // signed-in Gmail account (0 = the first).
   email: { sendingEnabled: boolean; watchReplies: boolean; account: number };
+  // Open on the home Wi-Fi/LAN (lib/lan.ts), behind the pairing link.
+  network?: { lan: boolean };
   // The extension's last Gmail check.
   mailCheck?: { at: string; ok: boolean; message: string; address?: string | null };
   // What the research step covers, extra points to research, and free-text rules.

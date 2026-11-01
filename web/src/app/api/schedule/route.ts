@@ -1,6 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { archiveStale, getSettings } from "@/lib/data";
 import { scheduleTick } from "@/lib/scheduler";
+import { ensureLan } from "@/lib/lan";
 
 const holder = globalThis as unknown as { jobflowArchivedAt?: number };
 
@@ -13,6 +14,7 @@ export async function POST(request: Request) {
     holder.jobflowArchivedAt = Date.now();
     if (archiveStale(getSettings().freshness.archiveAfterDays ?? 7) > 0) revalidatePath("/", "layout");
   }
+  ensureLan(getSettings().network?.lan ?? false);
   const outcome = scheduleTick();
   if (outcome !== "off" && outcome !== "idle" && outcome !== "busy") revalidatePath("/", "layout");
   return Response.json({ outcome });

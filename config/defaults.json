@@ -138,6 +138,9 @@
     "activeFrom": "07:00",
     "activeTo": "23:00"
   },
+  "network": {
+    "lan": false
+  },
   "email": {
     "sendingEnabled": false,
     "watchReplies": false,
