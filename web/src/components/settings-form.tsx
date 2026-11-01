@@ -844,7 +844,7 @@ export function SettingsForm({
             <SwitchRow
               name="network.lan"
               label="Open on my home Wi-Fi"
-              hint="A phone or laptop on the same Wi-Fi can open Offerbound after scanning the pairing code once. Only devices on your home network get in, never the internet. Windows may ask once to allow Node.js on private networks: allow it."
+              hint="A phone or laptop on the same Wi-Fi can open Offerbound after scanning the pairing code once. Only devices on that Wi-Fi get in, never the internet. The connection is not encrypted, so use it on your own home Wi-Fi only. Windows may ask once whether to allow Node.js: allow it on private networks only, so it stays closed on public Wi-Fi."
               checked={devices.lan.enabled}
             />
           </SwitchList>
