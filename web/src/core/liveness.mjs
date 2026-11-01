@@ -8,8 +8,11 @@
 // LinkedIn and Workable checks follow its liveness-api.mjs. Its rule is kept:
 // a wrong "closed" costs the user a real job, a wrong "unsure" costs one look,
 // so anything unclear is "unsure".
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { lookup as dnsLookup } from "node:dns";
+import http from "node:http";
+import https from "node:https";
+import { BlockList, isIP } from "node:net";
+import zlib from "node:zlib";
 import { classifyLiveness } from "../vendor/career-ops/liveness-core.mjs";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
@@ -105,30 +108,46 @@ function fromPage(verdict, text) {
 
 // A listing's link comes from a captured page or an engine, so it could name
 // this computer or the local network (the app itself, a router). Only public
-// addresses are read, checked again at every redirect.
+// addresses are read. The address is checked where the connection is made
+// (the lookup below), so a name cannot answer "public" to a check and
+// "private" to the request; every redirect goes through the same door.
 const MAX_REDIRECTS = 5;
 const MAX_BYTES = 3_000_000;
 
-function privateAddress(ip) {
-  if (isIP(ip) === 4) {
-    const [a, b] = ip.split(".").map(Number);
-    return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
-  }
-  const low = ip.toLowerCase();
-  // IPv4 inside IPv6 (::ffff:127.0.0.1, which URL writes as ::ffff:7f00:1).
-  const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(low)?.[1];
-  if (dotted) return privateAddress(dotted);
-  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(low);
-  if (hex) {
-    const [high, rest] = [parseInt(hex[1], 16), parseInt(hex[2], 16)];
-    return privateAddress(`${high >> 8}.${high & 255}.${rest >> 8}.${rest & 255}`);
-  }
-  // Unspecified, loopback and the old IPv4-compatible form (all start "::"),
-  // NAT64, unique local, link-local, multicast.
-  return low.startsWith("::") || low.startsWith("64:ff9b:") || /^f[cd]/.test(low) || /^fe[89ab]/.test(low) || /^ff/.test(low);
+const BLOCKED_V4 = new BlockList();
+for (const [network, prefix] of [
+  ["0.0.0.0", 8], ["10.0.0.0", 8], ["100.64.0.0", 10], ["127.0.0.0", 8], ["169.254.0.0", 16], ["172.16.0.0", 12],
+  ["192.0.0.0", 24], ["192.0.2.0", 24], ["192.88.99.0", 24], ["192.168.0.0", 16], ["198.18.0.0", 15],
+  ["198.51.100.0", 24], ["203.0.113.0", 24], ["224.0.0.0", 3],
+]) BLOCKED_V4.addSubnet(network, prefix, "ipv4");
+// IPv6: only ordinary global unicast (2000::/3), and not the ranges that carry
+// an IPv4 address or are reserved (6to4, Teredo, documentation, ORCHID).
+const BLOCKED_V6 = new BlockList();
+for (const [network, prefix] of [["2001::", 23], ["2001:db8::", 32], ["2002::", 16], ["3fff::", 20]]) BLOCKED_V6.addSubnet(network, prefix, "ipv6");
+const GLOBAL_V6 = new BlockList();
+GLOBAL_V6.addSubnet("2000::", 3, "ipv6");
+
+export function publicAddress(ip) {
+  const family = isIP(ip);
+  if (family === 4) return !BLOCKED_V4.check(ip, "ipv4");
+  if (family === 6) return GLOBAL_V6.check(ip, "ipv6") && !BLOCKED_V6.check(ip, "ipv6");
+  return false;
 }
 
-async function publicUrl(url) {
+class RefusedAddress extends Error {}
+
+// dns.lookup that only ever hands the connection a public address.
+function guardedLookup(hostname, options, callback) {
+  dnsLookup(hostname, { ...options, all: true }, (error, addresses) => {
+    if (error) return callback(error);
+    const list = Array.isArray(addresses) ? addresses : [{ address: addresses, family: options.family || 4 }];
+    if (!list.length || !list.every((entry) => publicAddress(entry.address))) return callback(new RefusedAddress());
+    if (options.all) return callback(null, list);
+    callback(null, list[0].address, list[0].family);
+  });
+}
+
+function checkedUrl(url) {
   let address;
   try {
     address = new URL(url);
@@ -138,41 +157,60 @@ async function publicUrl(url) {
   if (!/^https?:$/.test(address.protocol) || address.username || address.password) return null;
   if (address.port && !["80", "443"].includes(address.port)) return null;
   const host = address.hostname.replace(/^\[|\]$/g, "");
-  if (/^localhost$|\.(localhost|local|internal|lan|home|arpa)$/i.test(host)) return null;
-  const ips = isIP(host) ? [host] : (await lookup(host, { all: true, verbatim: true }).catch(() => [])).map((entry) => entry.address);
-  return ips.length && !ips.some(privateAddress) ? address : null;
+  // Node skips the lookup for a written-out address, so that is checked here.
+  if (isIP(host) && !publicAddress(host)) return null;
+  return address;
 }
 
-class RefusedAddress extends Error {}
-
-async function readCapped(response) {
-  if (!response.body) return "";
-  const reader = response.body.getReader();
-  const chunks = [];
-  let size = 0;
-  while (size < MAX_BYTES) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    size += value.length;
-  }
-  await reader.cancel().catch(() => {});
-  return new TextDecoder().decode(Buffer.concat(chunks).subarray(0, MAX_BYTES));
+function request(address, accept) {
+  return new Promise((resolve, reject) => {
+    const client = address.protocol === "https:" ? https : http;
+    const req = client.request(
+      address,
+      {
+        headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: accept, "Accept-Encoding": "gzip, deflate, br" },
+        lookup: guardedLookup,
+        timeout: TIMEOUT_MS,
+      },
+      (response) => {
+        const status = response.statusCode ?? 0;
+        const location = status >= 300 && status < 400 ? response.headers.location : null;
+        if (location) {
+          response.resume();
+          return resolve({ status, location, text: "" });
+        }
+        const encoding = String(response.headers["content-encoding"] ?? "").toLowerCase();
+        const stream =
+          encoding === "gzip" ? response.pipe(zlib.createGunzip()) : encoding === "deflate" ? response.pipe(zlib.createInflate()) : encoding === "br" ? response.pipe(zlib.createBrotliDecompress()) : response;
+        const chunks = [];
+        let size = 0;
+        const finish = () => resolve({ status, location: null, text: Buffer.concat(chunks).subarray(0, MAX_BYTES).toString("utf8") });
+        stream.on("data", (chunk) => {
+          chunks.push(chunk);
+          size += chunk.length;
+          if (size >= MAX_BYTES) {
+            response.destroy();
+            finish();
+          }
+        });
+        stream.on("end", finish);
+        stream.on("error", reject);
+      },
+    );
+    req.on("timeout", () => req.destroy(Object.assign(new Error("timeout"), { name: "TimeoutError" })));
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 async function load(url, accept = "text/html,application/json") {
   let current = url;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
-    if (!(await publicUrl(current))) throw new RefusedAddress();
-    const response = await fetch(current, {
-      headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: accept },
-      redirect: "manual",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
-    const next = response.status >= 300 && response.status < 400 ? response.headers.get("location") : null;
-    if (!next) return { status: response.status, finalUrl: current, text: await readCapped(response) };
-    await response.body?.cancel().catch(() => {});
-    current = new URL(next, current).href;
+    const address = checkedUrl(current);
+    if (!address) throw new RefusedAddress();
+    const { status, location, text } = await request(address, accept);
+    if (!location) return { status, finalUrl: current, text };
+    current = new URL(location, current).href;
   }
   return { status: 0, finalUrl: current, text: "" };
 }
