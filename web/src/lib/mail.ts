@@ -1,6 +1,6 @@
 import "server-only";
 import { fold } from "./browser-sites";
-import { addMail, getSettings, hasMail, listContacts, listDocuments, listJobs, setSettings } from "./data";
+import { addMail, getSettings, hasMail, listContactsByJob, listDocuments, listJobs, setSettings } from "./data";
 import { readText } from "./documents";
 import { applyPack } from "./apply";
 export { MAIL_KIND_LABELS } from "./mail-labels";
@@ -132,9 +132,11 @@ export type MatchableJob = { job: Job; domains: Set<string> };
 
 // Sent applications with their contacts' own email domains.
 export function matchableJobs(): MatchableJob[] {
-  return listJobs({ status: SENT_STATUSES }).map((job) => ({
+  const jobs = listJobs({ status: SENT_STATUSES });
+  const contacts = listContactsByJob(jobs.map((job) => job.id));
+  return jobs.map((job) => ({
     job,
-    domains: new Set(listContacts(job.id).flatMap((contact) => (contact.email ? [domainOf(contact.email)] : [])).filter((domain) => domain && !SHARED_DOMAINS.test(domain))),
+    domains: new Set((contacts.get(job.id) ?? []).flatMap((contact) => (contact.email ? [domainOf(contact.email)] : [])).filter((domain) => domain && !SHARED_DOMAINS.test(domain))),
   }));
 }
 
@@ -231,7 +233,9 @@ function parseEmail(markdown: string) {
     .join("\n")
     .replace(/^#+\s+.*$/gm, "")
     .replace(/\*\*(.+?)\*\*/g, "$1")
-    .trim();
+    .trim()
+    // A "Body:" label left in from the template is not part of the email.
+    .replace(/^Body:\s*/i, "");
   return { to: address, subject, body };
 }
 

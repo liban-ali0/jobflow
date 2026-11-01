@@ -11,8 +11,11 @@
 
   // ---------- what the page says ----------
 
-  const CONFIRMED = /application (has been |was )?(submitted|received|sent|complete)|thank(s| you) for (applying|your application|your interest)|we('ve| have) received your application|successfully (applied|submitted)|başvurunuz (alınmıştır|alındı|tamamlandı|iletildi|başarıyla)|başvurunuz için teşekkür|başvuru(nuz)? (başarıyla )?(gönderildi|tamamlandı)|تم (استلام|إرسال|تقديم) (طلبك|طلبكم)|شكرا (لك )?(على|ل)(تقديم|التقديم)/i;
-  const CONFIRMED_URL = /thank|confirmation|success|submitted|applied|tesekkur|basvuru-tamam/i;
+  // Only words a site uses once an application is in. "Thanks for your
+  // interest" is said on sign-in and newsletter pages too, so it is not one.
+  const CONFIRMED = /application (has been |was )?(submitted|received|sent|complete)|thank(s| you) for (applying|your application)|we('ve| have) received your application|successfully (applied|submitted)|başvurunuz (alınmıştır|alındı|tamamlandı|iletildi|başarıyla)|başvurunuz için teşekkür|başvuru(nuz)? (başarıyla )?(gönderildi|tamamlandı)|تم (استلام|إرسال|تقديم) (طلبك|طلبكم)|شكرا (لك )?(على|ل)(تقديم|التقديم)/i;
+  // A whole path segment, so /jobs/applied-scientist is not a thank-you page.
+  const CONFIRMED_URL = /(^|\/)(thank-?you|thanks|confirmation|success|submitted|applied|tesekkur(ler)?|basvuru-tamam)(\/|$)/i;
   const CLOSED = /no longer accepting|no longer available|this (job|position) (is|has been) (closed|filled|expired)|position has been filled|job (has )?expired|ilan(ın)? (yayından kaldırıl|süresi dol)|bu ilan (artık )?(yayında değil|aktif değil)|başvuruya kapa/i;
   const CAPTCHA = 'iframe[src*="recaptcha"], iframe[src*="hcaptcha"], iframe[src*="challenges.cloudflare.com"], .g-recaptcha, .h-captcha, .cf-turnstile';
   const SUBMIT = /\b(submit|send|apply|finish|complete)\b|gönder|başvur|tamamla|bitir|إرسال|تقديم/i;
@@ -235,6 +238,9 @@
 
   // Called by the background worker after each page load.
   globalThis.jobflowApplyStart = (context) => {
+    // A frame from elsewhere (a chat widget, an ad) gets nothing: only the
+    // form's own site and known application systems are filled.
+    if (!isTop && location.origin !== context.formOrigin && !(context.atsHosts && new RegExp(context.atsHosts, "i").test(location.hostname))) return;
     pack = context.pack;
     Object.assign(barState, { title: `${context.pack.job.title} · ${context.pack.job.company}`, queue: context.queue || 0, filled: context.filled || 0, files: context.files || 0 });
     // A page after the user's submit: the site's confirmation counts.

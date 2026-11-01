@@ -93,7 +93,9 @@ export function answerQuestion(id: number, answer: string) {
 export function appendFact(question: string, answer: string) {
   const day = new Date().toISOString().slice(0, 10);
   const facts = readFacts() ?? "# Facts not on the CV\n";
-  const line = `- ${question.replace(/\s+/g, " ").trim()} → ${answer.replace(/\s+/g, " ").trim()} (answered ${day})`;
+  // An arrow in the text would read as the separator of the line.
+  const clean = (text: string) => text.replace(/→/g, "-").replace(/\s+/g, " ").trim();
+  const line = `- ${clean(question)} → ${clean(answer)} (answered ${day})`;
   writeFacts(
     facts.includes(ANSWERS_HEADING)
       ? facts.replace(ANSWERS_HEADING, `${ANSWERS_HEADING}\n\n${line}`).replace(/\n{3,}/g, "\n\n")
@@ -124,6 +126,7 @@ export const addJob = (job: Partial<Job> & { title: string; company: string }) =
 export const countByStatus = () => core.countByStatus(db()) as Record<Status, number>;
 
 export const listContacts = (jobId: number) => core.listContacts(db(), jobId) as Contact[];
+export const listContactsByJob = (jobIds: number[]) => core.listContactsByJob(db(), jobIds) as Map<number, Contact[]>;
 export const listDocuments = (jobId: number) => core.listDocuments(db(), jobId) as JobDocument[];
 export const getDocument = (id: number) => core.getDocument(db(), id) as JobDocument | null;
 // Application documents (not the research) the user has not approved yet.
@@ -194,3 +197,12 @@ export const listingTargets = (options: { ids?: number[] | null; limit?: number 
 // The archive: jobs set aside out of the lists, never deleted.
 export const archiveJobs = (ids: number[], archived = true) => core.archiveJobs(db(), ids, archived);
 export const archiveStale = (days: number) => core.archiveStale(db(), days);
+
+// A short fingerprint of the facts file, so a form opened before a change
+// (an answer, a saved form field) is not allowed to write over it.
+export const factsVersion = () => {
+  const text = readFacts() ?? "";
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = (hash * 31 + text.charCodeAt(i)) | 0;
+  return `${text.length}-${hash}`;
+};

@@ -15,6 +15,38 @@ const save = (key, value) => chrome.storage.session.set({ [key]: value });
 const tabKey = (tabId) => `tab:${tabId}`;
 const packKey = (jobId) => `pack:${jobId}`;
 
+// Application systems whose forms sit on their own domain, often inside a
+// company's careers page. Filling is allowed in frames and tabs on these
+// hosts and on the form's own origin, nowhere else.
+const ATS_HOSTS =
+  /(^|\.)(greenhouse\.io|lever\.co|workable\.com|ashbyhq\.com|smartrecruiters\.com|myworkdayjobs\.com|workday\.com|icims\.com|bamboohr\.com|jobvite\.com|taleo\.net|successfactors\.(com|eu)|recruitee\.com|personio\.(de|com)|teamtailor\.com|breezy\.hr|applytojob\.com|rippling\.com|comeet\.com|zohorecruit\.com|oraclecloud\.com|eightfold\.ai|phenom\.com|avature\.net)$/i;
+const onFormSite = (url, formOrigin) => {
+  try {
+    const address = new URL(url);
+    return address.origin === formOrigin || ATS_HOSTS.test(address.hostname);
+  } catch {
+    return false;
+  }
+};
+
+// A message from a web page says which page sent it (bridge.js); the browser
+// knows the real sender, and the two must agree. Once connected, only the
+// connected Offerbound may ask for anything.
+function senderOrigin(sender) {
+  try {
+    return sender.origin ?? new URL(sender.url).origin;
+  } catch {
+    return null;
+  }
+}
+async function fromOfferbound(message, sender, { connected = true } = {}) {
+  if (!message?.origin || senderOrigin(sender) !== message.origin) return false;
+  if (!connected) return true;
+  const { address } = await jobflowSettings();
+  return message.origin === address;
+}
+const NOT_ALLOWED = { ok: false, message: "Only your connected Offerbound can ask the extension to do this." };
+
 // Where the form is, from the listing's link. Some application systems put
 // the form at a known address next to the listing.
 function applyAddress(url) {
@@ -64,7 +96,7 @@ async function openJob(jobId) {
   }
   await save(packKey(jobId), pack);
   const tab = await chrome.tabs.create({ url: target.url, active: true });
-  await save(tabKey(tab.id), { jobId, frames: {}, attemptAt: null, fields: [], typed: [], confirmed: false });
+  await save(tabKey(tab.id), { jobId, formOrigin: new URL(target.url).origin, frames: {}, attemptAt: null, fields: [], typed: [], confirmed: false });
   await groupTab(tab.id).catch(() => null);
   return { ok: true, message: `Opened ${pack.job.title} at ${pack.job.company}.` };
 }
@@ -80,10 +112,14 @@ async function openNext() {
   return { ok: true, message: "No more ready jobs in this session." };
 }
 
-// Fills the page after every load, in every frame.
+// Fills the page after every load, while the tab is on the form's site (not
+// a sign-in page it was sent to, not an address the user typed), in the
+// frames on that site or on a known application system.
 async function inject(tabId) {
   const state = await load(tabKey(tabId), null);
   if (!state) return;
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  if (!tab || !onFormSite(tab.url, state.formOrigin)) return;
   const pack = await load(packKey(state.jobId), null);
   if (!pack) return;
   // A new page: what is left is read again; the totals filled stay.
@@ -95,7 +131,7 @@ async function inject(tabId) {
     await chrome.scripting.executeScript({
       target: { tabId, allFrames: true },
       func: (context) => globalThis.jobflowApplyStart?.(context),
-      args: [{ pack, queue, attemptAt: state.attemptAt, fields: state.fields, typed: state.typed, confirmed: state.confirmed, filled: state.filled || 0, files: state.files || 0 }],
+      args: [{ pack, queue, formOrigin: state.formOrigin, atsHosts: ATS_HOSTS.source, attemptAt: state.attemptAt, fields: state.fields, typed: state.typed, confirmed: state.confirmed, filled: state.filled || 0, files: state.files || 0 }],
     });
   } catch {
     // Pages the extension may not touch (the browser's own pages).
@@ -143,13 +179,16 @@ async function onSubmitted(tabId, message) {
   // Kept until saved or dismissed, so a reload of the thank-you page still offers it.
   Object.assign(state, { confirmed: true, typed });
   await save(tabKey(tabId), state);
+  // The pack (facts, documents) is not needed any more.
+  await chrome.storage.session.remove(packKey(state.jobId));
   const queue = (await load("queue", [])).length;
   chrome.tabs.sendMessage(tabId, { type: "bar", state: { confirmed: true, typed, queue } }, { frameId: 0 }).catch(() => null);
   return { ok: true, typed };
 }
 
 chrome.tabs.onUpdated.addListener((tabId, info) => {
-  if (info.status === "complete") inject(tabId);
+  // In turn with the frames' reports, which read and write the same state.
+  if (info.status === "complete") serial(() => inject(tabId));
 });
 
 // A tab closed before the application was sent: the job keeps waiting.
@@ -451,6 +490,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       // user never pastes them.
       case "connect":
         if (!message.token || !/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(message.origin || "")) return { ok: false, message: "Open Offerbound on this computer to connect." };
+        if (!(await fromOfferbound(message, sender, { connected: false }))) return NOT_ALLOWED;
         {
           // Once connected, only that same Offerbound can connect again, so no
           // other page on this computer can point the extension at itself.
@@ -466,16 +506,26 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
           }
         }
         // The first connection is confirmed by the user in the extension's
-        // own window, so no other page on this computer can claim it.
-        await save("pendingConnect", { origin: message.origin, token: message.token });
+        // own window, so no other page on this computer can claim it. The
+        // window answers with the request's own number, so what the user
+        // confirms is what the window showed, and a request waiting for an
+        // answer (two minutes) cannot be swapped by another page meanwhile.
+        {
+          const waiting = await load("pendingConnect", null);
+          if (waiting && Date.now() - waiting.at < 2 * 60000 && waiting.origin !== message.origin) {
+            return { ok: false, message: "Another connection is waiting for your answer in the small Offerbound window." };
+          }
+        }
+        await save("pendingConnect", { origin: message.origin, token: message.token, nonce: crypto.randomUUID(), at: Date.now() });
         await chrome.windows.create({ url: chrome.runtime.getURL("connect.html"), type: "popup", width: 420, height: 300 });
         return { ok: true, pending: true, message: "Confirm in the small Offerbound window that just opened." };
       case "confirmConnect": {
-        // Only the extension's own connect.html may confirm.
+        // Only the extension's own connect.html may confirm, and only the
+        // request it showed.
         if (sender.url !== chrome.runtime.getURL("connect.html")) return { ok: false, message: "Not allowed." };
         const pending = await load("pendingConnect", null);
         await chrome.storage.session.remove("pendingConnect");
-        if (!pending || !message.allow) return { ok: true, message: "Not connected." };
+        if (!pending || !message.allow || message.nonce !== pending.nonce) return { ok: true, message: "Not connected." };
         await chrome.storage.local.set({ address: pending.origin, token: pending.token });
         return { ok: true, message: "Connected." };
       }
@@ -485,21 +535,19 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       }
       case "collect":
         // Runs for a few minutes: answer now, progress shows on Activity.
+        if (!(await fromOfferbound(message, sender))) return NOT_ALLOWED;
         if (collecting) return { ok: false, message: "Already collecting." };
         collect(message.trigger === "timer" ? "timer" : "manual");
         return { ok: true, message: "Collecting in your browser, in a minimized window. Follow it on Activity." };
-      case "checkMail": {
-        // Only the connected Offerbound may start a check.
-        const { address } = await jobflowSettings();
-        if (message.origin !== address) return { ok: false, message: "Only your connected Offerbound can check Gmail." };
+      case "checkMail":
+        if (!(await fromOfferbound(message, sender))) return NOT_ALLOWED;
         return checkMail();
-      }
       case "compose":
+        if (!(await fromOfferbound(message, sender))) return NOT_ALLOWED;
         return compose(message.payload, message.origin);
       case "checkListings": {
         // Runs for a minute or two: answer now, progress shows on Activity.
-        const { address } = await jobflowSettings();
-        if (message.origin !== address) return { ok: false, message: "Only your connected Offerbound can start a check." };
+        if (!(await fromOfferbound(message, sender))) return NOT_ALLOWED;
         if (checkingListings) return { ok: false, message: "Already checking listings." };
         checkListings("manual");
         return { ok: true, message: "Checking Indeed listings in your browser, in a minimized window." };
@@ -514,6 +562,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         await composeSent(tabId);
         return { ok: true };
       case "apply": {
+        if (!(await fromOfferbound(message, sender))) return NOT_ALLOWED;
         const ids = [...new Set((message.jobIds || []).map(Number).filter(Boolean))];
         if (!ids.length) return { ok: false, message: "No job to apply for." };
         await save("queue", ids);
@@ -544,6 +593,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       case "skip": {
         const state = await load(tabKey(tabId), null);
         if (state) await report(state.jobId, [...(state.reported ? JSON.parse(state.reported) : []), "Skipped in the apply session"]);
+        if (state) await chrome.storage.session.remove(packKey(state.jobId));
         return openNext();
       }
       default:

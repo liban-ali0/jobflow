@@ -120,6 +120,33 @@ function Bullets({ items, onChange, label }: { items: string[]; onChange: (items
   );
 }
 
+// The contact line as typed ("a | b"), turned into the list on each change:
+// re-joining the list on every keystroke moved the caret and added spaces.
+function ContactField({ value, onChange }: { value: string[]; onChange: (value: string[]) => void }) {
+  const [text, setText] = useState(value.join(" | "));
+  const [seen, setSeen] = useState(value.join("|"));
+  const items = (raw: string) => raw.split("|").map((item) => item.trim()).filter(Boolean);
+  // The list changed from outside (a mode switch, a new version): the text
+  // follows, unless it already says the same.
+  if (value.join("|") !== seen) {
+    setSeen(value.join("|"));
+    if (items(text).join("|") !== value.join("|")) setText(value.join(" | "));
+  }
+  return (
+    <label className="block text-xs font-medium text-slate sm:col-span-2">
+      Contact <span className="font-normal">· separate each with |</span>
+      <input
+        value={text}
+        onChange={(event) => {
+          setText(event.target.value);
+          onChange(items(event.target.value));
+        }}
+        className="field mt-1"
+      />
+    </label>
+  );
+}
+
 function Field({ label, value, placeholder, onChange, wide = false }: { label: string; value: string; placeholder?: string; onChange: (value: string) => void; wide?: boolean }) {
   return (
     <label className={`block text-xs font-medium text-slate ${wide ? "sm:col-span-2" : ""}`}>
@@ -247,14 +274,7 @@ function CvForm({ doc, onChange }: { doc: CvDocument; onChange: (doc: CvDocument
         <div className="grid gap-x-3 gap-y-2 sm:grid-cols-2">
           <Field label="Name" value={doc.name} onChange={(name) => onChange({ ...doc, name })} />
           <Field label="Headline" value={doc.headline} placeholder="e.g. Your title · two or three key skills" onChange={(headline) => onChange({ ...doc, headline })} wide />
-          <label className="block text-xs font-medium text-slate sm:col-span-2">
-            Contact <span className="font-normal">· separate each with |</span>
-            <input
-              value={doc.contact.join(" | ")}
-              onChange={(event) => onChange({ ...doc, contact: event.target.value.split("|").map((item) => item.trimStart()) })}
-              className="field mt-1"
-            />
-          </label>
+          <ContactField value={doc.contact} onChange={(contact) => onChange({ ...doc, contact })} />
         </div>
       </Part>
       {doc.sections.map((section, index) => {
@@ -391,6 +411,9 @@ export function CvEditor({
   const [doc, setDoc] = useState(() => parseCv(initial));
   const [text, setText] = useState(initial);
   const [saved, setSaved] = useState(initial);
+  // The file as last seen from the server, and a newer one not yet taken.
+  const [onDisk, setOnDisk] = useState(initial);
+  const [fresh, setFresh] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
   const [side, setSide] = useState<"preview" | "ats">("preview");
@@ -412,11 +435,41 @@ export function CvEditor({
     [kind, markdown, template],
   );
 
+  const adopt = (version: string) => {
+    setDoc(parseCv(version));
+    setText(version);
+    setSaved(version);
+    setFresh(null);
+  };
+  // The file changed on the server (the AI improved it, another window saved
+  // it): taken over at once when nothing is being edited, offered otherwise.
+  // Done while rendering, the way React adjusts state to a changed prop.
+  if (initial !== onDisk) {
+    setOnDisk(initial);
+    if (same(initial, saved)) setSaved(initial);
+    else if (!dirty) adopt(initial);
+    else setFresh(initial);
+  }
+
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    // Links inside the app do not reload the page, so they are asked about
+    // too (before the link acts, hence the capture phase).
+    const ask = (event: MouseEvent) => {
+      const link = (event.target as Element | null)?.closest("a[href]");
+      if (!link || link.getAttribute("href")?.startsWith("#") || link.getAttribute("target") === "_blank") return;
+      if (!window.confirm("You have unsaved changes here. Leave without saving them?")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
+    document.addEventListener("click", ask, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", ask, true);
+    };
   }, [dirty]);
 
   // "+" on a missing keyword: adds it to an "Other skills" line in Skills,
@@ -460,10 +513,19 @@ export function CvEditor({
   const weave = (term: string, confirmed?: { evidence: string }) => {
     if (!improve) return;
     setState(term, { state: "working" });
-    queue.current = queue.current.then(() => weaveOne(term, confirmed));
+    queue.current = queue.current.then(() => weaveOne(term, confirmed)).catch(() => undefined);
   };
 
   const weaveOne = async (term: string, confirmed?: { evidence: string }) => {
+    if (!improve) return;
+    try {
+      await weaveOneInner(term, confirmed);
+    } catch (error) {
+      setState(term, { state: "failed", note: (error as Error).message || "Something went wrong." });
+    }
+  };
+
+  const weaveOneInner = async (term: string, confirmed?: { evidence: string }) => {
     if (!improve) return;
     // The CV as it is now, not as it was when the keyword was clicked.
     const started = await weaveKeyword(improve.target, markdownRef.current, term, confirmed);
@@ -627,6 +689,17 @@ export function CvEditor({
                 </button>
               </div>
             </div>
+            {fresh && (
+              <p className="flex flex-wrap items-center gap-2 border-t border-line/70 bg-coral-soft px-3 py-2 text-sm">
+                <span>This {kind === "cv" ? "CV" : "letter"} was changed on disk meanwhile (by the AI, or in another window). Your unsaved edits are still here.</span>
+                <button type="button" onClick={() => adopt(fresh)} className="btn btn-quiet px-2.5 py-1 text-xs">
+                  Use the new version
+                </button>
+                <button type="button" onClick={() => setFresh(null)} className="btn btn-quiet px-2.5 py-1 text-xs">
+                  Keep mine
+                </button>
+              </p>
+            )}
             {mode === "form" && (
               <nav aria-label="Go to section" className="flex gap-1 overflow-x-auto border-t border-line/70 px-3 py-1.5">
                 {[{ id: partId("header"), title: "Header" }, ...doc.sections.map((section, index) => ({ id: partId(index), title: section.title || "New section" }))].map(

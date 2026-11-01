@@ -36,7 +36,10 @@ function browser(): Promise<Browser> {
   });
   return holder.jobflowBrowser.then(async (instance) => {
     if (instance.isConnected()) return instance;
-    holder.jobflowBrowser = open();
+    holder.jobflowBrowser = open().catch((error) => {
+      holder.jobflowBrowser = undefined;
+      throw error;
+    });
     return holder.jobflowBrowser;
   });
 }

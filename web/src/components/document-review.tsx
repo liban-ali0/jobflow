@@ -87,9 +87,11 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
         {docs.map((item) => (
           <button
             key={item.id}
+            id={`doc-tab-${item.id}`}
             type="button"
             role="tab"
             aria-selected={item.id === doc.id}
+            aria-controls="doc-panel"
             onClick={() => open(item.id)}
             className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm hover:bg-mist aria-selected:bg-primary aria-selected:text-on-primary"
           >
@@ -101,7 +103,7 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
         ))}
       </div>
 
-      <div role="tabpanel" className="space-y-4">
+      <div role="tabpanel" id="doc-panel" aria-labelledby={`doc-tab-${doc.id}`} className="space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           {doc.inPackage && <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${REVIEW[doc.review].chip}`}>{REVIEW[doc.review].label}</span>}
           <div className="ml-auto flex flex-wrap gap-1.5">
@@ -141,7 +143,21 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
               <button
                 type="button"
                 onClick={async () => {
-                  await navigator.clipboard.writeText(doc.text);
+                  // The clipboard API needs https; over plain http the old way works.
+                  try {
+                    if (navigator.clipboard) await navigator.clipboard.writeText(doc.text);
+                    else {
+                      const area = document.createElement("textarea");
+                      area.value = doc.text;
+                      document.body.append(area);
+                      area.select();
+                      document.execCommand("copy");
+                      area.remove();
+                    }
+                  } catch {
+                    setResult({ ok: false, message: "Could not copy. Select the text and copy it yourself." });
+                    return;
+                  }
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
                 }}

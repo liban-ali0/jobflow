@@ -57,7 +57,7 @@ export async function removeFromSelected(ids: number[]): Promise<ActionResult> {
 // the reason as a ranking rule so similar jobs are skipped next time.
 export async function excludeJobs(ids: number[], reason: string, asRule: boolean): Promise<ActionResult> {
   const text = reason.trim().slice(0, 300);
-  const jobs = loadJobs(ids).filter((job) => job.status === "found" || job.status === "ranked" || job.status === "selected");
+  const jobs = loadJobs(ids).filter((job) => BEFORE_APPLYING.includes(job.status));
   if (jobs.length === 0) return { ok: false, message: "Nothing to exclude here." };
   for (const job of jobs) {
     updateJob(job.id, { status: "excluded", excluded_reason: text ? `Not interested: ${text}` : "Not interested" });

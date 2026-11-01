@@ -104,7 +104,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       value: String(applied),
       hint: "Applications sent and their replies",
       path: "/board",
-      section: "applied",
+      section: "applications",
       pending: counts.ready > 0,
     },
   ];

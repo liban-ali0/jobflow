@@ -18,6 +18,8 @@ import {
 } from "@/app/job-actions";
 
 export type JobSummary = { id: number; status: string; url: string | null; ranked: boolean; archived?: boolean };
+// Jobs that can be ranked again (rankJobs in app/job-actions.ts).
+const RANKABLE = ["found", "ranked", "excluded", "selected"];
 
 // The reason form for "Not interested", used by the bulk bar, the row menu,
 // and the job page.
@@ -165,9 +167,11 @@ export function RowMenu({ job }: { job: JobSummary }) {
                   </button>
                 )
               )}
-              <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => rankJobs([job.id]))}>
-                {job.ranked || excluded ? "Re-rank this job" : "Rank this job"}
-              </button>
+              {RANKABLE.includes(job.status) && !job.archived && (
+                <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => rankJobs([job.id]))}>
+                  {job.ranked || excluded ? "Re-rank this job" : "Rank this job"}
+                </button>
+              )}
               <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => askAboutJob(job.id))}>
                 Ask the Assistant about it
               </button>
@@ -282,7 +286,7 @@ export function JobActionBar({ job, hasResearch, working }: { job: JobSummary; h
             Remove from selected
           </button>
         )}
-        {job.ranked && !applied && (
+        {job.ranked && RANKABLE.includes(job.status) && (
           <button type="button" className={quiet} disabled={busy} onClick={() => run(() => rankJobs([job.id]))}>
             Re-rank
           </button>

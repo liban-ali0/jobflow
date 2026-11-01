@@ -25,8 +25,10 @@ Count the `follow-up sent` events in the job's history. None: write the first fo
 To: Name (role), followed by <email> only when a confirmed email exists
 Subject: Following up: <role title> application
 
-Body
+The email itself, with no label in front of it.
 ```
+
+Everything after the Subject line is sent as written, so no notes or labels there.
 
 - 60 to 110 words, in the listing's language.
 - Address the same person as the first outreach email; if none was found, write it for the company's hiring or careers contact from the research, or as a LinkedIn message, and say so in one line at the top.

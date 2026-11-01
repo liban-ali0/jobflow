@@ -144,7 +144,8 @@ function groupOf(job: Job, group: AppQuery["group"], now: number, countryOrder: 
   switch (group) {
     case "day":
       return {
-        key: date.toISOString().slice(0, 10),
+        // The user's own day, like the label (an ISO date is the UTC day).
+        key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
         label: date.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", ...(sameYear ? {} : { year: "numeric" }) }),
       };
     case "week": {

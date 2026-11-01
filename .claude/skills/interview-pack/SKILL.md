@@ -15,7 +15,7 @@ The candidate has an interview for this job. Write the pack they read the evenin
 2. Get the folder with `node scripts/jobs.mjs folder <id>` and read `research.md`, `cv.md` (the version they applied with), `cover-letter.md`, and `answers.md` there.
 3. Read `candidate/profile.md` and `candidate/facts.md`.
 4. Write `<folder>/interview-pack.md` as described below, in the listing's language, and register it with `node scripts/jobs.mjs document <id> interview_pack <folder>/interview-pack.md`.
-5. If something the interviewers are likely to ask cannot be answered from the profile and facts (for example the earliest start date or a salary floor), ask it once: check `node scripts/jobs.mjs questions` first, then write `jobs/_work/question.json` (`text`, `why`, `category: "you"`) and run `node scripts/jobs.mjs ask --file jobs/_work/question.json`.
+5. If something the interviewers are likely to ask cannot be answered from the profile and facts (for example the earliest start date or a salary floor), ask it once: check `node scripts/jobs.mjs questions` first, then write `jobs/_work/<id>-interview-q-<n>.json` (`text`, `why`, `category: "you"`) and run `node scripts/jobs.mjs ask --file jobs/_work/<id>-interview-q-<n>.json`.
 6. End with two lines: the three questions to rehearse first, and anything the candidate must answer in Offerbound before the interview.
 
 ## The pack

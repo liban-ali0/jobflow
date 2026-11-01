@@ -18,16 +18,19 @@ import {
   unapprovedDocuments,
   updateConversation,
   updateJob,
+  factsVersion,
   writeFacts,
 } from "@/lib/data";
 import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssistant, stopRun } from "@/lib/engine";
 import { isHex } from "@/lib/theme";
+import { recordOutcome } from "@/app/tracking-actions";
 import { resetAccessKey } from "@/lib/access";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
 import type { Settings, Status } from "@/lib/types";
 import { RESEARCH_POINTS, STATUS_LABELS } from "@/lib/types";
 
 export type ActionResult = { ok: boolean; message: string };
+
 
 const ENGINE_STAGES = ["build-profile", "rank-jobs", "research-job", "tailor-job", "design-template", "follow-up", "improve-cv", "weave-keyword", "import-jobs", "interview-pack"];
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
@@ -127,6 +130,10 @@ const FACTS_LIMIT = 20000;
 export async function saveFacts(_: ActionResult | null, formData: FormData): Promise<ActionResult> {
   const facts = String(formData.get("facts") ?? "").replace(/\r\n/g, "\n");
   if (facts.length > FACTS_LIMIT) return { ok: false, message: `Keep the facts under ${FACTS_LIMIT} characters.` };
+  // Answers and form facts are added to the file meanwhile; a page opened
+  // before them must not write over them.
+  const shown = formData.get("facts_version");
+  if (typeof shown === "string" && shown !== factsVersion()) return { ok: false, message: "The facts changed since this page was opened (an answer or a form was saved). Reload the page and make your change again." };
   writeFacts(facts);
   // Profile and Setup both show the facts.
   revalidatePath("/", "layout");
@@ -143,6 +150,9 @@ export async function saveRules(_: ActionResult | null, formData: FormData): Pro
 
 export async function setStatus(jobId: number, status: string): Promise<ActionResult> {
   if (!(status in STATUS_LABELS)) return { ok: false, message: `Unknown status "${status}".` };
+  // What happened after applying goes through recordOutcome, which also sets
+  // the right reminder and starts the interview pack.
+  if (["replied", "interview", "offer", "accepted", "declined", "rejected", "withdrawn", "no_response"].includes(status)) return recordOutcome(jobId, status, "");
 
   if (status === "selected") {
     const { dailyCap } = getSettings();

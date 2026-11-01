@@ -19,6 +19,7 @@ export function countByStatus(db: Db): Record<string, number>;
 
 export function addContact(db: Db, jobId: number, contact: Row): number;
 export function listContacts(db: Db, jobId: number): Row[];
+export function listContactsByJob(db: Db, jobIds: number[]): Map<number, Row[]>;
 
 export function saveDocument(db: Db, jobId: number, type: string, filePath: string): void;
 export function reviewDocument(db: Db, id: number, review: string, note?: string | null): void;

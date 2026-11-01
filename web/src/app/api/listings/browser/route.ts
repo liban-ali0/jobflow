@@ -11,9 +11,12 @@ const PER_RUN = 20;
 export async function GET(request: Request) {
   const denied = extensionDenied(request);
   if (denied) return denied;
-  // An earlier check the browser never finished (closed, crashed).
+  // A check still running elsewhere (another browser) is left alone; one the
+  // browser never finished (closed, crashed) is closed after half an hour.
   for (const run of listRuns(50)) {
-    if (run.stage === "browser-listings" && run.status === "running") finishRun(run.id, { status: "failed", summary: "The browser stopped before this check finished." });
+    if (run.stage !== "browser-listings" || run.status !== "running") continue;
+    if (Date.now() - Date.parse(run.started_at) < 30 * 60000) return Response.json({ ok: false, message: "A listing check is already running in a browser." }, { status: 409 });
+    finishRun(run.id, { status: "failed", summary: "The browser stopped before this check finished." });
   }
   const jobs = listingTargets({ limit: 1000 })
     .filter((job) => browserListing(job.url))

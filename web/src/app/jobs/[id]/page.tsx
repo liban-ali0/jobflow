@@ -104,7 +104,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       inPackage: !["research", "follow_up", "interview_pack"].includes(document.type),
       version: document.updated_at,
     }))
-    .map((doc) => (doc.type === "cv" ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc))
+    .map((doc) => (doc.type === "cv" && !doc.text.startsWith("(The file is missing") ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc))
     .map((doc) => (["cv", "cover_letter", "email"].includes(doc.type) && !doc.text.startsWith("(The file is missing") ? { ...doc, facts: checkFacts(ROOT, doc.text) } : doc));
   const hasResearch = documents.some((document) => document.type === "research");
   // The application documents, for "Rewrite documents".

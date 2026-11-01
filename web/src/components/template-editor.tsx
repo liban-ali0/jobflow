@@ -36,6 +36,7 @@ function Range({ label, value, min, max, step, unit, onChange }: { label: string
 export function TemplateEditor({ template, sample }: { template: CvTemplate; sample: string }) {
   const [name, setName] = useState(template.name);
   const [options, setOptions] = useState(template.options);
+  const [hex, setHex] = useState(template.options.accent);
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
   const [saved, setSaved] = useState(JSON.stringify({ name: template.name, options: template.options }));
@@ -87,13 +88,20 @@ export function TemplateEditor({ template, sample }: { template: CvTemplate; sam
               id="template-accent"
               type="color"
               value={options.accent}
-              onChange={(event) => set("accent", event.target.value)}
+              onChange={(event) => {
+                set("accent", event.target.value);
+                setHex(event.target.value);
+              }}
               className="h-10 w-12 cursor-pointer rounded-md border border-field bg-surface p-1"
             />
             <input
               aria-label="Accent colour as hex"
-              value={options.accent}
-              onChange={(event) => /^#[0-9a-f]{6}$/i.test(event.target.value) && set("accent", event.target.value.toLowerCase())}
+              value={hex}
+              onChange={(event) => {
+                setHex(event.target.value);
+                if (/^#[0-9a-f]{6}$/i.test(event.target.value)) set("accent", event.target.value.toLowerCase());
+              }}
+              onBlur={() => setHex(options.accent)}
               className="field font-mono"
             />
           </div>

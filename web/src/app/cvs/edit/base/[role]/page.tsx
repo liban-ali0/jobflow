@@ -3,7 +3,7 @@ import { saveBaseCv } from "@/app/cv-actions";
 import { CvEditor } from "@/components/cv-editor";
 import { BackLink } from "@/components/back-link";
 import { getSettings } from "@/lib/data";
-import { baseCvPath, fileVersion, readText } from "@/lib/documents";
+import { baseCvPath, readText } from "@/lib/documents";
 import { stageRunning } from "@/lib/engine";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { listTemplates, templateFor } from "@/lib/templates";
@@ -25,7 +25,7 @@ export default async function EditBaseCvPage(props: PageProps<"/cvs/edit/base/[r
       <BackLink fallbackHref="/cvs" fallbackLabel="CVs" />
       <div className="mt-3">
         <CvEditor
-          key={fileVersion(baseCvPath(role))}
+          key={role}
           kind="cv"
           heading={{
             kind: "Base CV",

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { runEngineCheck, runStage, saveFacts } from "@/app/actions";
+import { factsVersion } from "@/lib/data";
 import { ActionButton } from "@/components/action-button";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { CvUpload } from "@/components/cv-upload";
@@ -109,6 +110,7 @@ export default function SetupPage() {
           <p>Fill in what applies and delete the rest. When the CV and these facts disagree, the facts win.</p>
           <TextForm
             action={saveFacts}
+          version={factsVersion()}
             name="facts"
             label="Facts about you"
             hint="Also editable later on the Profile screen."

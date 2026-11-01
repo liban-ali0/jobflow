@@ -21,8 +21,8 @@ const OUTCOMES: { status: Status; label: string; tone: string }[] = [
 // What comes after each stage of an application.
 const NEXT: Partial<Record<Status, Status[]>> = {
   applied: ["replied", "interview", "rejected", "withdrawn", "no_response"],
-  replied: ["interview", "offer", "rejected", "withdrawn"],
-  interview: ["offer", "rejected", "withdrawn"],
+  replied: ["interview", "offer", "rejected", "withdrawn", "no_response"],
+  interview: ["offer", "rejected", "withdrawn", "no_response"],
   // An offer: yours to accept or decline, or taken back by the employer.
   offer: ["accepted", "declined", "rejected"],
 };

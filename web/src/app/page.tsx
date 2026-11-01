@@ -174,7 +174,8 @@ export default async function TodayPage(props: PageProps<"/">) {
   const closedListings = listJobs({ status: ["found", "ranked", "selected", "researched", "ready"], archived: false }).filter((job) => job.listing_state === "closed");
   // Emails about applications found in Gmail, waiting for the user.
   const mails = listMails({ state: "new" });
-  const mailApplications = mails.some((mail) => !mail.job_id)
+  // Every email gets the picker: a wrong match can be moved to the right job.
+  const mailApplications = mails.length
     ? listJobs({ status: SENT_STATUSES })
         .sort((a, b) => Date.parse(b.applied_at ?? "") - Date.parse(a.applied_at ?? ""))
         .map((job) => ({ id: job.id, label: `${job.title} · ${job.company}` }))
@@ -456,7 +457,15 @@ export default async function TodayPage(props: PageProps<"/">) {
                 <p className="mt-0.5 text-xs text-slate">{job.listing_reason}</p>
               </li>
             ))}
-            {closedListings.length > 8 && <li className="px-4 py-3 text-xs text-slate">and {closedListings.length - 8} more, marked on the board below.</li>}
+            {closedListings.length > 8 && (
+              <li className="px-4 py-3 text-xs text-slate">
+                and {closedListings.length - 8} more, marked on{" "}
+                <Link href="/jobs" className="text-teal underline">
+                  Jobs
+                </Link>
+                .
+              </li>
+            )}
           </ul>
         </section>
       )}

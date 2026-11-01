@@ -505,8 +505,22 @@ export function SettingsForm({
   useEffect(() => {
     if (changed.size === 0) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    // Links inside the app do not reload the page, so they are asked about
+    // too (before the link acts, hence the capture phase).
+    const ask = (event: MouseEvent) => {
+      const link = (event.target as Element | null)?.closest("a[href]");
+      if (!link || link.getAttribute("href")?.startsWith("#") || link.getAttribute("target") === "_blank") return;
+      if (!window.confirm("You have unsaved settings. Leave without saving them?")) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
+    document.addEventListener("click", ask, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", ask, true);
+    };
   }, [changed]);
 
   // Whenever saved settings arrive (on load and after each save), they become
@@ -833,13 +847,17 @@ export function SettingsForm({
           <button type="submit" disabled={pending} className="btn btn-primary min-w-32">
             {pending ? "Saving…" : "Save settings"}
           </button>
-          {changed.size > 0 ? (
+          {result && !result.ok ? (
+            <span role="status" className="text-sm text-coral">
+              {result.message}
+            </span>
+          ) : changed.size > 0 ? (
             <span className="text-sm">
               <span className="text-coral">*</span> Unsaved<span className="hidden sm:inline"> changes in {changed.size} {changed.size === 1 ? "section" : "sections"}</span>
             </span>
           ) : (
-            <span role="status" className={`text-sm ${!result || result.ok ? "text-slate" : "text-coral"}`}>
-              {!result || result.ok ? "✓ All changes saved" : result.message}
+            <span role="status" className="text-sm text-slate">
+              {result?.ok ? "✓ Saved" : "No unsaved changes"}
             </span>
           )}
         </div>

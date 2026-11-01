@@ -66,7 +66,7 @@ const median = (values: number[]) => {
 
 export function findPatterns(jobs: Job[], eventsByJob: ReadonlyMap<number, JobEvent[]>, settings: Settings, now: number): Patterns {
   const rows: Row[] = jobs
-    .filter((job) => SENT_STATUSES.includes(job.status) || job.applied_at)
+    .filter((job) => (SENT_STATUSES.includes(job.status) || job.applied_at) && job.status !== "withdrawn")
     .map((job) => ({ job, events: eventsByJob.get(job.id) ?? [], outcome: outcomeOf(job, eventsByJob.get(job.id) ?? []) }));
   const decidedRows = rows.filter((row) => row.outcome !== "waiting");
   const positive = decidedRows.filter((row) => row.outcome === "positive").length;

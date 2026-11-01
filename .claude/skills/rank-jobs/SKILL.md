@@ -28,7 +28,7 @@ The settings contain `customRules`: free text the user wrote in the app's Profil
 
 ## When a fact is missing
 
-If a judgement depends on something about the candidate that the profile and `candidate/facts.md` do not say, and it affects several jobs (for example, whether the candidate may already work in one of the target countries), ask once: write `jobs/_work/question.json` with `text`, `why`, and `options` if fixed answers fit, then run `node scripts/jobs.mjs ask --file jobs/_work/question.json`. Check `node scripts/jobs.mjs questions` first so the same question is not asked twice. Until it is answered, score the cautious way and say so in `reason`.
+If a judgement depends on something about the candidate that the profile and `candidate/facts.md` do not say, and it affects several jobs (for example, whether the candidate may already work in one of the target countries), ask once: write `jobs/_work/rank-q-<n>.json` with `text`, `why`, and `options` if fixed answers fit, then run `node scripts/jobs.mjs ask --file jobs/_work/rank-q-<n>.json`. Check `node scripts/jobs.mjs questions` first so the same question is not asked twice. Until it is answered, score the cautious way and say so in `reason`.
 
 ## Exclude the job (set `exclude` to a short reason) when
 

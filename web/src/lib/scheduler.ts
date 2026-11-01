@@ -46,8 +46,9 @@ function followUps(runs: Run[], date: Date) {
     }
     // Daily: the Chrome sources after the open ones, then ranking.
     if (run.stage === "find-jobs" && run.trigger === "daily") {
-      if (chromeSourcesOn() && stageReady("browse-jobs") && !followedBy(runs, run, "browse-jobs")) return launch("browse-jobs", null, "daily");
-      if (!chromeSourcesOn() && !followedBy(runs, run, "rank-jobs")) return launch("rank-jobs", null, "daily");
+      const browse = chromeSourcesOn() && stageReady("browse-jobs");
+      if (browse && !followedBy(runs, run, "browse-jobs")) return launch("browse-jobs", null, "daily");
+      if (!browse && !followedBy(runs, run, "rank-jobs")) return launch("rank-jobs", null, "daily");
     }
     if (run.stage === "browse-jobs" && run.trigger === "daily" && !followedBy(runs, run, "rank-jobs")) return launch("rank-jobs", null, "daily");
     if (run.stage === "rank-jobs" && run.trigger === "daily" && stageReady("check-open") && !followedBy(runs, run, "check-open")) return launch("check-open", null, "daily");
@@ -62,11 +63,10 @@ export function scheduleStatus(date = new Date()): ScheduleStatus {
   const { schedule } = getSettings();
   const runs = listRuns(200).filter((run) => run.stage === "find-jobs");
   const lastFast = runs.find((run) => run.trigger === "schedule");
-  const lastDaily = runs.find((run) => run.trigger === "daily");
   if (!schedule.enabled) return { enabled: false, nextFast: null, nextDaily: null, lastCheck: lastFast?.started_at ?? null };
   const daily = new Date(date);
   daily.setHours(Math.floor(minutes(schedule.dailyRunAt) / 60), minutes(schedule.dailyRunAt) % 60, 0, 0);
-  if (daily <= date || (lastDaily && localDay(new Date(lastDaily.started_at)) === localDay(date) && daily <= date)) daily.setDate(daily.getDate() + 1);
+  if (daily <= date) daily.setDate(daily.getDate() + 1);
   const every = schedule.fastTrackEveryMinutes * 60000;
   let nextFast = lastFast ? new Date(Math.max(Date.parse(lastFast.started_at) + every, date.getTime())) : date;
   if (!active(schedule.activeFrom ?? "07:00", schedule.activeTo ?? "23:00", nextFast)) {

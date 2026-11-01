@@ -97,7 +97,7 @@ function main() {
     case "list": {
       const status = option(args, "--status");
       // Archived jobs are left out unless asked for (--archived).
-      const jobs = core.listJobs(db, { status: status ? status.split(",") : undefined, since: option(args, "--since"), archived: args.includes("--archived") ? undefined : false });
+      const jobs = core.listJobs(db, { status: status ? status.split(",") : undefined, since: option(args, "--since"), archived: args.includes("--archived") });
       // The description is long, so it is left out of lists.
       return print(jobs.map(({ description, ...job }) => job));
     }
@@ -138,13 +138,16 @@ function main() {
       const missing = Object.keys(ASSESSED).filter((key) => assessment[key] === undefined && !assessment.exclude);
       if (missing.length) throw new Error(`The assessment is missing: ${missing.join(", ")}`);
       const { score, breakdown, excluded } = scoreJob(job, core.getSettings(db), assessment);
+      // Only a job the user has not picked or sent changes stage: a re-rank
+      // refreshes the score of a selected or applied job and leaves it there.
+      const unpicked = ["found", "ranked", "excluded"].includes(job.status);
       const patch = {
         score: excluded ? null : score,
         score_breakdown: excluded ? null : breakdown,
         score_reason: assessment.reason ?? null,
         legitimacy: assessment.legitimacy_note ?? null,
-        status: excluded ? "excluded" : "ranked",
-        excluded_reason: excluded,
+        status: unpicked ? (excluded ? "excluded" : "ranked") : job.status,
+        excluded_reason: unpicked ? excluded : job.excluded_reason,
       };
       if (assessment.role) patch.role = assessment.role;
       if (assessment.work_mode) patch.work_mode = assessment.work_mode;
@@ -172,14 +175,20 @@ function main() {
           const file = path.resolve(ROOT, document.path);
           if (!fs.existsSync(file)) return { type: document.type, path: document.path, missing: true };
           const result = checkFacts(ROOT, fs.readFileSync(file, "utf8"));
-          return { type: document.type, path: document.path, claims: result.items.map(({ label, value, sentence, advisory }) => ({ kind: label, value, sentence, check: advisory ? "worth a look" : "not in profile or facts" })), note: result.note };
+          return {
+            type: document.type,
+            path: document.path,
+            claims: result.items.map(({ label, value, sentence, advisory }) => ({ kind: label, value, sentence, check: advisory ? "worth a look: fine if true, say so in the report" : "not in profile or facts: reword or remove" })),
+            forbidden: result.forbidden,
+            note: result.note,
+          };
         });
-      const open = documents.reduce((sum, document) => sum + (document.claims?.length ?? 0), 0);
+      const open = documents.reduce((sum, document) => sum + (document.claims?.length ?? 0) + (document.forbidden?.length ?? 0), 0);
       return print({
         job: job.id,
         documents,
         advice: open
-          ? "Each claim listed is not in candidate/profile.md or candidate/facts.md. Reword or remove it unless those files support it; never add facts the user did not give. A number that is not about the user's past (a request such as \"ten minutes for a call\", a plan) can stay."
+          ? "Claims marked \"not in profile or facts\" are not backed by candidate/profile.md, facts.md or the base CVs: reword or remove them; never add facts the user did not give. A number that is not about the user's past (a request such as \"ten minutes for a call\", a plan) can stay. Phrases under \"forbidden\" are ones the user ruled out: remove them."
           : "Every checked claim is backed by the profile and facts.",
       });
     }

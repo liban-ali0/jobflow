@@ -22,7 +22,7 @@ These documents go to a real employer under the candidate's name. They must be t
    - `cover-letter.md`, then `node scripts/jobs.mjs document <id> cover_letter <folder>/cover-letter.md`
    - `email.md`, then `node scripts/jobs.mjs document <id> email <folder>/email.md`
    - `answers.md`, then `node scripts/jobs.mjs document <id> answers <folder>/answers.md`
-6. Check the facts: run `node scripts/jobs.mjs factcheck <id>`. It lists every number, tool, employer, education, certificate or role size in the CV, cover letter and email that `profile.md` and `facts.md` do not back, with the sentence it is in. For each one that is about the candidate's past, reword it to what the sources say or remove it; never make the sources fit. A number that is not about the candidate (a request such as "ten minutes for a call", a plan) can stay. Run it once more after fixing; mention anything still listed, and why it is fine, in the report.
+6. Check the facts: run `node scripts/jobs.mjs factcheck <id>`. It lists every number, tool, employer, education, certificate or role size in the CV, cover letter and email that `profile.md`, `facts.md` and the base CVs do not back, with the sentence it is in, and any phrase the user ruled out (`forbidden`). For each one that is about the candidate's past, reword it to what the sources say or remove it; never make the sources fit. A number that is not about the candidate (a request such as "ten minutes for a call", a plan) can stay. A claim marked "worth a look" (a reframed title, how widely something was used) stays when it is true; say so in the report. Remove every forbidden phrase. Run it once more after fixing; mention anything still listed, and why it is fine, in the report.
 7. End with a short report: what each document emphasises, anything left out on purpose, and gaps the candidate should know about.
 
 ## Tailored CV (`cv.md`)
@@ -56,10 +56,10 @@ To: Name (role), followed by <email> only when a confirmed email exists
 LinkedIn: profile URL if known
 Subject: one line naming the role
 
-Body: 80 to 150 words. Who the candidate is, that they applied for the role, one specific thing about the person's team or work from the research, the strongest single match, and a short request (a brief call or a look at the application). No attachments mentioned beyond the CV.
-
-Sign-off with the candidate's name and contact line.
+The email itself, with no label in front of it, ending with the candidate's name and contact line.
 ```
+
+The body is 80 to 150 words: who the candidate is, that they applied for the role, one specific thing about the person's team or work from the research, the strongest single match, and a short request (a brief call or a look at the application). No attachments mentioned beyond the CV. Everything after the Subject line is sent as written, so no notes or labels there.
 
 If no person was found, address it to the company's hiring or careers contact from the research, or write it for a LinkedIn message (under 300 characters for a connection note, plus the longer version) and say so at the top.
 

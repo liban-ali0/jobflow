@@ -3,7 +3,7 @@ import { saveJobDocument } from "@/app/cv-actions";
 import { CvEditor } from "@/components/cv-editor";
 import { BackLink } from "@/components/back-link";
 import { getDocument, getJob, getSettings } from "@/lib/data";
-import { PRINTABLE, fileVersion, readText } from "@/lib/documents";
+import { PRINTABLE, readText } from "@/lib/documents";
 import { stageRunning } from "@/lib/engine";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { listTemplates, templateFor } from "@/lib/templates";
@@ -25,7 +25,7 @@ export default async function EditJobDocumentPage(props: PageProps<"/cvs/edit/do
       <BackLink fallbackHref={`/jobs/${job.id}#documents`} fallbackLabel="Job" />
       <div className="mt-3">
         <CvEditor
-          key={fileVersion(doc.path)}
+          key={doc.id}
           kind={kind}
           heading={{
             code: `JF-${String(job.id).padStart(3, "0")}`,

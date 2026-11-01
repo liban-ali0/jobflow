@@ -23,7 +23,7 @@ description: Find new jobs on sites that block automated access (Indeed, Bayt, G
    - `roles`, sorted by `priority`, and the first 2 Latin-script `keywords` of each.
    - `freshness.maxHours` (only keep jobs posted within it), `experience.skipTitles` (skip titles containing any of these words), and `experience.levels`.
 2. For each country in priority order, for each role, for each of its keywords, for each enabled source that covers the country (table below): open the search page, read the results, and keep each job that is fresh enough and not a skipped title. Look at the first page only. Stop after 40 search pages in total.
-3. After each country, save that country's jobs: write a JSON array to `jobs/_work/browse-<country code>.json` and run `node scripts/jobs.mjs add --file jobs/_work/browse-<country code>.json`. Each job:
+3. After each country, save that country's jobs: write a JSON array to `jobs/_work/browse-<country>.json` (the country's name in lowercase, no spaces) and run `node scripts/jobs.mjs add --file jobs/_work/browse-<country>.json`. Each job:
    ```json
    {"title": "…", "company": "…", "country": "<the country's name exactly as in settings>", "city": "Dubai", "role": "<role key>", "source": "indeed", "url": "<clean job link>", "posted_at": "<ISO time, or null>", "language": "en", "work_mode": "remote | hybrid | onsite | null", "track": "standard"}
    ```

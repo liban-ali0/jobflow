@@ -44,6 +44,7 @@ const LINKEDIN_NAMES = {
 const linkedinLocation = (country) => LINKEDIN_NAMES[country] ?? country;
 
 const requests = {};
+const failures = {};
 const blocked = new Set();
 const exhausted = new Set();
 const totalRequests = () => Object.values(requests).reduce((sum, count) => sum + count, 0);
@@ -57,11 +58,21 @@ async function get(source, url) {
   }
   if (totalRequests() > 0) await sleep(DELAY_MS);
   requests[source] = (requests[source] ?? 0) + 1;
-  const response = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: "text/html,application/json" },
-    signal: AbortSignal.timeout(25000),
-  });
-  if (response.status === 403 || response.status === 429) {
+  let response;
+  try {
+    response = await fetch(url, {
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: "text/html,application/json" },
+      signal: AbortSignal.timeout(25000),
+    });
+  } catch {
+    // A dropped or slow connection: this page is skipped, and a site that
+    // keeps failing is left alone for the rest of the run.
+    failures[source] = (failures[source] ?? 0) + 1;
+    if (failures[source] >= 3) blocked.add(source);
+    return null;
+  }
+  // 999 is LinkedIn's own "slow down".
+  if (response.status === 403 || response.status === 429 || response.status === 999) {
     blocked.add(source);
     return null;
   }

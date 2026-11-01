@@ -18,7 +18,7 @@ export function FactPanel({ documentId, check }: { documentId: number; check: Fa
     return (
       <div className="rounded-lg border border-line px-3 py-2 text-sm">
         <span className="font-medium text-go">Fact check: </span>
-        <span className="text-slate">every number and name here is in your profile or facts.</span>
+        <span className="text-slate">the numbers, tools, employers and schools here match your profile or facts.</span>
         {check.note && <p className="mt-1 text-xs text-slate">{check.note}</p>}
       </div>
     );
@@ -51,7 +51,7 @@ export function FactPanel({ documentId, check }: { documentId: number; check: Fa
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => run(() => requestChanges(documentId, `Fact check: "${item.value}" is not in my profile or facts. Reword it to what they say, or remove it.`))}
+                onClick={() => run(() => requestChanges(documentId, `Fact check: "${item.value}" is not in my profile or facts. Reword it to what they say, or remove it.`, true))}
                 className="btn btn-quiet px-2.5 py-1 text-xs"
               >
                 Ask for a rewrite

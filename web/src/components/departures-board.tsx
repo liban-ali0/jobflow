@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { setStatus } from "@/app/actions";
+import { removeFromSelected, selectJobs } from "@/app/job-actions";
 import { ActionButton } from "@/components/action-button";
 import { RowMenu } from "@/components/job-actions";
 import { ageMinutes, formatAgeShort } from "@/lib/format";
@@ -225,11 +225,11 @@ export function DeparturesBoard({
 
                 <div className="col-span-2 flex items-center gap-2 lg:col-span-1 lg:justify-end">
                   {selected ? (
-                    <ActionButton variant="board" action={setStatus.bind(null, job.id, "ranked")}>
+                    <ActionButton variant="board" action={removeFromSelected.bind(null, [job.id])}>
                       Remove
                     </ActionButton>
                   ) : job.status === "ranked" ? (
-                    <ActionButton variant="board" action={setStatus.bind(null, job.id, "selected")}>
+                    <ActionButton variant="board" action={selectJobs.bind(null, [job.id])}>
                       Select
                     </ActionButton>
                   ) : job.status === "found" ? (

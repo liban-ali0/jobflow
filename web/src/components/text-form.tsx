@@ -15,7 +15,10 @@ export function TextForm({
   rows,
   button,
   bare = false,
+  version,
 }: {
+  // What the page showed, so the action can tell a stale form.
+  version?: string;
   action: (state: ActionResult | null, formData: FormData) => Promise<ActionResult>;
   name: string;
   label: string;
@@ -34,6 +37,7 @@ export function TextForm({
 
   return (
     <form action={formAction} className={bare ? "" : "card p-5"}>
+      {version !== undefined && <input type="hidden" name={`${name}_version`} value={version} />}
       <label className="card-title" htmlFor={name}>
         {label}
       </label>

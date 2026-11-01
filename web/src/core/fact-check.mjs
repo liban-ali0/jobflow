@@ -72,11 +72,14 @@ function sentenceOf(text, value) {
 
 const NEGATION = /\b(?:have not|haven't|has not|hasn't|did not|didn't|not yet|never|no (?:hands-on |direct |professional )?experience|without experience|lack|new to)\b/i;
 
+// Only the clause the name sits in counts: "I have not used X, but I have
+// used Y" does not negate Y.
 function negated(sentence, value) {
   if (!sentence) return false;
   const at = sentence.toLowerCase().indexOf(String(value).toLowerCase().split(/\s+/)[0]);
   const before = at >= 0 ? sentence.slice(0, at) : sentence;
-  return NEGATION.test(before);
+  const clause = before.slice(Math.max(before.lastIndexOf(","), before.lastIndexOf(";"), before.toLowerCase().lastIndexOf(" but ")) + 1);
+  return NEGATION.test(clause);
 }
 
 // What the checker could not read, in the user's words (career-ops' own

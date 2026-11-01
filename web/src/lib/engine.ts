@@ -2,7 +2,7 @@ import "server-only";
 import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, addMessage, addProgress, finishRun, getJob, getRun, getSettings, listRuns, startRun, updateConversation } from "./data";
+import { ROOT, addMessage, addProgress, finishRun, getJob, getRun, getSettings, listRunningRuns, startRun, updateConversation } from "./data";
 import type { Conversation, EngineChoice } from "./types";
 
 // Skill stages follow .claude/skills/<key>/SKILL.md and run on the engine
@@ -78,7 +78,7 @@ export function stageReady(stage: Stage) {
   return fs.existsSync(script ? path.join(ROOT, script) : skillFile(stage));
 }
 
-const pipelineBusy = () => listRuns(50).some((run) => run.status === "running" && (run.stage === "research-job" || run.stage === "tailor-job"));
+const pipelineBusy = () => listRunningRuns().some((run) => run.stage === "research-job" || run.stage === "tailor-job");
 
 function startNextQueued() {
   while (queue.length && !pipelineBusy()) {
@@ -103,11 +103,11 @@ export function queueResearch(jobIds: number[]) {
 export const queuedResearch = () => [...queue];
 
 export function stageRunning(stage: Stage, jobId: number | null = null) {
-  return listRuns(50).some((run) => run.status === "running" && run.stage === stage && run.job_id === jobId);
+  return listRunningRuns().some((run) => run.stage === stage && run.job_id === jobId);
 }
 
 export function conversationRunning(conversationId: number) {
-  return listRuns(50).some((run) => run.status === "running" && run.conversation_id === conversationId);
+  return listRunningRuns().some((run) => run.conversation_id === conversationId);
 }
 
 export function engineFor(stage: Stage): EngineChoice {
@@ -116,14 +116,16 @@ export function engineFor(stage: Stage): EngineChoice {
   return choice && choice.engine in ENGINES ? choice : { engine: "claude", model: "", effort: "" };
 }
 
-// Runs left as "running" by a previous app session can never finish.
+// Runs left as "running" by a previous app session can never finish. The
+// extension's runs live in the browser, not in this process, so only a stale
+// one of those is closed (its routes close a fresh one when it ends).
 export function closeAbandonedRuns() {
   if (holder.jobflowCleaned) return;
   holder.jobflowCleaned = true;
-  for (const run of listRuns(200)) {
-    if (run.status === "running" && !running.has(run.id)) {
-      finishRun(run.id, { status: "failed", summary: "The app was closed before this run finished." });
-    }
+  for (const run of listRunningRuns()) {
+    if (running.has(run.id)) continue;
+    if (run.engine === "extension" && Date.now() - Date.parse(run.started_at) < 30 * 60000) continue;
+    finishRun(run.id, { status: "failed", summary: "The app was closed before this run finished." });
   }
 }
 
@@ -305,7 +307,7 @@ const ASSISTANT_INTRO = `You are the assistant inside the Offerbound web app, th
 
 - Reply in short, plain language. The user sees your final message only, plus a list of the commands you ran.
 - Read and change job data only through \`node scripts/jobs.mjs\` (run it with \`help\` for the commands).
-- To run a workflow step (build-profile, rank-jobs, research-job, tailor-job), follow its instruction file in \`.claude/skills/<step>/SKILL.md\`.
+- To run a workflow step (build-profile, rank-jobs, research-job, tailor-job, follow-up, interview-pack, improve-cv, weave-keyword, import-jobs), follow its instruction file in \`.claude/skills/<step>/SKILL.md\`.
 - The user's facts are in \`candidate/facts.md\`, the profile in \`candidate/profile.md\`. Extra ranking rules are set with \`node scripts/jobs.mjs rules --file <path>\`.
 - When you need a fact from the user that later steps should remember, ask it with \`node scripts/jobs.mjs ask --file <path>\` (JSON: text, why, options). It appears in the app's Questions, and the answer is saved to the facts. For a quick clarification in this conversation, just ask in your reply.
 - If something is outside what you may do here, say so and tell the user how to do it in the app.
@@ -550,7 +552,9 @@ export function checkEngine(engine: EngineKey): Promise<{ ok: boolean; message: 
       resolve({ ok, message });
     };
     const timer = setTimeout(() => {
-      child.kill();
+      // Through the Windows shell the engine is a child of cmd.exe: end the tree.
+      if (process.platform === "win32" && child.pid) spawn("taskkill", ["/PID", String(child.pid), "/T", "/F"], { windowsHide: true });
+      else child.kill("SIGTERM");
       done(false, `${label} did not answer within two minutes. Run \`${command}\` in a terminal in this folder to see what it is waiting for.`);
     }, CHECK_TIMEOUT_MS);
 

@@ -12,7 +12,7 @@ import { launch, stageRunning } from "@/lib/engine";
 
 // "doc:<id>" for a job's tailored CV, "base:<role key>" for a base CV.
 // Anything else is refused, since the target names a file and reaches the engine.
-const TARGET = /^(doc):(\d{1,9})$|^(base):([a-z0-9-]{1,40})$/;
+const TARGET = /^(doc):(\d{1,9})$|^(base):([a-z0-9-]{1,64})$/;
 
 function resolve(target: string) {
   const match = TARGET.exec(target);

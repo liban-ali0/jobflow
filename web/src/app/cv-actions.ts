@@ -4,7 +4,12 @@ import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/app/actions";
 import type { TemplateOptions } from "@/lib/cv-render";
 import { getDocument, getSettings, setSettings } from "@/lib/data";
-import { baseCvPath, writeText } from "@/lib/documents";
+import { baseCvPath, readText, writeText } from "@/lib/documents";
+import { parseCv, serializeCv } from "@/lib/cv-format";
+
+// Whether a saved CV's text really changed: compared in the editor's own
+// layout, since the editor sends the CV as it lays it out.
+const cvChanged = (before: string, after: string) => serializeCv(parseCv(before)).trim() !== serializeCv(parseCv(after)).trim();
 import { saveDocumentText } from "@/app/document-actions";
 import { launch } from "@/lib/engine";
 import { DEFAULT_TEMPLATE, cleanOptions, deleteTemplate, freeId, getTemplate, saveTemplate } from "@/lib/templates";
@@ -87,13 +92,15 @@ export async function saveBaseCv(role: string, markdown: string, templateId: str
   const settings = getSettings();
   if (!settings.roles.some((item) => item.key === role)) return { ok: false, message: "That role is no longer in Settings." };
   if (markdown.length > MARKDOWN_LIMIT) return { ok: false, message: "This CV is too long." };
-  writeText(baseCvPath(role), markdown);
+  // Only a changed text is written (and locked): a new template alone is a choice.
+  const changed = cvChanged(readText(baseCvPath(role)) ?? "", markdown);
+  if (changed) writeText(baseCvPath(role), markdown);
   const current = choices();
   const byRole = { ...current.byRole };
   if (templateId && getTemplate(templateId)) byRole[role] = templateId;
-  setSettings({ cvTemplates: { ...current, byRole }, cvLocked: [...new Set([...(settings.cvLocked ?? []), role])] });
+  setSettings({ cvTemplates: { ...current, byRole }, ...(changed ? { cvLocked: [...new Set([...(settings.cvLocked ?? []), role])] } : {}) });
   revalidatePath("/cvs");
-  return { ok: true, message: "Saved. AI updates on rebuild are now off for this CV, so your edits stay (switch it back on in CVs)." };
+  return { ok: true, message: changed ? "Saved. AI updates on rebuild are now off for this CV, so your edits stay (switch it back on in CVs)." : "Template saved." };
 }
 
 // Whether rebuilding the profile may rewrite a base CV.
@@ -110,12 +117,18 @@ export async function setAutoUpdate(role: string, allowed: boolean): Promise<Act
 export async function saveJobDocument(documentId: number, markdown: string, templateId: string): Promise<ActionResult> {
   const doc = getDocument(documentId);
   if (!doc) return { ok: false, message: "This document no longer exists." };
-  const outcome = await saveDocumentText(documentId, markdown);
-  if (!outcome.ok) return outcome;
+  // Only a changed text is saved as a new version (which waits for review again).
+  const before = readText(doc.path) ?? "";
+  const changed = doc.type === "cv" ? cvChanged(before, markdown) : before.trim() !== markdown.trim();
+  if (changed) {
+    const outcome = await saveDocumentText(documentId, markdown);
+    if (!outcome.ok) return outcome;
+  }
   const current = choices();
   const byJob = { ...(current.byJob ?? {}) };
   if (templateId && getTemplate(templateId)) byJob[String(doc.job_id)] = templateId;
   setSettings({ cvTemplates: { ...current, byJob } });
   revalidatePath("/cvs");
-  return { ok: true, message: "Saved. It is waiting for your review on the job page." };
+  revalidatePath(`/jobs/${doc.job_id}`);
+  return { ok: true, message: changed ? "Saved. It is waiting for your review on the job page." : "Template saved." };
 }

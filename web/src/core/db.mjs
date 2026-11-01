@@ -5,6 +5,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { EXPERIENCE_LEVELS } from "./levels.mjs";
 
+import { siteOf } from "./reposts.mjs";
+
 export { EXPERIENCE_LEVELS };
 
 export const STATUSES = [
@@ -292,16 +294,19 @@ export function addJob(db, job) {
   if (!job.title || !job.company) throw new Error("A job needs a title and a company");
   const byUrl = job.url && db.prepare("SELECT id FROM jobs WHERE url = ?").get(job.url);
   if (byUrl) return { id: byUrl.id, created: false };
-  // The same title at the same company within 30 days is the same opening.
-  // Under a new link on a later day it was listed again: noted on the job
-  // (a repost after applying usually means the role is still open).
+  // The same title at the same company, in the same country and on the same
+  // site, within 30 days is the same opening (another country is another
+  // opening). Under a new link on a later day it was listed again: noted on
+  // the job (a repost after applying usually means the role is still open).
   const same = db
-    .prepare("SELECT id, url, found_at, relisted_at FROM jobs WHERE lower(title) = lower(?) AND lower(company) = lower(?) AND found_at > ? ORDER BY found_at DESC")
-    .get(job.title, job.company, new Date(Date.now() - 30 * 86400000).toISOString());
+    .prepare("SELECT id, url, country, found_at, relisted_at FROM jobs WHERE lower(title) = lower(?) AND lower(company) = lower(?) AND found_at > ? ORDER BY found_at DESC")
+    .all(job.title, job.company, new Date(Date.now() - 30 * 86400000).toISOString())
+    .find((row) => (row.country ?? "") === (job.country ?? "") && siteOf(row.url ?? "") === siteOf(job.url ?? ""));
   if (same) {
     const last = Date.parse(same.relisted_at ?? same.found_at);
     if (job.url && job.url !== same.url && Date.now() - last >= 20 * 3600000) {
-      db.prepare("UPDATE jobs SET relisted_count = COALESCE(relisted_count, 0) + 1, relisted_at = ? WHERE id = ?").run(now(), same.id);
+      // The new listing's date keeps the job fresh on the board.
+      db.prepare("UPDATE jobs SET relisted_count = COALESCE(relisted_count, 0) + 1, relisted_at = ?, posted_at = COALESCE(?, posted_at) WHERE id = ?").run(now(), job.posted_at ?? null, same.id);
       addEvent(db, same.id, "relisted", job.url);
       return { id: same.id, created: false, relisted: true };
     }
@@ -397,6 +402,16 @@ export function listContacts(db, jobId) {
   return db.prepare("SELECT * FROM contacts WHERE job_id = ? ORDER BY id").all(jobId);
 }
 
+// The contacts of many jobs in one query: Map<jobId, contacts>.
+export function listContactsByJob(db, jobIds) {
+  const byJob = new Map(jobIds.map((id) => [id, []]));
+  if (!jobIds.length) return byJob;
+  for (const row of db.prepare("SELECT * FROM contacts WHERE job_id IN (SELECT value FROM json_each(?)) ORDER BY id").all(JSON.stringify(jobIds))) {
+    byJob.get(row.job_id)?.push(row);
+  }
+  return byJob;
+}
+
 // Registers a document file for a job. Saving a new version resets its review.
 export function saveDocument(db, jobId, type, filePath) {
   if (!DOCUMENT_TYPES.includes(type)) {
@@ -408,6 +423,9 @@ export function saveDocument(db, jobId, type, filePath) {
      ON CONFLICT(job_id, type) DO UPDATE SET path = excluded.path, review = 'draft', review_note = NULL, updated_at = excluded.updated_at`,
   ).run(jobId, type, relative.split(path.sep).join("/"), now());
   addEvent(db, jobId, "document", type);
+  // A new version of a package document waits for approval again, so a job
+  // that was ready to apply is not any more.
+  if (["cv", "cover_letter", "email", "answers"].includes(type) && getJob(db, jobId)?.status === "ready") updateJob(db, jobId, { status: "researched" });
 }
 
 export function reviewDocument(db, id, review, note = null) {
@@ -517,6 +535,8 @@ export function askQuestion(db, { text, why = null, options = null, job_id = nul
     throw new Error(`category must be one of: ${QUESTION_CATEGORIES.join(", ")}`);
   }
   const kind = category ?? (job_id ? "job" : "you");
+  // An empty list means no fixed answers, as leaving it out does.
+  if (Array.isArray(options) && options.length === 0) options = null;
   if (options !== null && (!Array.isArray(options) || options.length < 2)) {
     throw new Error("options must be a list of at least two answers, or left out");
   }
@@ -675,7 +695,7 @@ export function listingTargets(db, { ids = null, limit = 60 } = {}) {
   return db
     .prepare(
       `SELECT id, title, company, url, status FROM jobs
-       WHERE status IN (${LISTING_CHECKED.map(() => "?").join(", ")}) AND url LIKE 'http%'
+       WHERE status IN (${LISTING_CHECKED.map(() => "?").join(", ")}) AND url LIKE 'http%' AND archived_at IS NULL
          AND (listing_state IS NULL OR listing_state NOT IN ('closed', 'kept'))
          AND (listing_checked_at IS NULL OR listing_checked_at < CASE WHEN status IN (${LISTING_ACTIVE.map(() => "?").join(", ")}) THEN ? ELSE ? END)
        ORDER BY CASE status WHEN 'ready' THEN 0 WHEN 'researched' THEN 1 WHEN 'selected' THEN 2 WHEN 'ranked' THEN 3 WHEN 'applied' THEN 4 ELSE 5 END,

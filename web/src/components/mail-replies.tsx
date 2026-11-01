@@ -66,9 +66,9 @@ function MailItem({ mail, applications, showJob }: { mail: MailRow; applications
           </p>
         )}
       </div>
-      {!mail.job_id && (
+      {applications.length > 0 && (
         <label className="block text-sm">
-          <span className="font-medium">Which application is it about?</span>
+          <span className="font-medium">{mail.job_id ? "Application (change it if the match is wrong)" : "Which application is it about?"}</span>
           <select value={jobId ?? ""} onChange={(event) => setJobId(event.target.value ? Number(event.target.value) : null)} className="field mt-1">
             <option value="">Choose…</option>
             {applications.map((application) => (

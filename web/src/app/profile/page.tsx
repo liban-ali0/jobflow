@@ -1,4 +1,5 @@
 import { runStage, saveFacts, saveRules } from "@/app/actions";
+import { factsVersion } from "@/lib/data";
 import Link from "next/link";
 import { ActionButton } from "@/components/action-button";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -77,6 +78,7 @@ export default function ProfilePage() {
       <div className="mt-8 space-y-6">
         <TextForm
           action={saveFacts}
+          version={factsVersion()}
           name="facts"
           label="Facts about you"
           hint="Anything the CV does not say: employment type per job, current location, languages, visa, preferences. When the CV and these facts disagree, the facts win."

@@ -11,7 +11,7 @@
 //   one (years, degree, languages compared as values), met or missing.
 // The score weighs them by WEIGHTS. Deterministic and quick (about 15 ms), so
 // the CV editor can re-check as you type and the same CV gets the same score.
-import { parseCv, type CvDocument } from "./cv-format";
+import { parseCv, serializeCv, type CvDocument } from "./cv-format";
 import { scoreResume } from "@/vendor/ats-screener/scorer/engine";
 import { ALL_PROFILES } from "@/vendor/ats-screener/scorer/profiles";
 import type { ScoringInput, Suggestion } from "@/vendor/ats-screener/scorer/types";
@@ -531,8 +531,11 @@ function reviewFixes(report: AtsReport, weight: number, fixes: AtsFix[], checks:
   return out;
 }
 
-export function checkCv(markdown: string, target: AtsTarget): AtsResult {
-  const doc = parseCv(markdown);
+export function checkCv(raw: string, target: AtsTarget): AtsResult {
+  // The CV in its own layout, so every screen (editor, lists, job page)
+  // scores the same text whatever the file's formatting.
+  const doc = parseCv(raw);
+  const markdown = serializeCv(doc);
   const input = scoringInput(doc, markdown, target);
   const results = scoreResume(input);
   const systemsScore = average(results.map((result) => result.overallScore));

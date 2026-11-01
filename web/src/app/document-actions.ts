@@ -36,12 +36,14 @@ export async function approveDocument(id: number): Promise<ActionResult> {
   return { ok: true, message: "Approved." };
 }
 
-export async function requestChanges(id: number, note: string): Promise<ActionResult> {
+export async function requestChanges(id: number, note: string, append = false): Promise<ActionResult> {
   const doc = getDocument(id);
   if (!doc) return { ok: false, message: "This document no longer exists." };
   const text = note.trim();
   if (!text) return { ok: false, message: "Say what should change." };
-  reviewDocument(id, "changes_requested", text.slice(0, 2000));
+  // A request added to an open one (the fact check's, one claim at a time).
+  const full = append && doc.review === "changes_requested" && doc.review_note && !doc.review_note.includes(text) ? `${doc.review_note}\n${text}` : text;
+  reviewDocument(id, "changes_requested", full.slice(0, 2000));
   updateReadiness(doc.job_id);
   refresh(doc.job_id);
   return { ok: true, message: "Noted. Use Rewrite to have it redone." };

@@ -11,7 +11,9 @@ async function jobflowCall(path, options = {}) {
   if (!token) throw new Error("Paste your key in the extension's settings first (from Offerbound → Settings → Sources).");
   let response;
   try {
-    response = await fetch(`${address}${path}`, { ...options, headers: { "Content-Type": "application/json", "X-Jobflow-Token": token, ...(options.headers || {}) } });
+    // Two minutes at most (a pack with its PDFs can take a while), so a
+    // request that hangs cannot leave a check or a run stuck.
+    response = await fetch(`${address}${path}`, { signal: AbortSignal.timeout(120000), ...options, headers: { "Content-Type": "application/json", "X-Jobflow-Token": token, ...(options.headers || {}) } });
   } catch {
     throw new Error("Offerbound is not reachable. Is the app running?");
   }

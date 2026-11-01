@@ -19,7 +19,7 @@ The job id is: `$ARGUMENTS`
 6. Save each person found with `node scripts/jobs.mjs contact <id> --file jobs/_work/<id>-contact-<n>.json` (fields: `name`, `role`, `email`, `email_verified` as 1 or 0, `linkedin`, `notes`).
 7. Save the salary estimate with `node scripts/jobs.mjs update <id> --file jobs/_work/<id>-update.json` containing `{"salary_estimate": "..."}`, a short line such as "AED 9,000 to 12,000 a month (mid-range for junior backend roles in Dubai)".
 8. Ask about gaps that only the candidate can answer (see "Questions").
-9. Set the status with `node scripts/jobs.mjs status <id> researched`. Exception: if the listing is closed (for example "no longer accepting applications") or the research shows it is very likely not genuine, set `node scripts/jobs.mjs status <id> excluded <short reason>` instead, so no documents are written for it, and explain why in the report.
+9. Set the status with `node scripts/jobs.mjs status <id> researched`. Exception: if the listing is closed (for example "no longer accepting applications") or the research shows it is very likely not genuine, set `node scripts/jobs.mjs status <id> excluded <short reason>` instead (for a closed listing, first run `node scripts/jobs.mjs update <id> --file jobs/_work/<id>-closed.json` with `{"listing_state": "closed", "listing_reason": "<what the page says>"}`, so the app does not check it again), so no documents are written for it, and explain why in the report.
 10. End with a short report: two or three lines on the company, the biggest strengths and gaps, the people found, the salary estimate, and any questions asked.
 
 ## Company brief
