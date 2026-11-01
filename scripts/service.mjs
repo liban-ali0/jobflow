@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Runs Offerbound in the background, like a desktop app: no window to keep
-// open, started again if it stops unexpectedly, and (on Windows) started when
-// you sign in. The app is the same production server as `npm start`.
+// open, started again if it stops unexpectedly, and, if you choose, started
+// when you sign in (Windows, macOS, Linux). Nothing here is on until you run
+// it. The app is the same production server as `npm start`.
 //
 //   node scripts/service.mjs start          start in the background
 //   node scripts/service.mjs stop           stop it
@@ -9,7 +10,7 @@
 //   node scripts/service.mjs status         running or not, sign-in start on or off
 //   node scripts/service.mjs update         get the latest version, then restart
 //   node scripts/service.mjs logs           the end of the log
-//   node scripts/service.mjs autostart on   start at sign-in (Windows)
+//   node scripts/service.mjs autostart on   start at sign-in (Windows, macOS, Linux)
 //   node scripts/service.mjs autostart off
 //
 // Add --json to status for the app's Settings page. The server log is in
@@ -17,6 +18,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -199,25 +201,73 @@ async function stop({ quiet = false } = {}) {
   if (!quiet) console.log("Offerbound stopped.");
 }
 
+// Starting at sign-in, the usual way on each system, for this user only (no
+// administrator rights): Windows' Run list, a macOS LaunchAgent, or a Linux
+// desktop autostart entry. One entry per copy of Offerbound.
+const SLUG = path.basename(ROOT).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "offerbound";
+const MAC_AGENT = path.join(os.homedir(), "Library", "LaunchAgents", `net.offerbound.${SLUG}.plist`);
+const LINUX_ENTRY = path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"), "autostart", `offerbound-${SLUG}.desktop`);
+const AUTOSTART_SUPPORTED = WINDOWS || process.platform === "darwin" || process.platform === "linux";
+
 function autostartOn() {
-  if (!WINDOWS) return false;
-  const query = spawnSync("reg", ["query", RUN_KEY, "/v", RUN_NAME], { encoding: "utf8", windowsHide: true });
-  return query.status === 0;
+  if (WINDOWS) return spawnSync("reg", ["query", RUN_KEY, "/v", RUN_NAME], { encoding: "utf8", windowsHide: true }).status === 0;
+  if (process.platform === "darwin") return fs.existsSync(MAC_AGENT);
+  if (process.platform === "linux") return fs.existsSync(LINUX_ENTRY);
+  return false;
 }
 
+const xml = (text) => text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
 function setAutostart(on) {
-  if (!WINDOWS) {
-    console.error("Starting at sign-in is set up for Windows only. On macOS or Linux, add `node scripts/service.mjs start` to your login items.");
+  if (!AUTOSTART_SUPPORTED) {
+    console.error("Starting at sign-in is not set up for this system. Add `node scripts/service.mjs start` to your login items.");
     return false;
   }
   if (!on) {
-    spawnSync("reg", ["delete", RUN_KEY, "/v", RUN_NAME, "/f"], { stdio: "ignore", windowsHide: true });
-    fs.rmSync(LAUNCHER, { force: true });
+    if (WINDOWS) {
+      spawnSync("reg", ["delete", RUN_KEY, "/v", RUN_NAME, "/f"], { stdio: "ignore", windowsHide: true });
+      fs.rmSync(LAUNCHER, { force: true });
+    }
+    fs.rmSync(process.platform === "darwin" ? MAC_AGENT : LINUX_ENTRY, { force: true });
     console.log("Offerbound no longer starts when you sign in.");
     return true;
   }
-  const port = option("port") ?? readState()?.port ?? process.env.PORT ?? "3000";
-  const command = `"${process.execPath}" "${fileURLToPath(import.meta.url)}" start --quiet --no-wait --port ${port}`;
+  const port = String(option("port") ?? readState()?.port ?? process.env.PORT ?? "3000");
+  const parts = [process.execPath, fileURLToPath(import.meta.url), "start", "--quiet", "--no-wait", "--port", port];
+
+  if (process.platform === "darwin") {
+    fs.mkdirSync(path.dirname(MAC_AGENT), { recursive: true });
+    fs.writeFileSync(
+      MAC_AGENT,
+      `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>net.offerbound.${SLUG}</string>
+  <key>ProgramArguments</key>
+  <array>
+${parts.map((part) => `    <string>${xml(part)}</string>`).join("\n")}
+  </array>
+  <key>WorkingDirectory</key><string>${xml(ROOT)}</string>
+  <key>RunAtLoad</key><true/>
+</dict>
+</plist>
+`,
+    );
+    console.log("Offerbound now starts in the background when you log in to your Mac.");
+    return true;
+  }
+
+  if (process.platform === "linux") {
+    // Desktop entry quoting: each argument in double quotes, with \ " ` $ escaped.
+    const quoted = parts.map((part) => `"${part.replace(/([\\"`$])/g, "\\$1")}"`).join(" ");
+    fs.mkdirSync(path.dirname(LINUX_ENTRY), { recursive: true });
+    fs.writeFileSync(LINUX_ENTRY, `[Desktop Entry]\nType=Application\nName=Offerbound\nComment=Starts Offerbound in the background (scripts/service.mjs)\nExec=${quoted}\nTerminal=false\nNoDisplay=true\nX-GNOME-Autostart-enabled=true\n`);
+    console.log("Offerbound now starts in the background when you log in to your desktop.");
+    return true;
+  }
+
+  const command = parts.map((part) => (/^[\w.:-]+$/.test(part) ? part : `"${part}"`)).join(" ");
   // A small script started by Windows Script Host runs the command without
   // opening a window. Where it is missing (VBScript can be removed), a hidden
   // PowerShell does the same with a brief flash.
@@ -226,7 +276,7 @@ function setAutostart(on) {
     fs.mkdirSync(DATA, { recursive: true });
     // UTF-16 with a byte order mark, so folder names in any language work.
     const script = `' Starts Offerbound in the background at sign-in (scripts/service.mjs).\r\nCreateObject("WScript.Shell").Run "${command.replace(/"/g, '""')}", 0, False\r\n`;
-    fs.writeFileSync(LAUNCHER, `﻿${script}`, "utf16le");
+    fs.writeFileSync(LAUNCHER, `\ufeff${script}`, "utf16le");
     entry = `wscript.exe //B //Nologo "${LAUNCHER}"`;
   } else {
     entry = `powershell.exe -NoProfile -WindowStyle Hidden -Command "& ${command.replace(/"/g, "'")}"`;
@@ -251,13 +301,13 @@ async function status() {
     port: Number(port),
     since: current?.started ?? null,
     autostart: autostartOn(),
-    autostartSupported: WINDOWS,
+    autostartSupported: AUTOSTART_SUPPORTED,
     log: LOG,
   };
   if (flag("json")) return console.log(JSON.stringify(report));
   if (!current) console.log("Offerbound is not running in the background.");
   else console.log(`Offerbound is ${report.answering ? "running" : "starting"}: http://localhost:${port} (since ${new Date(report.since).toLocaleString()})`);
-  if (WINDOWS) console.log(`Start at sign-in: ${report.autostart ? "on" : "off"}`);
+  if (AUTOSTART_SUPPORTED) console.log(`Start at sign-in: ${report.autostart ? "on" : "off"}`);
   console.log(`Log: ${LOG}`);
 }
 

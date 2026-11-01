@@ -40,7 +40,7 @@ The pictures show a demo with a fictional candidate and fictional companies.
 
 Download the **LTS** version from [nodejs.org](https://nodejs.org) and install it with the default options. You need version **22.13 or newer**.
 
-Check it: open a terminal (Windows: *Terminal* or *PowerShell*; macOS: *Terminal*) and run:
+Check it: open a terminal (Windows: *Terminal* or *PowerShell*; macOS: *Terminal*; Linux: your usual terminal) and run:
 
 ```
 node --version
@@ -69,7 +69,7 @@ Either:
 - with Git: `git clone https://github.com/liban-ali0/offerbound.git offerbound`, or
 - download the ZIP from the project's GitHub page (green **Code** button → **Download ZIP**) and unzip it.
 
-Then open a terminal **in the Offerbound folder** (the one with `README.md` in it). On Windows you can right-click the folder in Explorer and choose *Open in Terminal*.
+Then open a terminal **in the Offerbound folder** (the one with `README.md` in it). On Windows you can right-click the folder in Explorer and choose *Open in Terminal*; on macOS, right-click it in Finder and choose *New Terminal at Folder* (or type `cd ` in Terminal and drag the folder in); on Linux, most file managers have *Open in Terminal* in the right-click menu.
 
 ## 5. Install it
 
@@ -108,7 +108,9 @@ node scripts/service.mjs start
 node scripts/service.mjs autostart on
 ```
 
-Offerbound now runs in the background, without a window, and starts by itself whenever you sign in to Windows. In Chrome or Edge, open http://localhost:3000, go to **Settings → This computer** and press **Install Offerbound** (or use the install icon at the right of the address bar). It then opens in its own window, with a taskbar icon and a Start menu entry.
+Offerbound now runs in the background, without a window, and starts by itself whenever you sign in (Windows, macOS and Linux alike; `node scripts/service.mjs autostart off` undoes it). In Chrome or Edge, open http://localhost:3000, go to **Settings → This computer** and press **Install Offerbound** (or use the install icon at the right of the address bar; on a Mac, Safari's File → Add to Dock works too). It then opens in its own window, with a taskbar or Dock icon and an entry in the Start menu, Launchpad or app list.
+
+Both are optional, and neither is on until you run them.
 
 ## 8. Setup: your CV and facts
 

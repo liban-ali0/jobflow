@@ -1,6 +1,6 @@
 import { revalidatePath } from "next/cache";
 import { extensionDenied } from "@/lib/capture";
-import { addProgress, finishRun, getJob, getRun, listRuns, listingTargets, setListing, startRun } from "@/lib/data";
+import { addProgress, finishRun, getJob, getRun, getSettings, listRuns, listingTargets, setListing, startRun } from "@/lib/data";
 import { browserListing, classifyBrowserPage } from "@/core/liveness.mjs";
 
 // Listings only a real browser can read (Indeed), checked by the extension in
@@ -11,6 +11,10 @@ const PER_RUN = 20;
 export async function GET(request: Request) {
   const denied = extensionDenied(request);
   if (denied) return denied;
+  const timer = new URL(request.url).searchParams.get("trigger") === "timer";
+  // The extension's own timer checks only when the user turned the schedule
+  // on: nothing runs by itself until they choose it.
+  if (timer && !getSettings().schedule.enabled) return Response.json({ ok: true, runId: null, jobs: [] });
   // A check still running elsewhere (another browser) is left alone; one the
   // browser never finished (closed, crashed) is closed after half an hour.
   for (const run of listRuns(50)) {
@@ -23,7 +27,7 @@ export async function GET(request: Request) {
     .slice(0, PER_RUN)
     .map(({ id, url }) => ({ id, url }));
   if (!jobs.length) return Response.json({ ok: true, runId: null, jobs });
-  const trigger = new URL(request.url).searchParams.get("trigger") === "timer" ? "schedule" : "manual";
+  const trigger = timer ? "schedule" : "manual";
   const runId = startRun({ stage: "browser-listings", trigger, engine: "extension" });
   addProgress(runId, `Checking ${jobs.length} ${jobs.length === 1 ? "listing" : "listings"} in your browser`);
   return Response.json({ ok: true, runId, jobs });

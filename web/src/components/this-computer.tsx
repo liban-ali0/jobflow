@@ -20,7 +20,7 @@ const MODE_TEXT: Record<Status["mode"], string> = {
   development: "Running the development server (npm run app): closing its window stops Offerbound.",
 };
 
-// Settings → This computer: Offerbound as a Windows app. Starting at sign-in
+// Settings → This computer: Offerbound as a desktop app. Starting at sign-in
 // saves at once (it is not part of the settings form), and installing uses
 // the browser's own "install as app".
 export function ThisComputer({ status }: { status: Status }) {
@@ -61,9 +61,9 @@ export function ThisComputer({ status }: { status: Status }) {
 
       <label className={`flex items-center justify-between gap-6 px-5 py-3.5 md:px-6 ${status.autostartSupported ? "cursor-pointer hover:bg-mist/50" : ""}`}>
         <span className={`min-w-0 ${status.autostartSupported ? "" : "opacity-60"}`}>
-          <span className="text-sm font-medium">Start when I sign in to Windows</span>
+          <span className="text-sm font-medium">Start when I sign in to this computer</span>
           <span className="mt-0.5 block text-xs text-slate">
-            Offerbound starts in the background each time you sign in, so the schedule, the extension and your phone always find it. Saved at once.
+            Off until you turn it on. Offerbound then starts in the background each time you sign in (Windows, macOS or Linux), so the schedule, the extension and your phone always find it. Saved at once.
             {status.mode !== "background" && " It takes effect from the next sign-in; to switch over now, close this window and run node scripts/service.mjs start."}
           </span>
         </span>
@@ -93,7 +93,7 @@ export function ThisComputer({ status }: { status: Status }) {
           <>
             <p className="max-w-2xl text-xs text-slate">
               Gives Offerbound its own window, a taskbar icon and a Start menu entry, like any other app. It still runs on this computer only.
-              {!prompt && " In Chrome or Edge, use the install icon at the right of the address bar, or the menu: Cast, save and share → Install page as app (Edge: Apps → Install this site as an app)."}
+              {!prompt && " In Chrome or Edge, use the install icon at the right of the address bar, or the menu: Cast, save and share → Install page as app (Edge: Apps → Install this site as an app). On a Mac, Safari can do it too: File → Add to Dock."}
             </p>
             {prompt && (
               <button

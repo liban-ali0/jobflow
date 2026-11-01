@@ -685,7 +685,7 @@ export function SettingsForm({
             <SwitchRow
               name="schedule.enabled"
               label="Run on a schedule"
-              hint="Fast track: LinkedIn and Workable. Daily run: every source, then ranking. Uses your engine's usage only to rank."
+              hint="Off until you turn it on. Fast track: LinkedIn and Workable. Daily run: every source, then ranking, then a check of which listings are still open (Indeed's through the extension, every 6 hours). Uses your engine's usage only to rank."
               checked={settings.schedule.enabled}
             />
           </div>
