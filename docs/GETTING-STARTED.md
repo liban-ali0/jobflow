@@ -66,7 +66,7 @@ npm install -g @openai/codex
 
 Either:
 
-- with Git: `git clone https://github.com/liban-ali0/jobflow.git offerbound`, or
+- with Git: `git clone https://github.com/liban-ali0/offerbound.git offerbound`, or
 - download the ZIP from the project's GitHub page (green **Code** button → **Download ZIP**) and unzip it.
 
 Then open a terminal **in the Offerbound folder** (the one with `README.md` in it). On Windows you can right-click the folder in Explorer and choose *Open in Terminal*.
