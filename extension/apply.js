@@ -109,42 +109,71 @@
     const s = barState;
     const items = s.reasons.map((reason) => `<li>${escapeHtml(reason)}</li>`).join("");
     const typed = s.typed.map((field, index) => `<label class="row"><input type="checkbox" data-i="${index}" checked> <span><b>${escapeHtml(field.label)}</b>: ${escapeHtml(field.value)}</span></label>`).join("");
+    const mark = `<svg viewBox="0 0 64 64" width="20" height="20" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#ffc20e"/><path d="M0 32h64" stroke="#12203a" stroke-width="2.5"/><path d="M20 44 44 20M28 20h16v16" fill="none" stroke="#12203a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const need = s.reasons.length;
+    const summary = s.confirmed ? "Applied ✓" : need ? `${need} ${need === 1 ? "thing needs" : "things need"} you` : "Ready to submit";
+    const progress = `<span class="chip">${s.filled} ${s.filled === 1 ? "field" : "fields"} filled</span>${s.files ? `<span class="chip">${s.files} ${s.files === 1 ? "file" : "files"} attached</span>` : ""}${s.queue ? `<span class="chip">${s.queue} more ${s.queue === 1 ? "job" : "jobs"} after this</span>` : ""}`;
     bar.innerHTML = `
       <style>
-        .card { font: 13px/1.45 system-ui, sans-serif; color: #1b2433; background: #fff; width: 320px; max-height: 60vh; overflow: auto; border-radius: 10px; box-shadow: 0 8px 30px rgb(18 32 58 / 0.28); border: 1px solid #d9dee7; }
-        header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #12203a; color: #fff; border-radius: 10px 10px 0 0; }
-        header span { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        header button { background: none; border: 0; color: #c9d1de; cursor: pointer; font: inherit; text-decoration: underline; padding: 0; }
-        main { padding: 10px 12px 12px; }
-        p { margin: 0 0 6px; }
-        ul { margin: 4px 0 8px; padding-left: 18px; }
-        li { margin: 2px 0; }
-        .need { color: #8a5a00; font-weight: 600; }
-        .ok { color: #1d7a46; font-weight: 600; }
-        .row { display: flex; gap: 6px; align-items: flex-start; margin: 4px 0; }
-        .actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-        .actions button { flex: 1; padding: 7px 8px; border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid #d9dee7; background: #fff; color: #1b2433; }
+        :host { all: initial; }
+        .card {
+          --card: #ffffff; --ink: #12203a; --muted: #5a6578; --line: #d7dde6; --soft: #f5f7fa; --focus: #1d5fa8;
+          --go: #1d7a46; --go-soft: #e7f4ec; --wait: #8a5a00; --wait-soft: #fff6db;
+          font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--card);
+          width: 330px; max-width: calc(100vw - 32px); max-height: 70vh; overflow: auto; border-radius: 14px;
+          box-shadow: 0 12px 36px rgb(18 32 58 / 0.3); border: 1px solid var(--line);
+        }
+        @media (prefers-color-scheme: dark) {
+          .card { --card: #16223a; --ink: #e8edf5; --muted: #a3afc2; --line: #2b3a55; --soft: #1b2944; --focus: #7fb2ee; --go: #6fd39b; --go-soft: #15362a; --wait: #ffd36b; --wait-soft: #3a3016; }
+        }
+        header { display: flex; align-items: center; gap: 8px; padding: 9px 10px 9px 12px; background: #12203a; color: #fff; }
+        header .title { flex: 1; min-width: 0; }
+        header .job { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        header .state { display: block; font-size: 11px; color: #c9d1de; }
+        .icon { display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #d6dde9; cursor: pointer; font: 600 16px/1 system-ui, sans-serif; }
+        .icon:hover { background: rgb(255 255 255 / 0.12); color: #fff; }
+        main { padding: 12px; display: grid; gap: 10px; }
+        p { margin: 0; }
+        .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip { padding: 2px 8px; border-radius: 999px; background: var(--soft); border: 1px solid var(--line); font-size: 12px; }
+        .callout { padding: 9px 10px; border-radius: 10px; }
+        .callout.need { background: var(--wait-soft); color: var(--wait); }
+        .callout.ok { background: var(--go-soft); color: var(--go); }
+        .callout b { display: block; margin-bottom: 2px; }
+        ul { margin: 4px 0 0; padding-left: 18px; }
+        li + li { margin-top: 2px; }
+        .row { display: flex; gap: 8px; align-items: flex-start; padding: 6px 8px; border-radius: 8px; background: var(--soft); }
+        .row + .row { margin-top: 4px; }
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .actions button { flex: 1; min-width: 120px; padding: 8px 10px; border-radius: 8px; font: inherit; font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
+        .actions button:hover { background: var(--soft); }
         .actions button.main { background: #ffc20e; border-color: #ffc20e; color: #12203a; }
-        .hint { color: #5b6576; font-size: 12px; }
-        .min main { display: none; }
+        button:focus-visible, input:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+        .hint { color: var(--muted); font-size: 12px; }
+        .pill { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 10px; border: 0; border-radius: 999px; background: #12203a; color: #fff; font: 600 13px/1.2 system-ui, sans-serif; cursor: pointer; box-shadow: 0 8px 24px rgb(18 32 58 / 0.35); }
+        .pill .count { padding: 2px 8px; border-radius: 999px; background: #ffc20e; color: #12203a; }
       </style>
-      <div class="card ${s.min ? "min" : ""}" role="region" aria-label="Offerbound">
-        <header><svg viewBox="0 0 64 64" width="20" height="20" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#ffc20e"/><path d="M0 32h64" stroke="#12203a" stroke-width="2.5"/><path d="M20 44 44 20M28 20h16v16" fill="none" stroke="#12203a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>${escapeHtml(s.title || "Offerbound")}</span><button data-act="min">${s.min ? "Show" : "Hide"}</button></header>
+      ${
+        s.min
+          ? `<button class="pill" data-act="min" aria-label="Show the Offerbound panel">${mark}<span>Offerbound</span><span class="count">${escapeHtml(summary)}</span></button>`
+          : `<div class="card" role="region" aria-label="Offerbound">
+        <header>${mark}<span class="title"><span class="job">${escapeHtml(s.title || "Offerbound")}</span><span class="state">${escapeHtml(summary)}</span></span><button class="icon" data-act="min" title="Hide" aria-label="Hide the Offerbound panel">–</button></header>
         <main>
           ${
             s.confirmed
-              ? `<p class="ok">Applied ✓ Recorded in Offerbound.</p>
-                 ${typed ? `<p>Save what you typed, so the next forms fill it?</p>${typed}<div class="actions"><button class="main" data-act="save">Save for next time</button></div>` : ""}
+              ? `<div class="callout ok"><b>Applied ✓</b>Recorded in Offerbound.</div>
+                 ${typed ? `<div><p style="margin-bottom:6px">Save what you typed, so the next forms fill it?</p>${typed}</div><div class="actions"><button class="${s.queue ? "" : "main"}" data-act="save">Save for next time</button></div>` : ""}
                  ${s.message ? `<p class="hint">${escapeHtml(s.message)}</p>` : ""}
-                 <div class="actions">${s.queue ? `<button class="main" data-act="next">Next job (${s.queue} left)</button>` : ""}</div>`
-              : `<p>Filled ${s.filled} ${s.filled === 1 ? "field" : "fields"}${s.files ? ` and ${s.files} ${s.files === 1 ? "file" : "files"}` : ""}.</p>
-                 ${s.reasons.length ? `<p class="need">${s.reasons.length} ${s.reasons.length === 1 ? "thing needs" : "things need"} you (yellow on the form):</p><ul>${items}</ul>` : `<p class="ok">Nothing left: check the form and submit it.</p>`}
-                 <p class="hint">Offerbound never presses Submit. When you submit, it records the application.</p>
+                 ${s.queue ? `<div class="actions"><button class="main" data-act="next">Next job (${s.queue} left)</button></div>` : ""}`
+              : `<div class="chips">${progress}</div>
+                 ${need ? `<div class="callout need"><b>Needs you (yellow on the form)</b><ul>${items}</ul></div>` : `<div class="callout ok"><b>Nothing left to fill</b>Check the form, then submit it yourself.</div>`}
                  ${s.message ? `<p class="hint">${escapeHtml(s.message)}</p>` : ""}
-                 <div class="actions"><button data-act="submitted">I submitted it</button>${s.queue ? `<button data-act="skip">Skip to next</button>` : ""}</div>`
+                 <div class="actions"><button data-act="submitted">I submitted it</button>${s.queue ? `<button data-act="skip">Skip this job</button>` : ""}</div>
+                 <p class="hint">Offerbound never presses Submit. When you submit, it records the application.</p>`
           }
         </main>
-      </div>`;
+      </div>`
+      }`;
     bar.querySelectorAll("button[data-act]").forEach((button) => button.addEventListener("click", (event) => onBar(event, button.dataset.act)));
   }
 

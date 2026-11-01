@@ -3,78 +3,108 @@
   <head>
     <meta charset="utf-8" />
     <title>Offerbound</title>
+    <link rel="stylesheet" href="ui.css" />
     <style>
-      :root {
-        --navy: #12203a;
-        --yellow: #ffc20e;
-        --ink: #1b2433;
-        --slate: #5b6576;
-        --line: #d9dee7;
-        --go: #1d7a46;
-        --stop: #b3261e;
-        color-scheme: light;
-      }
-      body { margin: 0; width: 320px; font: 14px/1.45 system-ui, sans-serif; color: var(--ink); background: #f6f7f9; }
-      header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--navy); color: #fff; }
-      header span { font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
-      header button { margin-left: auto; width: auto; padding: 2px 6px; background: transparent; color: #c9d1de; font-weight: 500; font-size: 12px; text-decoration: underline; }
-      main { padding: 4px 14px 14px; }
-      section { padding-top: 10px; }
-      section + section { margin-top: 10px; border-top: 1px solid var(--line); }
-      h2 { margin: 0 0 6px; font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--slate); }
-      button { width: 100%; padding: 9px; border: 0; border-radius: 6px; font: inherit; font-weight: 600; cursor: pointer; background: var(--yellow); color: var(--navy); }
-      button.quiet { background: #fff; border: 1px solid var(--line); color: var(--ink); font-weight: 500; }
-      button:disabled { opacity: 0.5; cursor: default; }
-      .status { margin: 8px 0 0; min-height: 1.2em; font-size: 13px; }
-      .ok { color: var(--go); }
-      .error { color: var(--stop); }
-      label { display: block; margin-top: 8px; font-size: 12px; font-weight: 600; color: var(--slate); }
-      input, select { box-sizing: border-box; width: 100%; margin-top: 4px; padding: 7px 8px; border: 1px solid var(--line); border-radius: 6px; font: 13px system-ui, sans-serif; background: #fff; }
-      input { font-family: ui-monospace, monospace; }
-      p.hint { margin: 6px 0 0; font-size: 12px; color: var(--slate); }
-      ul.report { margin: 6px 0 0; padding-left: 18px; font-size: 12px; }
-      [hidden] { display: none !important; }
+      body { width: 340px; }
     </style>
   </head>
   <body>
-    <header><img src="icons/icon-48.png" width="22" height="22" alt=""><span>Offerbound</span><button id="showSetup" type="button">Settings</button></header>
+    <header class="top">
+      <img src="icons/icon-48.png" width="22" height="22" alt="" />
+      <span class="name">Offerbound</span>
+      <span id="connection" class="pill">Checking…</span>
+      <span class="icons">
+        <button id="openApp" class="icon" type="button" title="Open Offerbound" aria-label="Open Offerbound">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
+        </button>
+        <button id="showSetup" class="icon" type="button" title="Extension settings" aria-label="Extension settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" /></svg>
+        </button>
+      </span>
+    </header>
+
     <main>
-      <section id="permission" hidden>
-        <h2>One more step</h2>
-        <p class="hint">Offerbound needs your OK to read job sites and fill application forms.</p>
-        <button id="permissionButton" type="button" style="margin-top: 8px">Allow Offerbound on job sites</button>
+      <section id="permission" class="card" hidden>
+        <h3>One more step</h3>
+        <p class="hint" style="margin-bottom: 10px">Offerbound needs your OK to read job sites and fill application forms.</p>
+        <button id="permissionButton" type="button">Allow Offerbound on job sites</button>
       </section>
-      <div id="work">
-        <section>
-          <h2>Find jobs</h2>
-          <button id="sendButton" type="button">Send this page to Offerbound</button>
-          <p id="sendStatus" class="status" role="status"></p>
-          <p class="hint">Search results or one job's page, on any job site. The jobs on it appear on Today.</p>
-          <button id="collectButton" class="quiet" type="button" style="margin-top: 10px">Collect from my job sites now</button>
-          <p id="collectStatus" class="status" role="status"></p>
+
+      <!-- First run: not connected yet. -->
+      <section id="connectView" class="card" hidden>
+        <h3>Connect to your Offerbound</h3>
+        <ol class="steps">
+          <li>Start Offerbound on this computer.</li>
+          <li>In Offerbound, open <b>Settings → Sources</b> and press <b>Connect</b>.</li>
+          <li>Confirm in the small window that opens.</li>
+        </ol>
+        <button id="openSources" type="button">Open Offerbound's settings</button>
+        <p class="hint" style="margin-top: 8px">Nothing opens? Offerbound is not running yet: start it with <code>npm start</code> in its folder.</p>
+      </section>
+
+      <!-- Connected, but the app does not answer. -->
+      <section id="offlineView" class="card" hidden>
+        <h3>Offerbound is not answering</h3>
+        <p id="offlineText" class="hint" style="margin-bottom: 10px"></p>
+        <div class="row">
+          <button id="retry" type="button">Try again</button>
+          <button id="openOffline" class="quiet" type="button">Open Offerbound</button>
+        </div>
+      </section>
+
+      <div id="work" class="stack" hidden>
+        <section class="card">
+          <h2>This page</h2>
+          <p id="site" class="site"></p>
+          <div class="stack">
+            <button id="sendButton" type="button">Send this page to Offerbound</button>
+            <p id="sendStatus" class="note" role="status" hidden></p>
+            <p class="hint">Search results or one job's page, on any job site. The jobs on it show up on Today.</p>
+          </div>
         </section>
-        <section>
-          <h2>Apply</h2>
-          <label>Job <select id="job"><option value="">Loading…</option></select></label>
-          <button id="fillButton" type="button" style="margin-top: 8px">Fill this form</button>
-          <p id="fillStatus" class="status" role="status"></p>
-          <ul id="fillReport" class="report" hidden></ul>
-          <button id="appliedButton" class="quiet" type="button" style="margin-top: 8px" hidden>I submitted it: mark as applied</button>
-          <p class="hint">Open the job's application form first. Offerbound fills it and attaches your PDFs; it never presses Submit.</p>
-          <button id="applyAllButton" class="quiet" type="button" style="margin-top: 10px">Apply all ready jobs, one by one</button>
-          <p class="hint">Opens each ready job's form, filled. What it cannot fill waits for you, marked yellow.</p>
+
+        <section class="card">
+          <h2>Apply <span id="readyCount" class="count" hidden></span></h2>
+          <div class="stack">
+            <label>Job <select id="job"><option value="">Loading…</option></select></label>
+            <button id="fillButton" type="button">Fill the form on this page</button>
+            <p id="fillStatus" class="note" role="status" hidden></p>
+            <ul id="fillReport" class="left" hidden></ul>
+            <button id="appliedButton" class="quiet" type="button" hidden>I submitted it: mark as applied</button>
+            <button id="applyAllButton" class="quiet" type="button">Apply to every ready job, one by one</button>
+            <p class="hint">Opens each job's form, filled, with your PDFs attached. What it cannot fill is marked yellow for you.</p>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Your job sites</h2>
+          <div class="stack">
+            <button id="collectButton" class="quiet" type="button">Collect new jobs now</button>
+            <p id="collectStatus" class="note" role="status" hidden></p>
+            <p class="hint">Reads the sites switched on in Settings → Sources, in a minimized window, at a person's pace.</p>
+          </div>
         </section>
       </div>
-      <form id="setup" hidden>
-        <section>
-          <h2>Connection</h2>
-          <label>Offerbound address <input id="address" value="http://localhost:3000" spellcheck="false" /></label>
-          <label>Key, from Settings → Sources <input id="token" spellcheck="false" autocomplete="off" /></label>
-          <p class="hint">Easier: open Offerbound → Settings → Sources and press Connect. Offerbound must be running on this computer.</p>
-          <button type="submit" style="margin-top: 10px">Save</button>
-        </section>
+
+      <form id="setup" class="card" hidden>
+        <h3>Extension settings</h3>
+        <div class="stack">
+          <label>Offerbound address <input id="address" class="mono" value="http://localhost:3000" spellcheck="false" /></label>
+          <label>Key, from Settings → Sources <input id="token" class="mono" type="password" spellcheck="false" autocomplete="off" /></label>
+          <p class="hint">Easier: press Connect in Offerbound → Settings → Sources, and both are filled in for you.</p>
+          <p id="setupStatus" class="note" role="status" hidden></p>
+          <div class="row">
+            <button type="submit">Save</button>
+            <button id="closeSetup" class="quiet" type="button">Back</button>
+          </div>
+        </div>
       </form>
     </main>
+
+    <footer class="safe">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+      Offerbound never submits or sends anything for you.
+    </footer>
     <script src="common.js"></script>
     <script src="popup.js"></script>
   </body>

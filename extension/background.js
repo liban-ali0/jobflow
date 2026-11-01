@@ -48,6 +48,10 @@ async function fromOfferbound(message, sender, { connected = true } = {}) {
   return message.origin === address;
 }
 const NOT_ALLOWED = { ok: false, message: "Only your connected Offerbound can ask the extension to do this." };
+// The extension's own popup: the browser names the sending page, and only
+// the extension's own pages have its address (a content script reports the
+// web page it runs in).
+const fromPopup = (sender) => sender.id === chrome.runtime.id && sender.url === chrome.runtime.getURL("popup.html");
 
 // Where the form is, from the listing's link. Some application systems put
 // the form at a known address next to the listing.
@@ -537,7 +541,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       }
       case "collect":
         // Runs for a few minutes: answer now, progress shows on Activity.
-        if (!(await fromOfferbound(message, sender))) return NOT_ALLOWED;
+        if (!fromPopup(sender) && !(await fromOfferbound(message, sender))) return NOT_ALLOWED;
         if (collecting) return { ok: false, message: "Already collecting." };
         collect(message.trigger === "timer" ? "timer" : "manual");
         return { ok: true, message: "Collecting in your browser, in a minimized window. Follow it on Activity." };
@@ -564,7 +568,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         await composeSent(tabId);
         return { ok: true };
       case "apply": {
-        if (!(await fromOfferbound(message, sender))) return NOT_ALLOWED;
+        if (!fromPopup(sender) && !(await fromOfferbound(message, sender))) return NOT_ALLOWED;
         const ids = [...new Set((message.jobIds || []).map(Number).filter(Boolean))];
         if (!ids.length) return { ok: false, message: "No job to apply for." };
         await save("queue", ids);

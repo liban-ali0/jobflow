@@ -1,0 +1,92 @@
+/* The extension's own pages (popup and connect window): Offerbound's colours,
+   light and dark. The bar on application forms (apply.js) uses the same
+   values inside its shadow root. */
+:root {
+  --navy: #12203a;
+  --yellow: #ffc20e;
+  --bg: #eef1f5;
+  --card: #ffffff;
+  --ink: #12203a;
+  --muted: #5a6578;
+  --line: #d7dde6;
+  --field: #c3ccd9;
+  --soft: #f5f7fa;
+  --focus: #1d5fa8;
+  --go: #1d7a46;
+  --go-soft: #e7f4ec;
+  --stop: #b42318;
+  --stop-soft: #fdecea;
+  --wait: #8a5a00;
+  --wait-soft: #fff6db;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d1626;
+    --card: #16223a;
+    --ink: #e8edf5;
+    --muted: #a3afc2;
+    --line: #2b3a55;
+    --field: #3a4b6a;
+    --soft: #1b2944;
+    --focus: #7fb2ee;
+    --go: #6fd39b;
+    --go-soft: #15362a;
+    --stop: #ff8a7a;
+    --stop-soft: #3a1d1d;
+    --wait: #ffd36b;
+    --wait-soft: #3a3016;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg); }
+[hidden] { display: none !important; }
+
+header.top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--navy); color: #fff; }
+header.top .name { font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; font-size: 13px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; margin-left: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgb(255 255 255 / 0.1); color: #d6dde9; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #8b97ab; }
+.pill.on::before { background: #4ad07f; }
+.pill.off::before { background: #ff8a7a; }
+.icons { margin-left: auto; display: flex; gap: 2px; }
+.icon { display: grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: #d6dde9; cursor: pointer; }
+.icon:hover { background: rgb(255 255 255 / 0.12); color: #fff; }
+.icon svg { width: 17px; height: 17px; }
+
+main { padding: 10px; display: grid; gap: 10px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+.card h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.card h2 .count { margin-left: auto; letter-spacing: 0; text-transform: none; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; }
+.card h3 { margin: 0 0 6px; font-size: 15px; }
+.site { margin: -2px 0 10px; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+button, .button { display: block; width: 100%; padding: 9px 12px; border: 1px solid transparent; border-radius: 8px; font: inherit; font-weight: 600; text-align: center; text-decoration: none; cursor: pointer; background: var(--yellow); color: var(--navy); }
+button.quiet, .button.quiet { background: transparent; border-color: var(--field); color: var(--ink); font-weight: 500; }
+button.quiet:hover, .button.quiet:hover { background: var(--soft); }
+button.link { display: inline; width: auto; padding: 0; border: 0; background: none; color: var(--focus); font-weight: 500; text-decoration: underline; }
+button:disabled { opacity: 0.55; cursor: default; }
+button:focus-visible, select:focus-visible, input:focus-visible, summary:focus-visible, .icon:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.stack { display: grid; gap: 8px; }
+.row { display: flex; gap: 8px; }
+.row > * { flex: 1; }
+
+label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); }
+input, select { width: 100%; margin-top: 4px; padding: 8px 9px; border: 1px solid var(--field); border-radius: 8px; font: 13px system-ui, sans-serif; background: var(--card); color: var(--ink); }
+input.mono { font-family: ui-monospace, "Cascadia Mono", monospace; }
+
+.hint { margin: 0; font-size: 12px; color: var(--muted); }
+.note { margin: 0; padding: 8px 10px; border-radius: 8px; font-size: 13px; background: var(--soft); border: 1px solid var(--line); }
+.note.ok { background: var(--go-soft); border-color: transparent; color: var(--go); }
+.note.error { background: var(--stop-soft); border-color: transparent; color: var(--stop); }
+.note.busy { color: var(--muted); }
+ul.left { margin: 0; padding: 8px 10px 8px 26px; border-radius: 8px; background: var(--wait-soft); color: var(--wait); font-size: 12px; }
+ul.left li + li { margin-top: 2px; }
+ol.steps { margin: 0 0 12px; padding-left: 20px; }
+ol.steps li + li { margin-top: 6px; }
+details summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+details[open] summary { margin-bottom: 8px; }
+code { font: 12px ui-monospace, "Cascadia Mono", monospace; }
+
+footer.safe { display: flex; align-items: center; gap: 6px; padding: 0 12px 12px; font-size: 12px; color: var(--muted); }
+footer.safe svg { width: 14px; height: 14px; flex: none; }
