@@ -223,6 +223,13 @@ export default async function TodayPage(props: PageProps<"/">) {
             >
               Check and rank
             </ActionButton>
+            <ActionButton
+              action={runStage.bind(null, "check-open", null)}
+              disabled={!stageReady("check-open")}
+              title="Checks whether your saved jobs' listings still take applications (up to 60 at a time; also part of the daily run)"
+            >
+              Check listings
+            </ActionButton>
           </>
         }
       />

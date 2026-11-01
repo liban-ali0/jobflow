@@ -8,6 +8,8 @@
 // LinkedIn and Workable checks follow its liveness-api.mjs. Its rule is kept:
 // a wrong "closed" costs the user a real job, a wrong "unsure" costs one look,
 // so anything unclear is "unsure".
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { classifyLiveness } from "../vendor/career-ops/liveness-core.mjs";
 
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
@@ -101,13 +103,78 @@ function fromPage(verdict, text) {
   return { state: "unsure", reason: "Could not tell from the page. Open the listing to see." };
 }
 
+// A listing's link comes from a captured page or an engine, so it could name
+// this computer or the local network (the app itself, a router). Only public
+// addresses are read, checked again at every redirect.
+const MAX_REDIRECTS = 5;
+const MAX_BYTES = 3_000_000;
+
+function privateAddress(ip) {
+  if (isIP(ip) === 4) {
+    const [a, b] = ip.split(".").map(Number);
+    return a === 0 || a === 10 || a === 127 || (a === 100 && b >= 64 && b <= 127) || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 198 && (b === 18 || b === 19)) || a >= 224;
+  }
+  const low = ip.toLowerCase();
+  // IPv4 inside IPv6 (::ffff:127.0.0.1, which URL writes as ::ffff:7f00:1).
+  const dotted = /^::ffff:(\d+\.\d+\.\d+\.\d+)$/.exec(low)?.[1];
+  if (dotted) return privateAddress(dotted);
+  const hex = /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/.exec(low);
+  if (hex) {
+    const [high, rest] = [parseInt(hex[1], 16), parseInt(hex[2], 16)];
+    return privateAddress(`${high >> 8}.${high & 255}.${rest >> 8}.${rest & 255}`);
+  }
+  // Unspecified, loopback and the old IPv4-compatible form (all start "::"),
+  // NAT64, unique local, link-local, multicast.
+  return low.startsWith("::") || low.startsWith("64:ff9b:") || /^f[cd]/.test(low) || /^fe[89ab]/.test(low) || /^ff/.test(low);
+}
+
+async function publicUrl(url) {
+  let address;
+  try {
+    address = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!/^https?:$/.test(address.protocol) || address.username || address.password) return null;
+  if (address.port && !["80", "443"].includes(address.port)) return null;
+  const host = address.hostname.replace(/^\[|\]$/g, "");
+  if (/^localhost$|\.(localhost|local|internal|lan|home|arpa)$/i.test(host)) return null;
+  const ips = isIP(host) ? [host] : (await lookup(host, { all: true, verbatim: true }).catch(() => [])).map((entry) => entry.address);
+  return ips.length && !ips.some(privateAddress) ? address : null;
+}
+
+class RefusedAddress extends Error {}
+
+async function readCapped(response) {
+  if (!response.body) return "";
+  const reader = response.body.getReader();
+  const chunks = [];
+  let size = 0;
+  while (size < MAX_BYTES) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+    size += value.length;
+  }
+  await reader.cancel().catch(() => {});
+  return new TextDecoder().decode(Buffer.concat(chunks).subarray(0, MAX_BYTES));
+}
+
 async function load(url, accept = "text/html,application/json") {
-  const response = await fetch(url, {
-    headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: accept },
-    redirect: "follow",
-    signal: AbortSignal.timeout(TIMEOUT_MS),
-  });
-  return { status: response.status, finalUrl: response.url, text: await response.text() };
+  let current = url;
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    if (!(await publicUrl(current))) throw new RefusedAddress();
+    const response = await fetch(current, {
+      headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: accept },
+      redirect: "manual",
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    const next = response.status >= 300 && response.status < 400 ? response.headers.get("location") : null;
+    if (!next) return { status: response.status, finalUrl: current, text: await readCapped(response) };
+    await response.body?.cancel().catch(() => {});
+    current = new URL(next, current).href;
+  }
+  return { status: 0, finalUrl: current, text: "" };
 }
 
 const LINKEDIN_CLOSED = /No longer accepting applications/i;
@@ -199,6 +266,7 @@ export async function checkListing(url) {
     if (local && status < 400) return { state: "closed", reason: "The page says the listing is closed." };
     return fromPage(classifyLiveness({ status, requestedUrl: url, finalUrl, bodyText: text, applyControls: controls }), text);
   } catch (error) {
+    if (error instanceof RefusedAddress) return { state: "unsure", reason: "The link does not lead to a public website, so it was not opened." };
     const timeout = error?.name === "TimeoutError" || error?.name === "AbortError";
     return { state: "unsure", reason: timeout ? "The site took too long to answer. It is checked again later." : "Could not reach the site. It is checked again later." };
   }
