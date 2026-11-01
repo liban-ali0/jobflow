@@ -10,6 +10,8 @@ Everything runs on your computer. Your CV, your jobs and your history stay in th
 
 <sub>Screenshots show a demo with a fictional candidate and fictional companies.</sub>
 
+**New here?** Follow the [getting-started guide](docs/GETTING-STARTED.md): every step from installing Node.js to your first application, with pictures.
+
 ## What you need
 
 - [Node.js](https://nodejs.org) 22.13 or newer
