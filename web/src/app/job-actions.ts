@@ -196,3 +196,14 @@ export async function setAsideClosed(ids: number[]): Promise<ActionResult> {
   for (const job of jobs) updateJob(job.id, { status: "excluded", excluded_reason: "The listing closed", apply_state: null, apply_missing: null });
   return done(`Moved ${plural(jobs.length, "job")} to Excluded.`);
 }
+
+// A pattern from Statistics ("you skipped 4 jobs because …") kept as a
+// ranking rule, so jobs like these are excluded before the user sees them.
+export async function addRankingRule(rule: string): Promise<ActionResult> {
+  const text = rule.trim().replace(/\s+/g, " ").slice(0, 300);
+  if (!text) return { ok: false, message: "Nothing to add." };
+  const rules = getSettings().customRules?.trim() ?? "";
+  if (rules.toLowerCase().includes(text.toLowerCase())) return { ok: true, message: "Already a ranking rule." };
+  setSettings({ customRules: `${rules}${rules ? "\n" : ""}- ${text}` });
+  return done("Added to your ranking rules (Profile → Extra ranking rules).");
+}

@@ -2,6 +2,8 @@ import { PageHeader } from "@/components/page-header";
 import { Panel } from "@/components/panel";
 import Link from "next/link";
 import { PERIOD_UNITS, getStats, type Breakdown, type PeriodRow, type PeriodUnit } from "@/lib/stats";
+import { getPatterns } from "@/lib/patterns";
+import { PatternsPanel } from "@/components/patterns-panel";
 
 // Applications per period as rows: sent, with the replies and interviews
 // inside the bar, so busy and quiet weeks stand out.
@@ -105,6 +107,10 @@ export default async function StatsPage(props: PageProps<"/stats">) {
           </Panel>
         </div>
       )}
+
+      <div className="mt-8">
+        <PatternsPanel patterns={getPatterns()} />
+      </div>
 
       {stats.applied > 0 && (
       <div className="mt-8">
