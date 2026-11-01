@@ -329,15 +329,33 @@ chrome.alarms?.onAlarm.addListener((alarm) => {
 // Emails the user sends: Offerbound opens Gmail's compose window filled in,
 // and records the email as sent once the user presses Send there.
 const composeKey = (tabId) => `compose:${tabId}`;
-const GMAIL_COMPOSE = /^https:\/\/mail\.google\.com\/mail\/u\/\d+\/\?view=cm&/;
+// The compose address rebuilt from its parts: Gmail's compose window in one
+// signed-in account, with only the recipient, subject and text (no other
+// Gmail parameters, such as copies to other addresses, pass through).
+function gmailCompose(url) {
+  let given;
+  try {
+    given = new URL(url);
+  } catch {
+    return null;
+  }
+  const account = given.pathname.match(/^\/mail\/u\/(\d)\/$/)?.[1];
+  if (given.protocol !== "https:" || given.hostname !== "mail.google.com" || given.port || given.username || given.password || !account) return null;
+  if (given.searchParams.get("view") !== "cm" || [...given.searchParams.keys()].some((key) => !["view", "fs", "to", "su", "body"].includes(key))) return null;
+  const to = given.searchParams.get("to") || "";
+  if (to && !/^[^\s@,;<>]+@[^\s@,;<>]+\.[^\s@,;<>]+$/.test(to)) return null;
+  const clean = new URLSearchParams({ view: "cm", fs: "1", to, su: (given.searchParams.get("su") || "").slice(0, 300), body: (given.searchParams.get("body") || "").slice(0, 6000) });
+  return { url: `https://mail.google.com/mail/u/${account}/?${clean}`, to };
+}
 
 async function compose(payload, origin) {
   const { address } = await jobflowSettings();
   if (origin !== address) return { ok: false, message: "Only your connected Offerbound can open emails." };
   const jobId = Number(payload?.jobId);
-  if (!jobId || !GMAIL_COMPOSE.test(payload?.url || "")) return { ok: false, message: "This is not an email Offerbound can open." };
-  const tab = await chrome.tabs.create({ url: payload.url, active: true });
-  await save(composeKey(tab.id), { jobId, kind: payload.kind === "application" ? "application" : "follow_up", to: String(payload.to || "").slice(0, 200), pressedAt: null, done: false });
+  const email = gmailCompose(payload?.url || "");
+  if (!Number.isInteger(jobId) || jobId <= 0 || !email) return { ok: false, message: "This is not an email Offerbound can open." };
+  const tab = await chrome.tabs.create({ url: email.url, active: true });
+  await save(composeKey(tab.id), { jobId, kind: payload.kind === "application" ? "application" : "follow_up", to: email.to, pressedAt: null, done: false });
   return { ok: true, message: "Opened in Gmail. Check it, attach anything listed, and press Send there." };
 }
 
@@ -423,8 +441,12 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         if (collecting) return { ok: false, message: "Already collecting." };
         collect(message.trigger === "timer" ? "timer" : "manual");
         return { ok: true, message: "Collecting in your browser, in a minimized window. Follow it on Activity." };
-      case "checkMail":
+      case "checkMail": {
+        // Only the connected Offerbound may start a check.
+        const { address } = await jobflowSettings();
+        if (message.origin !== address) return { ok: false, message: "Only your connected Offerbound can check Gmail." };
         return checkMail();
+      }
       case "compose":
         return compose(message.payload, message.origin);
       // From a Gmail compose window Offerbound opened (compose-watch.js).
