@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Offerbound",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Connects your browser to your own Offerbound app: sends job listings to it, fills application forms from your approved documents, watches your Gmail for replies to applications, and checks whether Indeed listings are still open. It never submits or sends anything.",
   "action": {
     "default_popup": "popup.html",
