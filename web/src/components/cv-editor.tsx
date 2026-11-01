@@ -89,15 +89,46 @@ function AddLink({ onClick, children }: { onClick: () => void; children: React.R
   );
 }
 
+// Enter starts the next bullet (the text after the caret moves to it), and
+// Backspace in an empty bullet removes it, as in a word processor.
 function Bullets({ items, onChange, label }: { items: string[]; onChange: (items: string[]) => void; label: string }) {
+  const box = useRef<HTMLDivElement>(null);
+  // The bullet to focus once the list has changed, and where in it.
+  const focusNext = useRef<{ index: number; at: "start" | "end" } | null>(null);
+  useEffect(() => {
+    const target = focusNext.current;
+    if (!target) return;
+    focusNext.current = null;
+    const area = box.current?.querySelectorAll("textarea")[target.index];
+    if (!area) return;
+    area.focus();
+    const at = target.at === "start" ? 0 : area.value.length;
+    area.setSelectionRange(at, at);
+  });
+  const onKey = (event: React.KeyboardEvent<HTMLTextAreaElement>, index: number) => {
+    if (event.nativeEvent.isComposing) return;
+    const area = event.currentTarget;
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      const before = area.value.slice(0, area.selectionStart).trimEnd();
+      const after = area.value.slice(area.selectionEnd).trimStart();
+      onChange([...items.slice(0, index), before, after, ...items.slice(index + 1)]);
+      focusNext.current = { index: index + 1, at: "start" };
+    } else if (event.key === "Backspace" && area.value === "" && items.length > 1) {
+      event.preventDefault();
+      onChange(items.filter((_, at) => at !== index));
+      focusNext.current = { index: Math.max(0, index - 1), at: "end" };
+    }
+  };
   return (
-    <div className="space-y-1">
+    <div ref={box} className="space-y-1">
       {items.map((item, index) => (
         <div key={index} className="group flex items-start gap-2">
           <span aria-hidden className="mt-[0.95rem] size-1.5 shrink-0 rounded-full bg-slate/60" />
           <textarea
             value={item}
             rows={1}
+            onKeyDown={(event) => onKey(event, index)}
             onChange={(event) => onChange(items.map((other, at) => (at === index ? event.target.value.replace(/\n/g, " ") : other)))}
             aria-label={`${label} bullet ${index + 1}`}
             className="field min-h-9 resize-none py-1.5 leading-relaxed field-sizing-content"

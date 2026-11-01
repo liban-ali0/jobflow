@@ -220,3 +220,13 @@ export async function unarchiveJobs(ids: number[]): Promise<ActionResult> {
   const changed = archive(cleanIds(ids), false);
   return changed ? done(`Brought back ${plural(changed, "job")}.`) : { ok: false, message: "None of these are archived." };
 }
+
+// "Select and research": picks the ranked jobs (within the daily cap) and
+// starts their research straight away, one at a time.
+export async function selectAndResearch(ids: number[]): Promise<ActionResult> {
+  const selected = await selectJobs(ids);
+  if (!selected.ok) return selected;
+  const picked = loadJobs(ids).filter((job) => job.status === "selected").map((job) => job.id);
+  const added = queueResearch(picked);
+  return done(`${selected.message} Researching ${added} ${added === 1 ? "job" : "jobs"}, one at a time; documents follow automatically.`);
+}

@@ -45,17 +45,19 @@ function ImproveButton({ target, running, blocked }: { target: string; running: 
 const band = (score: number) => (score >= 75 ? "text-go" : score >= 60 ? "text-teal" : "text-coral");
 const ring = (score: number) => (score >= 75 ? "var(--go)" : score >= 60 ? "var(--link)" : "var(--stop)");
 const verdict = (score: number) => (score >= 75 ? "Strong" : score >= 60 ? "Fair" : "Weak");
+// The biggest fixes shown at once; the rest wait under Details.
+const TOP_FIXES = 3;
 
 // A small score for lists, like "ATS 72".
 export function AtsBadge({ score }: { score: number }) {
   return (
-    <span className={`rounded-full bg-mist px-2 py-0.5 font-mono text-[11px] font-semibold ${band(score)}`} title={`ATS score ${score} of 100 (${verdict(score)}), averaged over six ATS systems`}>
+    <span className={`rounded-full bg-mist px-2 py-0.5 font-mono text-[11px] font-semibold ${band(score)}`} title={`ATS score ${score} of 100 (${verdict(score)}), from how six ATS systems read the CV, the keyword match and a CV review`}>
       ATS {score}
     </span>
   );
 }
 
-// The full check: the average and each of the six systems, the keywords the
+// The full check: the score and the top fixes first, then the keywords the
 // strictest one is missing, what to improve, and Offerbound's own checks.
 export function AtsPanel({
   result,
@@ -117,8 +119,13 @@ export function AtsPanel({
             <span className="text-sm font-semibold">What to fix</span>
             <span className="text-xs text-slate">{100 - score} points to 100 · biggest gain first</span>
           </p>
+          {improve && result.fixes.some((fix) => fix.kind !== "choice") && (
+            <div className="mb-3 border-b border-line pb-3">
+              <ImproveButton {...improve} />
+            </div>
+          )}
           <ol className="space-y-2.5">
-            {result.fixes.map((fix) => (
+            {result.fixes.slice(0, TOP_FIXES).map((fix) => (
               <li key={fix.label} className="flex gap-3">
                 <span
                   className={`mt-0.5 h-fit shrink-0 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-semibold ${
@@ -143,29 +150,15 @@ export function AtsPanel({
             ))}
           </ol>
           {result.fixes.length === 0 && <p className="text-xs text-slate">Nothing specific left: the last points come from rounding across the six systems.</p>}
-          {improve && result.fixes.some((fix) => fix.kind !== "choice") && (
-            <div className="mt-3 border-t border-line pt-3">
-              <ImproveButton {...improve} />
-            </div>
+          {result.fixes.length > TOP_FIXES && (
+            <p className="mt-2 text-xs text-slate">
+              {result.fixes.length - TOP_FIXES} smaller {result.fixes.length - TOP_FIXES === 1 ? "fix" : "fixes"} under Details below.
+            </p>
           )}
         </div>
       ) : (
         <p className="rounded-lg bg-go-soft px-3 py-2 text-sm font-medium text-go">Nothing to fix: full marks.</p>
       )}
-
-      {review.requirements.length > 0 && <Requirements requirements={review.requirements} />}
-
-      <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-        {systems.map((system) => (
-          <li key={system.name} className="rounded-md border border-line px-2.5 py-1.5" title={`${system.vendor}: ${system.passes ? "passes" : "below"} its screening threshold`}>
-            <div className="flex items-baseline justify-between gap-2">
-              <span className="truncate text-xs font-medium">{system.name}</span>
-              <span className={`font-mono text-sm font-semibold ${band(system.score)}`}>{system.score}</span>
-            </div>
-            <div className={`text-[11px] ${system.passes ? "text-go" : "text-coral"}`}>{system.passes ? "✓ passes" : "✗ filtered"}</div>
-          </li>
-        ))}
-      </ul>
 
       {keywords.percent !== null && keywords.missing.length > 0 && (
         <div>
@@ -291,6 +284,42 @@ export function AtsPanel({
           )}
         </div>
       )}
+      {/* Everything else, for when the user wants the why: closed by default. */}
+      <details className="rounded-lg border border-line px-3 py-2">
+        <summary className="cursor-pointer text-sm font-semibold">Details</summary>
+        <div className="mt-3 space-y-4">
+      {result.fixes.length > TOP_FIXES && (
+        <div>
+          <p className="mb-1 text-xs font-semibold text-slate">Smaller fixes</p>
+          <ol className="space-y-1.5 text-sm">
+            {result.fixes.slice(TOP_FIXES).map((fix) => (
+              <li key={fix.label}>
+                <span className="font-medium">{fix.label}</span>
+                {fix.detail && (
+                  <span className="block text-xs text-slate" dir="auto">
+                    {fix.detail}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {review.requirements.length > 0 && <Requirements requirements={review.requirements} />}
+
+      <ul className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+        {systems.map((system) => (
+          <li key={system.name} className="rounded-md border border-line px-2.5 py-1.5" title={`${system.vendor}: ${system.passes ? "passes" : "below"} its screening threshold`}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="truncate text-xs font-medium">{system.name}</span>
+              <span className={`font-mono text-sm font-semibold ${band(system.score)}`}>{system.score}</span>
+            </div>
+            <div className={`text-[11px] ${system.passes ? "text-go" : "text-coral"}`}>{system.passes ? "✓ passes" : "✗ filtered"}</div>
+          </li>
+        ))}
+      </ul>
+
       {keywords.matched.length > 0 && (
         <details>
           <summary className="cursor-pointer text-xs font-semibold text-slate">Found ({keywords.matched.length})</summary>
@@ -373,6 +402,8 @@ export function AtsPanel({
         </a>{" "}
         (CV review and requirements). They approximate how ATS platforms parse and filter; not the vendors&apos; own algorithms.
       </p>
+        </div>
+      </details>
     </section>
   );
 }

@@ -17,6 +17,7 @@ const core = await import("../web/src/core/db.mjs");
 const { scoreJob, normalizeAssessment, ASSESSED } = await import("../web/src/core/score.mjs");
 const { checkFacts } = await import("../web/src/core/fact-check.mjs");
 const { findReposts } = await import("../web/src/core/reposts.mjs");
+const { cvText, findCv } = await import("./cv-text.mjs");
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -35,6 +36,7 @@ const HELP = `Usage: node scripts/jobs.mjs <command>
   contact <id>                     Add a contact to a job (JSON object)
   document <id> <type> <path>      Register a document file for a job
   folder <id>                      Create and print the job's folder
+  cv-text                          The text of the CV in candidate/ (for engines that cannot read a PDF)
   factcheck <id>                   Claims in the job's CV, cover letter and email that the profile and facts do not back
   statuses                         Print valid statuses and document types
 
@@ -66,7 +68,7 @@ function requireJob(db, id) {
   return job;
 }
 
-function main() {
+async function main() {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === "help" || command === "--help") return console.log(HELP);
 
@@ -166,6 +168,14 @@ function main() {
       core.saveDocument(db, job.id, type, filePath);
       return print({ job: job.id, type, path: filePath });
     }
+    case "cv-text": {
+      const file = findCv(ROOT);
+      if (!file) throw new Error("No CV yet: add it in the app's Setup screen, or put the PDF in the candidate folder.");
+      return cvText(file).then((text) => {
+        if (!text) throw new Error("The CV has no text to read (a scanned image?). Upload a PDF made from a document.");
+        console.log(text);
+      });
+    }
     case "factcheck": {
       const job = requireJob(db, args[0]);
       const documents = core
@@ -205,7 +215,7 @@ function main() {
 }
 
 try {
-  main();
+  await main();
 } catch (error) {
   console.error(error.message);
   process.exit(1);

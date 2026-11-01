@@ -2,7 +2,7 @@ import "server-only";
 import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { ROOT, addMessage, addProgress, finishRun, getJob, getRun, getSettings, listRunningRuns, startRun, updateConversation } from "./data";
+import { ROOT, addMessage, addProgress, finishRun, getJob, getRun, getSettings, listJobs, listRunningRuns, listRuns, startRun, updateConversation } from "./data";
 import type { Conversation, EngineChoice } from "./types";
 
 // Skill stages follow .claude/skills/<key>/SKILL.md and run on the engine
@@ -470,11 +470,25 @@ function start({ stage, jobId = null, trigger = "manual", conversation, message,
     }
     // The open sites are searched first; the Chrome sources follow. On a
     // schedule, the scheduler decides what follows.
-    if (stage === "find-jobs" && trigger === "manual" && status === "done" && chromeSourcesOn() && stageReady("browse-jobs")) {
+    const browseNext = stage === "find-jobs" && trigger === "manual" && status === "done" && chromeSourcesOn() && stageReady("browse-jobs");
+    if (browseNext) {
       try {
         launch("browse-jobs", null, trigger);
       } catch {
         // Already running; nothing to do.
+      }
+    }
+    // A search the user started ends with its new jobs ranked, so they never
+    // have to press "Check and rank" after "Find new jobs".
+    if (trigger === "manual" && status === "done" && ((stage === "find-jobs" && !browseNext) || stage === "browse-jobs") && stageReady("rank-jobs")) {
+      const since = stage === "browse-jobs" ? (listRuns(20).find((run) => run.stage === "find-jobs")?.started_at ?? getRun(runId)?.started_at) : getRun(runId)?.started_at;
+      const fresh = since ? listJobs({ status: "found", since, archived: false }).map((job) => job.id) : [];
+      if (fresh.length) {
+        try {
+          launch("rank-jobs", null, trigger, `ids:${fresh.slice(0, 40).join(",")}`);
+        } catch {
+          // Already ranking; the rest can be ranked from Today.
+        }
       }
     }
     // When a job's research or tailoring ends, the next queued job starts.

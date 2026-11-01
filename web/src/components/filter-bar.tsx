@@ -11,6 +11,7 @@ export function FilterBar() {
   const pathname = usePathname();
   const params = useSearchParams();
   const [text, setText] = useState(params.get("q") ?? "");
+  const [more, setMore] = useState(false);
 
   // Builds on the address as it is right now, not as it was when this screen
   // last rendered, so a delayed search update cannot undo a newer change.
@@ -65,6 +66,11 @@ export function FilterBar() {
           className="field w-60 py-1.5 text-xs"
         />
       </label>
+      {/* On a phone the other filters fold behind one button. */}
+      <button type="button" onClick={() => setMore((value) => !value)} aria-expanded={more} className="btn btn-quiet px-3 py-1.5 text-xs sm:hidden">
+        Filters{active ? " ·" : ""}
+      </button>
+      <div className={`${more ? "flex basis-full flex-wrap items-center gap-2.5" : "hidden"} sm:contents`}>
       {select("age", "Posted within", AGE_OPTIONS)}
       {select("min", "Minimum score", SCORE_OPTIONS)}
       {select("mode", "Work mode", MODE_OPTIONS)}
@@ -94,6 +100,7 @@ export function FilterBar() {
       >
         Export list
       </a>
+      </div>
       {active && (
         <button
           type="button"

@@ -220,15 +220,19 @@ export default async function TodayPage(props: PageProps<"/">) {
             >
               Find new jobs
             </ActionButton>
-            <CollectButton sites={browserSites} />
-            <ActionButton
-              action={runStage.bind(null, "rank-jobs", null)}
-              disabled={!rankReady || unranked === 0}
-              title={unranked === 0 ? "No new jobs to rank" : `Ranks up to 20 jobs with ${rankEngine}`}
-            >
-              Check and rank
-            </ActionButton>
-            <CheckListingsButton ownReady={stageReady("check-open")} />
+            {/* New jobs are ranked after a search on their own; this is for the ones left. */}
+            {unranked > 0 && (
+              <ActionButton action={runStage.bind(null, "rank-jobs", null)} disabled={!rankReady} title={`Ranks up to 20 jobs with ${rankEngine}`}>
+                Check and rank {unranked}
+              </ActionButton>
+            )}
+            <details className="relative">
+              <summary className="btn btn-quiet cursor-pointer list-none">More…</summary>
+              <div className="card absolute right-0 z-20 mt-1 flex w-max max-w-[calc(100vw-2rem)] flex-col items-start gap-2 p-3 shadow-lg">
+                <CollectButton sites={browserSites} />
+                <CheckListingsButton ownReady={stageReady("check-open")} />
+              </div>
+            </details>
           </>
         }
       />

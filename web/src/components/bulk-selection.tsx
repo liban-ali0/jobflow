@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
-import { archiveJobs, excludeJobs, rankJobs, removeFromSelected, restoreJobs, selectJobs, unarchiveJobs } from "@/app/job-actions";
+import { archiveJobs, excludeJobs, rankJobs, removeFromSelected, restoreJobs, selectAndResearch, selectJobs, unarchiveJobs } from "@/app/job-actions";
 import { ExcludeForm } from "@/components/job-actions";
 
 // Which actions the bar offers, by what the table holds; "all" offers every one.
@@ -45,10 +45,15 @@ export function BulkSelection({ children, mode = "all" }: { children: React.Reac
     read();
   };
 
-  const run = (action: () => Promise<ActionResult>) =>
+  // The last change, and how to take it back (an excluded or archived job
+  // is easy to lose track of in a long list).
+  const [undo, setUndo] = useState<(() => Promise<ActionResult>) | null>(null);
+  const run = (action: () => Promise<ActionResult>, reverse?: (ids: number[]) => Promise<ActionResult>) =>
     startTransition(async () => {
+      const changed = ids;
       const outcome = await action();
       setResult(outcome);
+      setUndo(() => (outcome.ok && reverse ? () => reverse(changed) : null));
       if (outcome.ok) clear();
     });
 
@@ -75,17 +80,22 @@ export function BulkSelection({ children, mode = "all" }: { children: React.Reac
                   <span className="font-mono">{ids.length}</span> selected
                 </span>
                 {offers("select") && (
-                  <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => selectJobs(ids))}>
-                    Select for research
+                  <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => selectAndResearch(ids))} title="Select them and start their research now, one at a time">
+                    Select and research
+                  </button>
+                )}
+                {offers("select") && (
+                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => selectJobs(ids), removeFromSelected)}>
+                    Select only
                   </button>
                 )}
                 {offers("unarchive") && (
-                  <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => unarchiveJobs(ids))}>
+                  <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => unarchiveJobs(ids), archiveJobs)}>
                     Bring back
                   </button>
                 )}
                 {offers("remove") && (
-                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => removeFromSelected(ids))}>
+                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => removeFromSelected(ids), selectJobs)}>
                     Remove from selected
                   </button>
                 )}
@@ -105,7 +115,7 @@ export function BulkSelection({ children, mode = "all" }: { children: React.Reac
                   </button>
                 )}
                 {offers("archive") && (
-                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => archiveJobs(ids))}>
+                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => archiveJobs(ids), unarchiveJobs)}>
                     Archive
                   </button>
                 )}
@@ -118,13 +128,18 @@ export function BulkSelection({ children, mode = "all" }: { children: React.Reac
               </>
             ) : null}
             {result && (
-              <p role="status" className={`w-full text-sm ${result.ok ? "text-go" : "text-coral"}`}>
+              <p role="status" className={`flex w-full flex-wrap items-center gap-2 text-sm ${result.ok ? "text-go" : "text-coral"}`}>
                 {result.message}
+                {undo && (
+                  <button type="button" disabled={pending} onClick={() => run(undo)} className="font-semibold text-teal underline">
+                    Undo
+                  </button>
+                )}
               </p>
             )}
             {excluding && ids.length > 0 && (
               <div className="w-full max-w-md pt-2">
-                <ExcludeForm pending={pending} onSubmit={(reason, asRule) => run(() => excludeJobs(ids, reason, asRule))} onCancel={() => setExcluding(false)} />
+                <ExcludeForm pending={pending} onSubmit={(reason, asRule) => run(() => excludeJobs(ids, reason, asRule), restoreJobs)} onCancel={() => setExcluding(false)} />
               </div>
             )}
           </div>

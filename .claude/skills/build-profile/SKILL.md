@@ -10,7 +10,7 @@ Every document the workflow produces is generated from `candidate/profile.md`. N
 ## Steps
 
 1. Find the CV in `candidate/`: the PDF file directly in that folder, whatever its name (older CVs in `candidate/previous/` are ignored). Its file name is never a gap. If there is no CV, stop and report: "Add your CV in the app's Setup screen (or put the PDF in the candidate folder), then run this step again." Do not create a profile from anything else.
-2. Read the whole CV.
+2. Read the whole CV: run `node scripts/jobs.mjs cv-text`, which prints its text (any engine can use it). If you can read the PDF itself as well, use it to check layout details such as which dates belong to which job.
 3. Read the targeting rules with `node scripts/jobs.mjs settings`.
 4. Write `candidate/profile.md` using the structure below.
 5. Write one base CV per role in the settings' `roles`: `candidate/base-cv-<role key>.md`. Skip every role listed in the settings' `cvLocked`: the user edited that CV by hand, so leave the file exactly as it is and mention it in the report.
