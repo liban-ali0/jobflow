@@ -71,6 +71,7 @@ Nothing runs by itself, opens to your network or reads your mail until you choos
 
 | Feature | Where to switch it on |
 |---|---|
+| A password to open Offerbound (on this computer and other devices) | Settings → This computer |
 | Start at sign-in | Settings → This computer, or `autostart on` |
 | Searching on a schedule (and checking whether listings are still open) | Settings → Schedule |
 | Opening it on your phone over home Wi-Fi | Settings → Other devices |
@@ -157,9 +158,9 @@ Settings → Schedule (off until you turn it on) checks for fresh postings every
 
 Help is welcome, from fixing a typo to adding a job source. [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how (fork, branch, pull request) and the rules every change keeps. Things we would like to add:
 
-- **Running it:** an optional password login; one-click installers for Windows, macOS and Linux; a tray icon; backup and restore from Settings; HTTPS on the home Wi-Fi.
+- **Running it:** one-click installers for Windows, macOS and Linux; a tray icon; backup and restore from Settings; HTTPS on the home Wi-Fi.
 - **Finding jobs:** company career pages (Greenhouse, Lever, Ashby, Workday); more job sites through the extension; a timer for collecting in the browser.
-- **Applying and after:** thank-you notes after interviews; calendar files for interview dates; Outlook and other mail for replies; interview practice with the Assistant.
+- **Applying and after:** thank-you notes after interviews; Outlook and other mail for replies; interview practice with the Assistant.
 - **Engines:** more AI engines, such as Gemini CLI or a local model through Ollama.
 - **Quality:** automatic tests; GitHub Actions for the type check and lint; an accessibility review.
 - **For more people:** the app in more languages (Arabic and Turkish first); a signed Firefox add-on.
