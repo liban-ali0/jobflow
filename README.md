@@ -6,6 +6,10 @@ Everything runs on your computer. Your CV, your jobs and your history stay in th
 
 **It never sends or submits anything for you.** Every application and every email is sent by you pressing Submit or Send.
 
+![Today: what needs you now, fresh jobs and your picks](docs/screenshots/today.png)
+
+<sub>Screenshots show a demo with a fictional candidate and fictional companies.</sub>
+
 ## What you need
 
 - [Node.js](https://nodejs.org) 22.13 or newer
@@ -59,6 +63,15 @@ The **Setup** screen walks you through the rest: check the engine, upload your C
 | Settings | Countries, roles, sources, schedule, engines, email, colours, other devices |
 
 On a phone the top bar shows Today, Jobs, Board and Questions; the rest and search are under **More**.
+
+| | |
+|---|---|
+| ![Jobs: one table per stage](docs/screenshots/jobs.png) | ![A job: documents, fact check and ATS score](docs/screenshots/job.png) |
+| **Jobs** — every saved job, one table per stage | **A job** — the tailored CV with its fact check and ATS score |
+| ![Board: applications stage by stage](docs/screenshots/board.png) | ![Stats: what works](docs/screenshots/stats.png) |
+| **Board** — your applications, gate by gate | **Stats** — what works, from your own answers |
+
+<p align="center"><img src="docs/screenshots/phone-today.png" alt="Today on a phone" width="300"></p>
 
 ## A job's way through
 

@@ -64,15 +64,15 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
         <Link
           href={link.href}
           aria-current={active ? "page" : undefined}
-          className={`my-2 flex items-center gap-1.5 rounded-sm font-display font-semibold tracking-wider whitespace-nowrap uppercase transition-colors ${
-            compact ? "px-2 text-base" : "px-3 text-lg"
+          className={`my-2 flex items-center rounded-sm font-display font-semibold whitespace-nowrap uppercase transition-colors ${
+            compact ? "gap-1 px-1.5 text-[15px] tracking-wide" : "gap-2 px-3 text-lg tracking-wider"
           } ${active ? "bg-primary text-primary-accent" : "hover:bg-on-saffron/10"}`}
         >
           {link.label}
           {count > 0 && (
             <span
               title={`${count} ${link.hint ?? ""}`}
-              className={`grid min-w-5 place-items-center rounded-sm px-1 font-mono text-xs font-medium ${
+              className={`grid place-items-center rounded-sm px-1 font-mono font-medium ${compact ? "min-w-4 text-[11px]" : "min-w-6 text-xs"} ${
                 active ? "bg-saffron text-on-saffron" : link.urgent ? "fresh-dot bg-primary text-primary-accent" : "bg-primary text-on-primary"
               }`}
             >
@@ -115,11 +115,11 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
 
       {/* Phones: the four daily screens, the rest under More. */}
       <nav className="flex h-12 items-stretch md:hidden" aria-label="Main">
-        <Link href="/" className="flex shrink-0 items-center bg-primary px-2.5 text-on-primary" aria-label="Offerbound, Today">
-          <LogoMark className="size-7" />
+        <Link href="/" className="flex shrink-0 items-center bg-primary px-2 text-on-primary" aria-label="Offerbound, Today">
+          <LogoMark className="size-6" />
         </Link>
-        <ul className="flex min-w-0 items-stretch overflow-x-auto px-1">{LINKS.filter((link) => link.daily).map((link) => tab(link, true))}</ul>
-        <div className="ml-auto flex shrink-0 items-center gap-1 pr-2">
+        <ul className="flex min-w-0 items-stretch overflow-x-auto px-0.5">{LINKS.filter((link) => link.daily).map((link) => tab(link, true))}</ul>
+        <div className="ml-auto flex shrink-0 items-center gap-1 pr-1.5">
           {running && (
             <Link href="/activity" className="grid size-8 place-items-center rounded-sm bg-primary" aria-label={`Running: ${running}`} title={running}>
               <span className="fresh-dot size-2 rounded-full bg-saffron" aria-hidden />
@@ -131,7 +131,7 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
             aria-expanded={open}
             aria-controls="nav-more"
             onClick={() => setOpen((value) => !value)}
-            className={`rounded-sm px-2 py-1 font-display text-base font-semibold tracking-wider uppercase ${open || others.some(isActive) ? "bg-primary text-primary-accent" : "hover:bg-on-saffron/10"}`}
+            className={`rounded-sm px-1.5 py-1 font-display text-[15px] font-semibold tracking-wide uppercase ${open || others.some(isActive) ? "bg-primary text-primary-accent" : "hover:bg-on-saffron/10"}`}
           >
             More
           </button>
