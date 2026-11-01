@@ -1,7 +1,7 @@
 import "server-only";
 import { createRequire } from "node:module";
 import path from "node:path";
-import { ROOT } from "./data";
+import { CODE_ROOT } from "./data";
 
 // Prints an HTML page to an A4 PDF with Playwright's Chromium. Playwright is
 // a project dependency loaded at run time (not bundled into the app), and
@@ -20,7 +20,7 @@ const holder = globalThis as unknown as { jobflowBrowser?: Promise<Browser> };
 
 function browser(): Promise<Browser> {
   const open = async () => {
-    const { chromium } = createRequire(path.join(ROOT, "package.json"))("playwright");
+    const { chromium } = createRequire(path.join(CODE_ROOT, "package.json"))("playwright");
     try {
       return (await chromium.launch()) as Browser;
     } catch (error) {

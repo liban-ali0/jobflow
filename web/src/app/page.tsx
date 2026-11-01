@@ -100,6 +100,9 @@ function FilterChips({
   );
 }
 
+// Today lists the most pressing of "Waiting on you"; the Board has them all.
+const WAITING_SHOWN = 8;
+
 export default async function TodayPage(props: PageProps<"/">) {
   const query = await props.searchParams;
   const pick = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : undefined);
@@ -402,10 +405,15 @@ export default async function TodayPage(props: PageProps<"/">) {
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="section-title">Waiting on you</h2>
             <span className="font-mono text-xs text-slate">{followUps.length}</span>
+            {followUps.length > WAITING_SHOWN && (
+              <Link href="/board?stage=due#applications" className="ml-auto text-sm text-teal underline">
+                All {followUps.length} on the Board
+              </Link>
+            )}
           </div>
           <p className="mt-0.5 text-sm text-slate">Follow-ups after {settings.followUpDays} days without a reply (two at most), check-ins after a reply, and thank-you notes after interviews.</p>
           <ul className="card mt-3 divide-y divide-line rounded-xl">
-            {followUps.map(({ job, kind, sent, draftId, draftFresh, daysSince }) => (
+            {followUps.slice(0, WAITING_SHOWN).map(({ job, kind, sent, draftId, draftFresh, daysSince }) => (
               <FollowUpRow
                 key={job.id}
                 jobId={job.id}

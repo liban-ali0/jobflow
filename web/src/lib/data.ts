@@ -17,7 +17,10 @@ import type {
 } from "./types";
 
 // The app runs from web/, the project root is one level up.
-export const ROOT = process.env.JOBFLOW_ROOT ?? path.resolve(process.cwd(), "..");
+// Where the code is (scripts, skills, node_modules); the data root may be
+// elsewhere (JOBFLOW_ROOT, for a test copy of the data).
+export const CODE_ROOT = path.resolve(process.cwd(), "..");
+export const ROOT = process.env.JOBFLOW_ROOT ?? CODE_ROOT;
 
 type Db = ReturnType<typeof core.openDb>;
 const holder = globalThis as unknown as { jobflowDb?: Db };

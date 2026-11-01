@@ -54,7 +54,12 @@ function kindOf(job: Job, history: ReturnType<typeof followUpHistory>): FollowUp
   return history.sent >= CADENCE.maxFollowUps && !history.draftFresh ? "quiet" : "follow-up";
 }
 
-// Applications whose reminder date has passed, with what to do now.
+// What to do first: a thank-you is time-sensitive, a reply deserves an
+// answer, a quiet application can wait.
+const KIND_ORDER: FollowUpKind[] = ["thank-you", "replied", "after-interview", "follow-up", "quiet"];
+
+// Applications whose reminder date has passed, with what to do now, the most
+// pressing first and the longest-waiting first within a kind.
 export function followUpsDue(): FollowUp[] {
   const now = Date.now();
   return listJobs({ status: ["applied", "replied", "interview"] })
@@ -71,7 +76,8 @@ export function followUpsDue(): FollowUp[] {
         daysSinceApplied: days(job.applied_at),
         daysSince: days(kind === "follow-up" || kind === "quiet" ? (history.lastSent ?? job.applied_at) : kind === "after-interview" || kind === "thank-you" ? (job.interview_at ?? history.since) : history.since),
       };
-    });
+    })
+    .sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || Date.parse(a.job.follow_up_due!) - Date.parse(b.job.follow_up_due!));
 }
 
 // The next reminder for a job in this status, from now.

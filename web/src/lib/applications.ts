@@ -8,6 +8,7 @@ export const STAGES = [
   { value: "all", label: "All applications", statuses: ["applied", "replied", "interview", "offer", "accepted", "declined", "rejected", "withdrawn", "no_response"] },
   { value: "waiting", label: "Waiting for a reply", statuses: ["applied"] },
   { value: "stale", label: "No reply for 30+ days", statuses: ["applied"] },
+  { value: "due", label: "Waiting on you (reminder due)", statuses: ["applied", "replied", "interview"] },
   { value: "replied", label: "Replied", statuses: ["replied"] },
   { value: "interview", label: "Interview", statuses: ["interview"] },
   { value: "offer", label: "Offers (open, accepted, declined)", statuses: ["offer", "accepted", "declined"] },
@@ -182,7 +183,9 @@ export function applicationsTable(all: Job[], query: AppQuery, now: number, coun
   const statuses = stage.statuses as readonly Status[];
   // "No reply for 30+ days": sent a month ago or more, still waiting.
   const stale = (job: Job) => query.stage !== "stale" || now - Date.parse(dateOf(job)) >= 30 * DAY;
-  const inStage = all.filter((job) => statuses.includes(job.status) && stale(job));
+  // "Waiting on you": the reminder date has passed (Today shows the first few).
+  const due = (job: Job) => query.stage !== "due" || (job.follow_up_due !== null && Date.parse(job.follow_up_due) <= now);
+  const inStage = all.filter((job) => statuses.includes(job.status) && stale(job) && due(job));
   // Choices for the filters, from the jobs of this stage.
   const tally = (pick: (job: Job) => string | null) => {
     const counts = new Map<string, number>();
