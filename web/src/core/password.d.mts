@@ -1,0 +1,12 @@
+export const SESSION_COOKIE: string;
+export const MIN_LENGTH: number;
+export const SHORT_HOURS: number;
+export const REMEMBER_DAYS: number;
+export function readPassword(root: string): { hash: string; salt: string; secret: string; changed?: string; damaged?: boolean } | null;
+export function hasPassword(root: string): boolean;
+export function setPassword(root: string, password: string): void;
+export function clearPassword(root: string): void;
+export function newSecret(root: string): void;
+export function checkPassword(root: string, password: unknown): boolean;
+export function makeSession(root: string, remember: boolean): { value: string; maxAge: number | undefined } | null;
+export function sessionValid(root: string, value: unknown): boolean;

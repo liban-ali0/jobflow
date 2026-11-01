@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import { CODE_ROOT } from "./data";
+import { passwordOn } from "./login";
 
 // Settings → This computer: whether Offerbound runs in the background and
 // starts at sign-in, through scripts/service.mjs (the same commands work in a
@@ -18,6 +19,8 @@ export type ServiceStatus = {
   autostartSupported: boolean;
   since: string | null;
   log: string;
+  // A password is needed to open Offerbound (lib/login.ts).
+  password: boolean;
 };
 
 export async function serviceStatus(): Promise<ServiceStatus> {
@@ -25,9 +28,9 @@ export async function serviceStatus(): Promise<ServiceStatus> {
   try {
     const { stdout } = await run(process.execPath, [SERVICE, "status", "--json", "--no-ping"], { cwd: CODE_ROOT, windowsHide: true, timeout: 15_000 });
     const status = JSON.parse(stdout);
-    return { mode, autostart: status.autostart, autostartSupported: status.autostartSupported, since: mode === "background" ? status.since : null, log: status.log };
+    return { mode, autostart: status.autostart, autostartSupported: status.autostartSupported, since: mode === "background" ? status.since : null, log: status.log, password: passwordOn() };
   } catch {
-    return { mode, autostart: false, autostartSupported: false, since: null, log: "" };
+    return { mode, autostart: false, autostartSupported: false, since: null, log: "", password: passwordOn() };
   }
 }
 
