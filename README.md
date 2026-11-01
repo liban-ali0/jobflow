@@ -49,6 +49,17 @@ The **Setup** screen walks you through the rest: check the engine, upload your C
 
 (`npm run app` starts the development version instead, for working on Offerbound's code.)
 
+### As a Windows app
+
+Offerbound can run like any other app, with no terminal to keep open:
+
+```
+node scripts/service.mjs start
+node scripts/service.mjs autostart on
+```
+
+The first runs it in the background (and starts it again if it ever stops); the second starts it each time you sign in to Windows. Then open http://localhost:3000 in Chrome or Edge and install it as an app (**Settings → This computer**, or the install icon in the address bar): it gets its own window, a taskbar icon and a Start menu entry. `node scripts/service.mjs` alone lists the other commands: `stop`, `restart`, `status`, `update`, `logs`, `autostart off`.
+
 ## The screens
 
 | Screen | Purpose |
@@ -114,7 +125,7 @@ Settings → Schedule checks for fresh postings every few minutes during the hou
 
 ## Updating
 
-`git pull` (or replace the project files with the new version, keeping `candidate/`, `jobs/` and `data/`), then `npm run setup` again. The next `npm start` rebuilds the app.
+`git pull` (or replace the project files with the new version, keeping `candidate/`, `jobs/` and `data/`), then `npm run setup` again. The next `npm start` rebuilds the app. If it runs in the background, `node scripts/service.mjs update` does all of this and restarts it.
 
 ## Rules it keeps
 

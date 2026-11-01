@@ -100,7 +100,7 @@ function rotate() {
 
 async function supervise(port) {
   fs.mkdirSync(LOGS, { recursive: true });
-  fs.writeFileSync(STATE, JSON.stringify({ pid: process.pid, port, started: new Date().toISOString() }, null, 2));
+  fs.writeFileSync(STATE, JSON.stringify({ pid: process.pid, port: Number(port), started: new Date().toISOString() }, null, 2));
   let stopping = false;
   let child = null;
   const stop = () => {
@@ -224,7 +224,9 @@ function setAutostart(on) {
   let entry;
   if (fs.existsSync(path.join(process.env.SystemRoot ?? "C:\\Windows", "System32", "wscript.exe"))) {
     fs.mkdirSync(DATA, { recursive: true });
-    fs.writeFileSync(LAUNCHER, `' Starts Offerbound in the background at sign-in (scripts/service.mjs).\r\nCreateObject("WScript.Shell").Run "${command.replace(/"/g, '""')}", 0, False\r\n`);
+    // UTF-16 with a byte order mark, so folder names in any language work.
+    const script = `' Starts Offerbound in the background at sign-in (scripts/service.mjs).\r\nCreateObject("WScript.Shell").Run "${command.replace(/"/g, '""')}", 0, False\r\n`;
+    fs.writeFileSync(LAUNCHER, `﻿${script}`, "utf16le");
     entry = `wscript.exe //B //Nologo "${LAUNCHER}"`;
   } else {
     entry = `powershell.exe -NoProfile -WindowStyle Hidden -Command "& ${command.replace(/"/g, "'")}"`;

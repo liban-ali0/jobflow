@@ -101,6 +101,15 @@ The first start builds the app (a minute or two). When it prints `Offerbound is 
 
 Keep that terminal open while you use Offerbound; Ctrl+C stops it. Next time, `npm start` is all you need.
 
+**Rather have it as an app?** Close that terminal (Ctrl+C) and run these two instead:
+
+```
+node scripts/service.mjs start
+node scripts/service.mjs autostart on
+```
+
+Offerbound now runs in the background, without a window, and starts by itself whenever you sign in to Windows. In Chrome or Edge, open http://localhost:3000, go to **Settings → This computer** and press **Install Offerbound** (or use the install icon at the right of the address bar). It then opens in its own window, with a taskbar icon and a Start menu entry.
+
 ## 8. Setup: your CV and facts
 
 Offerbound opens on **Today** with a *Finish setting up* banner. Press **Open Setup**.
@@ -214,7 +223,7 @@ Record what happens on the job page (*Replied*, *Interview*, *Offer*, *Rejected*
 
 ## 17. Every day
 
-1. `npm start` (if it is not running) and open http://localhost:3000.
+1. Open Offerbound (the app, or http://localhost:3000). If you do not run it in the background, `npm start` first.
 2. **Today:** answer questions, handle *Waiting on you* and replies.
 3. **Find new jobs** (or let the schedule do it), then pick on **Jobs → Ranked** and **Select and research**.
 4. Review and approve documents, then apply.
@@ -230,6 +239,7 @@ Record what happens on the job page (*Replied*, *Interview*, *Offer*, *Rejected*
 | PDFs fail: *the PDF browser is not installed* | Run `npm run setup` again. |
 | Settings → Sources says the extension is not installed | Reload the extension on the browser's extensions page, then press *I installed it: check again*. |
 | A job site shows a captcha or *are you a robot* | Open that site yourself once in your browser; Offerbound never tries to get around it. |
-| After an update something looks odd | Run `npm run setup`, then `npm start`; it rebuilds itself. |
+| After an update something looks odd | Run `npm run setup`, then `npm start`; it rebuilds itself. In the background: `node scripts/service.mjs update`. |
+| The app window says the site cannot be reached | Offerbound is not running: `node scripts/service.mjs start`. If it keeps stopping, `node scripts/service.mjs logs` shows why. |
 
 Your data is in three folders inside Offerbound: `candidate/`, `jobs/` and `data/`. To back up or move to another computer, stop Offerbound and copy them.

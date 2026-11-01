@@ -12,6 +12,7 @@ Run from the project folder (Node 22.13+, Windows primary but must stay portable
 |---|---|
 | First setup | `npm run setup` |
 | App for daily use (production build in `web/.next-prod`, rebuilt only when sources change, always 127.0.0.1) | `npm start` (`scripts/start.mjs`) |
+| App in the background, as a Windows app (supervisor restarts `start.mjs` on crash; `data/service.json`, log in `data/logs/`; sign-in start = HKCU Run entry per copy running `data/autostart.vbs`) | `node scripts/service.mjs start\|stop\|restart\|status\|update\|logs\|autostart on\|off` |
 | App (dev, http://localhost:3000) | `npm run app` |
 | Type check | `npx tsc --noEmit` (in `web/`) |
 | Lint | `npm run lint --prefix web` |
