@@ -306,3 +306,5 @@ A tab closed before submitting keeps the job "Waiting for you" ("Form closed bef
 App states for a ready job: Ready to apply → Waiting for you (with the reasons) → Applied.
 
 Status (2026-10-13): applying is built and tested on demo forms in Chrome and Firefox (fill every step, Waiting for you with reasons, submit confirmed and recorded, save typed answers, apply sessions, LinkedIn flagged). Install steps and Connect are in Settings → Sources. Collecting is built and tested on the real Eleman.net and Techcareer.net (Kariyer.net blocks test browsers; it is read in the user's own browser, and a robot check stops it for that run). Site rules live in `web/src/lib/browser-sites.ts`. Not yet: a timer, and readers checked on Bayt, GulfTalent, Naukrigulf.
+
+Status (2026-11-01): email through the extension is built and tested on a fake Gmail in the sandbox: replies read from Gmail every 15 minutes (sorted, matched to the application, confirmed by the user on Today or the job page), and follow-ups and email applications opened in Gmail's compose window, recorded as sent when the user presses Send. Off until the user turns on Settings → Email → Watch Gmail for replies.
