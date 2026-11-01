@@ -3,6 +3,7 @@
 import { CheckMailButton } from "@/components/gmail";
 import { ExtensionSetup } from "@/components/extension-setup";
 import { OtherDevices } from "@/components/other-devices";
+import { ThisComputer } from "@/components/this-computer";
 import { createContext, startTransition, useActionState, useContext, useEffect, useRef, useState } from "react";
 import { saveSettings } from "@/app/actions";
 import { AppearanceSection } from "@/components/appearance-section";
@@ -386,6 +387,7 @@ const GROUPS = [
     sections: [
       { id: "appearance", label: "Appearance" },
       { id: "devices", label: "Other devices" },
+      { id: "computer", label: "This computer" },
     ],
   },
 ];
@@ -482,11 +484,13 @@ export function SettingsForm({
   countryOptions,
   extension,
   devices,
+  computer,
 }: {
   settings: Settings;
   countryOptions: CountryOption[];
   extension: { token: string; folder: string };
   devices: { links: string[]; path: string; lan: { enabled: boolean; open: boolean; links: { link: string; qr: string }[] } };
+  computer: React.ComponentProps<typeof ThisComputer>["status"];
 }) {
   const [result, action, pending] = useActionState(saveSettings, null);
   const form = useRef<HTMLFormElement>(null);
@@ -851,6 +855,10 @@ export function SettingsForm({
           <div className="border-t border-line/70 px-5 py-4 md:px-6">
             <OtherDevices {...devices} />
           </div>
+        </Section>
+
+        <Section id="computer" title="This computer" hint="Offerbound as an app on this computer: running in the background, started at sign-in, with its own window." flush>
+          <ThisComputer status={computer} />
         </Section>
 
         <div className="sticky bottom-4 z-10 flex items-center gap-4 rounded-xl border border-line bg-surface/95 px-5 py-3 shadow-lg backdrop-blur">

@@ -25,6 +25,7 @@ import { ENGINES, checkEngine, conversationRunning, isStage, launch, sendToAssis
 import { isHex } from "@/lib/theme";
 import { recordOutcome } from "@/app/tracking-actions";
 import { ensureLan } from "@/lib/lan";
+import { setAutostart } from "@/lib/service";
 import { resetAccessKey } from "@/lib/access";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
 import type { Settings, Status } from "@/lib/types";
@@ -376,4 +377,11 @@ export async function stopStep(runId: number): Promise<ActionResult> {
   stopRun(runId);
   revalidatePath("/", "layout");
   return { ok: true, message: "Stopping…" };
+}
+
+// Settings → This computer: start Offerbound in the background at sign-in.
+export async function setStartAtSignIn(on: boolean): Promise<ActionResult> {
+  const result = await setAutostart(on);
+  revalidatePath("/settings");
+  return result;
 }
