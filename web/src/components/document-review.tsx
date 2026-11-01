@@ -8,6 +8,8 @@ import { PagePreview } from "@/components/cv-actions";
 import { PdfViewer } from "@/components/pdf-viewer";
 import { Markdown } from "@/components/markdown";
 import { AtsPanel } from "@/components/ats-panel";
+import { FactPanel } from "@/components/fact-panel";
+import type { FactCheck } from "@/core/fact-check.mjs";
 import type { AtsResult } from "@/lib/ats";
 
 export type ReviewDoc = {
@@ -23,6 +25,8 @@ export type ReviewDoc = {
   version: string;
   // The ATS check of a CV against the job's keywords.
   ats?: AtsResult;
+  // Claims the profile and facts do not back (CV, cover letter, email).
+  facts?: FactCheck;
 };
 
 // The page preview, and the scrolling column beside it, share this height.
@@ -92,6 +96,7 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
             {item.inPackage && <span className={`size-2 rounded-full ${REVIEW[item.review].dot}`} aria-hidden />}
             {item.label}
             {item.ats && <span className="font-mono text-[11px] opacity-80">· ATS {item.ats.score}</span>}
+            {item.facts && item.facts.items.length > 0 && <span className="font-mono text-[11px] opacity-80">· {item.facts.items.length} to check</span>}
           </button>
         ))}
       </div>
@@ -147,6 +152,8 @@ export function DocumentReview({ jobId, docs, rewriting, improving = false }: { 
             )}
           </div>
         </div>
+
+        {doc.facts && mode === "read" && <FactPanel documentId={doc.id} check={doc.facts} />}
 
         {doc.review === "changes_requested" && doc.note && mode === "read" && (
           <p className="rounded-md bg-coral-soft px-3 py-2 text-sm">

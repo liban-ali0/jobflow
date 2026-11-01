@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import type { ActionResult } from "@/app/actions";
-import { getDocument, getJob, listDocuments, reviewDocument, updateJob } from "@/lib/data";
+import { ROOT, getDocument, getJob, listDocuments, reviewDocument, updateJob } from "@/lib/data";
+import { allowFact } from "@/core/fact-check.mjs";
 import { writeText } from "@/lib/documents";
 import { launch, stageRunning } from "@/lib/engine";
 
@@ -91,4 +92,12 @@ export async function rewriteChosen(jobId: number, types: string[], note: string
   }
   refresh(jobId);
   return { ok: true, message: `Rewriting ${chosen.length} ${chosen.length === 1 ? "document" : "documents"}. They come back for your review.` };
+}
+
+// The user says a claim the fact check flagged is true: later checks accept it
+// (kept in candidate/cv-facts.json).
+export async function confirmFact(kind: string, value: string): Promise<ActionResult> {
+  if (!allowFact(ROOT, { kind: String(kind), value: String(value) })) return { ok: false, message: "Nothing to note." };
+  revalidatePath("/", "layout");
+  return { ok: true, message: "Noted as true." };
 }

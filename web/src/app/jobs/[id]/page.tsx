@@ -19,7 +19,8 @@ import { listingSite } from "@/core/liveness.mjs";
 import { applyPack } from "@/lib/apply";
 import { checkCv } from "@/lib/ats";
 import { targetForJob } from "@/lib/ats-keywords";
-import { getJob, getSettings, listContacts, listDocuments, listEvents, listMails } from "@/lib/data";
+import { ROOT, getJob, getSettings, listContacts, listDocuments, listEvents, listMails } from "@/lib/data";
+import { checkFacts } from "@/core/fact-check.mjs";
 import { composeFor } from "@/lib/mail";
 import { PRINTABLE, readText } from "@/lib/documents";
 import { stageReady, stageRunning } from "@/lib/engine";
@@ -100,7 +101,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       inPackage: !["research", "follow_up", "interview_pack"].includes(document.type),
       version: document.updated_at,
     }))
-    .map((doc) => (doc.type === "cv" ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc));
+    .map((doc) => (doc.type === "cv" ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc))
+    .map((doc) => (["cv", "cover_letter", "email"].includes(doc.type) && !doc.text.startsWith("(The file is missing") ? { ...doc, facts: checkFacts(ROOT, doc.text) } : doc));
   const hasResearch = documents.some((document) => document.type === "research");
   // The application documents, for "Rewrite documents".
   const packageDocs = documents

@@ -15,6 +15,7 @@ process.emitWarning = (warning, ...rest) => {
 };
 const core = await import("../web/src/core/db.mjs");
 const { scoreJob, normalizeAssessment, ASSESSED } = await import("../web/src/core/score.mjs");
+const { checkFacts } = await import("../web/src/core/fact-check.mjs");
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -33,6 +34,7 @@ const HELP = `Usage: node scripts/jobs.mjs <command>
   contact <id>                     Add a contact to a job (JSON object)
   document <id> <type> <path>      Register a document file for a job
   folder <id>                      Create and print the job's folder
+  factcheck <id>                   Claims in the job's CV, cover letter and email that the profile and facts do not back
   statuses                         Print valid statuses and document types
 
 JSON input: --file <path>, or piped through stdin.`;
@@ -156,6 +158,26 @@ function main() {
       if (!filePath || !fs.existsSync(path.resolve(ROOT, filePath))) throw new Error(`File not found: ${filePath}`);
       core.saveDocument(db, job.id, type, filePath);
       return print({ job: job.id, type, path: filePath });
+    }
+    case "factcheck": {
+      const job = requireJob(db, args[0]);
+      const documents = core
+        .listDocuments(db, job.id)
+        .filter((document) => ["cv", "cover_letter", "email"].includes(document.type))
+        .map((document) => {
+          const file = path.resolve(ROOT, document.path);
+          if (!fs.existsSync(file)) return { type: document.type, path: document.path, missing: true };
+          const result = checkFacts(ROOT, fs.readFileSync(file, "utf8"));
+          return { type: document.type, path: document.path, claims: result.items.map(({ label, value, sentence, advisory }) => ({ kind: label, value, sentence, check: advisory ? "worth a look" : "not in profile or facts" })), note: result.note };
+        });
+      const open = documents.reduce((sum, document) => sum + (document.claims?.length ?? 0), 0);
+      return print({
+        job: job.id,
+        documents,
+        advice: open
+          ? "Each claim listed is not in candidate/profile.md or candidate/facts.md. Reword or remove it unless those files support it; never add facts the user did not give. A number that is not about the user's past (a request such as \"ten minutes for a call\", a plan) can stay."
+          : "Every checked claim is backed by the profile and facts.",
+      });
     }
     case "folder": {
       const job = requireJob(db, args[0]);

@@ -19,7 +19,7 @@ The app checked this CV with its ATS scorer and wrote what to fix in `jobs/_work
 
 1. Read the JSON file, then the CV in `file`, `candidate/profile.md`, and `candidate/facts.md`. For a tailored CV, also read the job's notes with `node scripts/jobs.mjs get <jobId>`, and `research.md` in the job's folder (`node scripts/jobs.mjs folder <jobId>`).
 2. Edit the CV in place, following `templates/CV-FORMAT.md` exactly.
-3. For a tailored CV, register it again with `node scripts/jobs.mjs document <jobId> cv <file>`. This puts it back to waiting for the candidate's review.
+3. For a tailored CV, register it again with `node scripts/jobs.mjs document <jobId> cv <file>`. This puts it back to waiting for the candidate's review. Then run `node scripts/jobs.mjs factcheck <jobId>` and reword or remove anything it lists in the CV that the profile and facts do not back.
 4. Report in a few lines: the keywords added and where, the keywords left out because the profile does not support them, and the other changes.
 
 ## How to fix

@@ -22,7 +22,8 @@ These documents go to a real employer under the candidate's name. They must be t
    - `cover-letter.md`, then `node scripts/jobs.mjs document <id> cover_letter <folder>/cover-letter.md`
    - `email.md`, then `node scripts/jobs.mjs document <id> email <folder>/email.md`
    - `answers.md`, then `node scripts/jobs.mjs document <id> answers <folder>/answers.md`
-6. End with a short report: what each document emphasises, anything left out on purpose, and gaps the candidate should know about.
+6. Check the facts: run `node scripts/jobs.mjs factcheck <id>`. It lists every number, tool, employer, education, certificate or role size in the CV, cover letter and email that `profile.md` and `facts.md` do not back, with the sentence it is in. For each one that is about the candidate's past, reword it to what the sources say or remove it; never make the sources fit. A number that is not about the candidate (a request such as "ten minutes for a call", a plan) can stay. Run it once more after fixing; mention anything still listed, and why it is fine, in the report.
+7. End with a short report: what each document emphasises, anything left out on purpose, and gaps the candidate should know about.
 
 ## Tailored CV (`cv.md`)
 
