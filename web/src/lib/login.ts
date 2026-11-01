@@ -14,7 +14,10 @@ import { SESSION_COOKIE, hasPassword, sessionValid } from "@/core/password.mjs";
 
 export const ROOT = process.env.JOBFLOW_ROOT ?? path.resolve(process.cwd(), "..");
 
-const PUBLIC = /^\/(_next\/|app\/|brand\/|icon\.svg$|apple-icon|favicon\.ico$|manifest\.webmanifest$)/;
+// Only files with nothing private: built scripts and styles (not the image
+// optimiser or anything else under /_next/), the development reload channel,
+// and the app's icons.
+const PUBLIC = /^\/(_next\/static\/|_next\/webpack-hmr$|app\/[\w.-]+\.png$|brand\/[\w.-]+\.svg$|icon\.svg$|apple-icon(\.png)?$|favicon\.ico$|manifest\.webmanifest$)/;
 const EXTENSION = /^\/api\/(apply|capture|collect|facts|listings\/browser|mail)(\/|$)/;
 
 export const passwordOn = () => hasPassword(ROOT);
@@ -62,10 +65,33 @@ export function recordTry(ok: boolean, now: number) {
 
 const escape = (text: string) => text.replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 
-// Where to go after signing in: a path on this app only.
+// Where to go after signing in: a path on this app only. Parsed the way a
+// browser would (which drops tabs and newlines and reads "\" as "/"), and
+// kept only if it stays on the same origin.
 export function safeNext(value: unknown) {
-  const next = typeof value === "string" ? value : "/";
-  return next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next.slice(0, 2000) : "/";
+  if (typeof value !== "string" || !value.startsWith("/") || value.length > 2000 || /[\u0000-\u001f\u007f\\]/.test(value)) return "/";
+  const base = "http://offerbound.invalid";
+  try {
+    const url = new URL(value, base);
+    return url.origin === base ? `${url.pathname}${url.search}${url.hash}` : "/";
+  } catch {
+    return "/";
+  }
+}
+
+// Whether a sign-in or sign-out request comes from this app's own page. A
+// browser always names the page's origin on a form POST; "null" (a sandboxed
+// frame elsewhere) and other sites are refused, so no website can sign a
+// browser in or use up the wrong tries. No Origin header at all is a
+// program on this computer or paired device, not a web page.
+export function sameOrigin(headers: Headers) {
+  const origin = headers.get("origin");
+  if (origin === null) return headers.get("sec-fetch-site") === null || headers.get("sec-fetch-site") === "same-origin" || headers.get("sec-fetch-site") === "none";
+  try {
+    return new URL(origin).host === headers.get("host");
+  } catch {
+    return false;
+  }
 }
 
 // The sign-in page, plain HTML with its own light and dark colours.

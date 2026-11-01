@@ -1,5 +1,5 @@
 import { checkPassword, makeSession } from "@/core/password.mjs";
-import { ROOT, SESSION, recordTry, safeNext, waitSeconds } from "@/lib/login";
+import { ROOT, SESSION, recordTry, safeNext, sameOrigin, waitSeconds } from "@/lib/login";
 
 // The sign-in form (lib/login.ts) posts here. Answers with a redirect: back to
 // the page asked for, or to the form with a notice.
@@ -10,8 +10,7 @@ const withNotice = (next: string, notice: string, extra = "") => `${next}${next.
 
 export async function POST(request: Request) {
   // Only this app's own form: a page elsewhere cannot sign a browser in.
-  const origin = request.headers.get("origin");
-  if (origin && origin !== "null" && new URL(origin).host !== request.headers.get("host")) return new Response("Not allowed", { status: 403 });
+  if (!sameOrigin(request.headers)) return new Response("Not allowed", { status: 403 });
   const form = await request.formData().catch(() => null);
   const next = safeNext(form?.get("next"));
   const now = Date.now();
