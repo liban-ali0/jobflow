@@ -117,3 +117,7 @@ Offerbound includes or uses open-source work:
 - [VeriWorkly ats-engine](https://github.com/VeriWorkly/ats-engine) (MIT): the CV review and requirements check.
 - [pdf.js](https://github.com/mozilla/pdf.js) (Apache-2.0): reading the CV PDF.
 - [Next.js](https://nextjs.org), [React](https://react.dev) and [Playwright](https://playwright.dev).
+
+## Licence
+
+Offerbound is open source under the [MIT licence](LICENSE). The borrowed code keeps its own licence, listed above. How the code is built: [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md).

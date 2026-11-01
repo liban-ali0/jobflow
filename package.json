@@ -1,7 +1,9 @@
 {
-  "name": "job-workflow",
+  "name": "offerbound",
   "version": "0.1.0",
   "private": true,
+  "description": "Finds fresh job postings, ranks them against your CV, prepares tailored applications and tracks them, run locally with your own Claude Code or Codex plan.",
+  "license": "MIT",
   "type": "module",
   "engines": {
     "node": ">=22.13"
