@@ -8,6 +8,7 @@
   },
   "scripts": {
     "setup": "npm install && npm install --prefix web && npx playwright install chromium && node scripts/jobs.mjs statuses",
+    "start": "node scripts/start.mjs",
     "app": "npm run dev --prefix web",
     "jobs": "node scripts/jobs.mjs",
     "find": "node scripts/collect.mjs"

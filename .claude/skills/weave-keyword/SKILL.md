@@ -33,7 +33,7 @@ When there is evidence:
   "status": "added",
   "before": "the existing bullet or summary sentence, copied character for character from cv",
   "after": "the same line with the keyword worked in",
-  "where": "the role or section, for example IT Specialist / Backend Developer at Ostim Technical University",
+  "where": "the role or section, for example Backend Developer at Example Company",
   "reason": "one sentence on the evidence, naming the profile or facts line"
 }
 ```
