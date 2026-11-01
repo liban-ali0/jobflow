@@ -17,6 +17,7 @@ import { MailReplies } from "@/components/mail-replies";
 import { ListingNotice, ListingStatus } from "@/components/listing-notice";
 import { listingSite } from "@/core/liveness.mjs";
 import { repostNote } from "@/lib/reposts";
+import { unarchiveJobs } from "@/app/job-actions";
 import Link from "next/link";
 import { applyPack } from "@/lib/apply";
 import { checkCv } from "@/lib/ats";
@@ -161,6 +162,16 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="min-w-0 space-y-6">
+          {job.archived_at && (
+            <div className="card flex flex-wrap items-center justify-between gap-3 rounded-xl p-4">
+              <p className="text-sm">
+                <span className="font-medium">Archived </span>
+                <span className="text-slate">on {formatDateTime(job.archived_at)}. It is out of your lists; nothing was deleted.</span>
+              </p>
+              <ActionButton action={unarchiveJobs.bind(null, [job.id])}>Bring back</ActionButton>
+            </div>
+          )}
+
           {repost && (
             <div className={`card space-y-1 rounded-xl p-4 ${repost.kind === "applied" ? "border-coral" : ""}`}>
               <p className="font-medium">{repost.label}</p>

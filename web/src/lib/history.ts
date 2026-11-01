@@ -8,6 +8,10 @@ export function describeEvent(event: JobEvent): string {
   switch (event.type) {
     case "found":
       return event.detail ? `Found on ${SOURCES[event.detail] ?? event.detail}` : "Found";
+    case "archived":
+      return event.detail === "posting too old" ? "Archived: the posting got too old" : "Archived";
+    case "unarchived":
+      return "Brought back from the archive";
     case "relisted":
       return "Listed again under a new link";
     case "status": {

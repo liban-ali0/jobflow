@@ -13,7 +13,7 @@ export function setSettings(db: Db, patch: Row): Row;
 export function addJob(db: Db, job: Row): { id: number; created: boolean };
 export function updateJob(db: Db, id: number, patch: Row): Row;
 export function getJob(db: Db, id: number): Row | null;
-export function listJobs(db: Db, filter?: { status?: string | string[]; since?: string; limit?: number | null; slim?: boolean }): Row[];
+export function listJobs(db: Db, filter?: { status?: string | string[]; since?: string; archived?: boolean; limit?: number | null; slim?: boolean }): Row[];
 export function countJobs(db: Db, filter?: { status?: string | string[]; since?: string }): number;
 export function countByStatus(db: Db): Record<string, number>;
 
@@ -73,3 +73,6 @@ export function getMail(db: Db, id: number): Row | null;
 export function updateMail(db: Db, id: number, patch: { job_id?: number | null; state?: string; suggestion?: string | null }): void;
 export function listingTargets(db: Db, options?: { ids?: number[] | null; limit?: number }): { id: number; title: string; company: string; url: string; status: string }[];
 export function setListing(db: Db, id: number, check: { state: "open" | "closed" | "unsure" | "kept"; reason?: string | null }): void;
+export const ARCHIVABLE: string[];
+export function archiveJobs(db: Db, ids: number[], archived?: boolean): number;
+export function archiveStale(db: Db, days: number): number;

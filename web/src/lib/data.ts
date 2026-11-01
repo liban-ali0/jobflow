@@ -107,7 +107,7 @@ export const getSettings = () => core.getSettings(db()) as Settings;
 export const setSettings = (patch: Partial<Settings>) => core.setSettings(db(), patch) as Settings;
 
 // Jobs for lists: every match, without the long description (use getJob for it).
-export const listJobs = (filter: { status?: Status | Status[]; since?: string; limit?: number } = {}) =>
+export const listJobs = (filter: { status?: Status | Status[]; since?: string; archived?: boolean; limit?: number } = {}) =>
   core.listJobs(db(), { ...filter, slim: true }) as Job[];
 export const countJobs = (filter: { status?: Status | Status[]; since?: string } = {}) => core.countJobs(db(), filter);
 // Jobs stored within the last `hours`, whatever their status.
@@ -187,3 +187,7 @@ export const updateMail = (id: number, patch: { job_id?: number | null; state?: 
 // Whether saved jobs' listings are still open (core/liveness.mjs checks them).
 export const setListing = (id: number, check: { state: NonNullable<Job["listing_state"]>; reason?: string | null }) => core.setListing(db(), id, check);
 export const listingTargets = (options: { ids?: number[] | null; limit?: number } = {}) => core.listingTargets(db(), options);
+
+// The archive: jobs set aside out of the lists, never deleted.
+export const archiveJobs = (ids: number[], archived = true) => core.archiveJobs(db(), ids, archived);
+export const archiveStale = (days: number) => core.archiveStale(db(), days);

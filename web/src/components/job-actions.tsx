@@ -13,9 +13,11 @@ import {
   removeFromSelected,
   restoreJobs,
   selectJobs,
+  archiveJobs,
+  unarchiveJobs,
 } from "@/app/job-actions";
 
-export type JobSummary = { id: number; status: string; url: string | null; ranked: boolean };
+export type JobSummary = { id: number; status: string; url: string | null; ranked: boolean; archived?: boolean };
 
 // The reason form for "Not interested", used by the bulk bar, the row menu,
 // and the job page.
@@ -179,6 +181,17 @@ export function RowMenu({ job }: { job: JobSummary }) {
                 Add a note…
               </button>
               <div className="my-1 border-t border-line" />
+              {job.archived ? (
+                <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => unarchiveJobs([job.id]))}>
+                  Bring back from the archive
+                </button>
+              ) : (
+                !SENT_STATUSES.includes(job.status as Status) && (
+                  <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => archiveJobs([job.id]))}>
+                    Archive
+                  </button>
+                )
+              )}
               {excluded ? (
                 <button type="button" role="menuitem" className={item} disabled={pending} onClick={() => run(() => restoreJobs([job.id]))}>
                   Restore

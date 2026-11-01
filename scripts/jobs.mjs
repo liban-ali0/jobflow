@@ -26,7 +26,7 @@ const HELP = `Usage: node scripts/jobs.mjs <command>
   rules [--file <path>]            Print the extra ranking rules, or replace them with the file's text
   ask                              Ask the user a question in the app (JSON: text, why, options, job_id, category: you | cv | job)
   questions [--status <s>]         List questions: open, answered, dismissed (default: all)
-  list [--status a,b] [--since ISO]  List jobs
+  list [--status a,b] [--since ISO] [--archived]  List jobs (archived ones only with --archived)
   get <id>                         One job with contacts, documents, history
   add                              Add jobs (JSON object or array)
   update <id>                      Update a job (JSON object of fields)
@@ -96,7 +96,8 @@ function main() {
       return print({ statuses: core.STATUSES, documentTypes: core.DOCUMENT_TYPES });
     case "list": {
       const status = option(args, "--status");
-      const jobs = core.listJobs(db, { status: status ? status.split(",") : undefined, since: option(args, "--since") });
+      // Archived jobs are left out unless asked for (--archived).
+      const jobs = core.listJobs(db, { status: status ? status.split(",") : undefined, since: option(args, "--since"), archived: args.includes("--archived") ? undefined : false });
       // The description is long, so it is left out of lists.
       return print(jobs.map(({ description, ...job }) => job));
     }

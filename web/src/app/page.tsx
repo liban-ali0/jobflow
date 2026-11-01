@@ -105,7 +105,7 @@ export default async function TodayPage(props: PageProps<"/">) {
   const pick = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : undefined);
   const { show, limit, params, departuresSort, selectedSort, settings, waiting, recent, pool, shown } = buildDepartures(pick);
   const counts = countByStatus();
-  const selected = sortJobs(listJobs({ status: "selected" }), selectedSort.key, selectedSort.dir, settings);
+  const selected = sortJobs(listJobs({ status: "selected", archived: false }), selectedSort.key, selectedSort.dir, settings);
   const unranked = waiting.filter((job) => job.status === "found").length;
   const paged = paginate(shown, Number(pick("page")) || 1, limit);
   const pageHref = (page: number) => {
@@ -155,7 +155,7 @@ export default async function TodayPage(props: PageProps<"/">) {
     ? `${activeResearch.stage === "research-job" ? "Researching" : "Writing documents for"} ${activeJob?.title ?? "a job"}${queued.length ? `, ${queued.length} more in the queue` : ""}.`
     : null;
   // Researched jobs whose documents still need the user.
-  const toReview = listJobs({ status: "researched" })
+  const toReview = listJobs({ status: "researched", archived: false })
     .map((job) => {
       const docs = listDocuments(job.id).filter((doc) => doc.type !== "research");
       return {
@@ -168,7 +168,7 @@ export default async function TodayPage(props: PageProps<"/">) {
 
   const followUps = followUpsDue();
   // Saved jobs whose listing closed before the user applied.
-  const closedListings = listJobs({ status: ["found", "ranked", "selected", "researched", "ready"] }).filter((job) => job.listing_state === "closed");
+  const closedListings = listJobs({ status: ["found", "ranked", "selected", "researched", "ready"], archived: false }).filter((job) => job.listing_state === "closed");
   // Emails about applications found in Gmail, waiting for the user.
   const mails = listMails({ state: "new" });
   const mailApplications = mails.some((mail) => !mail.job_id)
@@ -454,7 +454,7 @@ export default async function TodayPage(props: PageProps<"/">) {
       )}
 
       <div id="selected" className="anchor mt-8">
-        <BulkSelection>
+        <BulkSelection mode="selected">
         <DeparturesBoard
           selectable
           title={`Selected for research · ${selected.length}/${settings.dailyCap}`}
@@ -515,7 +515,12 @@ export default async function TodayPage(props: PageProps<"/">) {
         />
         </BulkSelection>
       </div>
-      <p className="mt-3 text-xs text-slate">
+      <p className="mt-3 text-sm">
+        <Link href="/jobs" className="text-teal underline">
+          All saved jobs by stage, and the archive →
+        </Link>
+      </p>
+      <p className="mt-2 text-xs text-slate">
         Status follows each posting&apos;s age: Boarding means posted within {settings.freshness.fastTrackMinutes} minutes,
         Last call means it is close to the {settings.freshness.maxHours}-hour limit. Highest scores come first.
       </p>

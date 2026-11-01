@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/app/actions";
 import { sendMessage } from "@/app/actions";
-import { createConversation, getJob, getSettings, listJobs, setListing, setSettings, unapprovedDocuments, updateJob } from "@/lib/data";
+import { archiveJobs as archive, createConversation, getJob, getSettings, listJobs, setListing, setSettings, unapprovedDocuments, updateJob } from "@/lib/data";
 import { checkListing } from "@/core/liveness.mjs";
 import { exportPdfs } from "@/lib/apply";
 import { engineFor, launch, queueResearch, stageRunning } from "@/lib/engine";
@@ -35,7 +35,7 @@ function done(message: string): ActionResult {
 
 export async function selectJobs(ids: number[]): Promise<ActionResult> {
   const { dailyCap } = getSettings();
-  const room = dailyCap - listJobs({ status: "selected" }).length;
+  const room = dailyCap - listJobs({ status: "selected", archived: false }).length;
   const ranked = loadJobs(ids).filter((job) => job.status === "ranked");
   if (ranked.length === 0) return { ok: false, message: "Only ranked jobs can be selected. Rank the others first." };
   if (room <= 0) return { ok: false, message: `Selected is full (${dailyCap}). Remove a job first or raise the cap in Settings.` };
@@ -140,7 +140,7 @@ export async function askAboutJob(id: number) {
 // Queues research (and the tailoring that follows) for selected jobs that
 // have none yet; they run one after another.
 export async function researchSelected(): Promise<ActionResult> {
-  const waiting = listJobs({ status: "selected" }).map((job) => job.id);
+  const waiting = listJobs({ status: "selected", archived: false }).map((job) => job.id);
   if (waiting.length === 0) return { ok: false, message: "No selected jobs are waiting for research." };
   const added = queueResearch(waiting);
   revalidatePath("/", "layout");
@@ -206,4 +206,17 @@ export async function addRankingRule(rule: string): Promise<ActionResult> {
   if (rules.toLowerCase().includes(text.toLowerCase())) return { ok: true, message: "Already a ranking rule." };
   setSettings({ customRules: `${rules}${rules ? "\n" : ""}- ${text}` });
   return done("Added to your ranking rules (Profile → Extra ranking rules).");
+}
+
+// ---------- the archive ----------
+
+// Out of the lists, not deleted: only jobs not yet applied to.
+export async function archiveJobs(ids: number[]): Promise<ActionResult> {
+  const changed = archive(cleanIds(ids));
+  return changed ? done(`Archived ${plural(changed, "job")}. They are under Jobs → Archived.`) : { ok: false, message: "Nothing to archive: applications stay on the Board." };
+}
+
+export async function unarchiveJobs(ids: number[]): Promise<ActionResult> {
+  const changed = archive(cleanIds(ids), false);
+  return changed ? done(`Brought back ${plural(changed, "job")}.`) : { ok: false, message: "None of these are archived." };
 }

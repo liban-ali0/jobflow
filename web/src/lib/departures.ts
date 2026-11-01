@@ -46,8 +46,8 @@ export function buildDepartures(pick: (key: string) => string | undefined) {
   const selectedSort = tableSort({ ...boardSort, param: { key: "ssort", dir: "sdir" }, anchor: "selected" });
 
   const settings = getSettings();
-  const waiting = listJobs({ status: ["ranked", "found"] });
-  const recent = listFoundWithin(settings.freshness.maxHours);
+  const waiting = listJobs({ status: ["ranked", "found"], archived: false });
+  const recent = listFoundWithin(settings.freshness.maxHours).filter((job) => !job.archived_at);
 
   // The "show" view decides which jobs the board lists; the filters then
   // narrow that list.

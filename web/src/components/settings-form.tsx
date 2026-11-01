@@ -619,6 +619,15 @@ export function SettingsForm({
               max={720}
               help="Shown as Boarding on Today."
             />
+            <NumberField
+              name="archiveAfterDays"
+              label="Archive unpicked jobs after"
+              value={settings.freshness.archiveAfterDays ?? 7}
+              unit="days"
+              min={0}
+              max={365}
+              help="Jobs you never selected, once the posting is this old, go to Jobs → Archived. 0 keeps them."
+            />
           </div>
         </Section>
 

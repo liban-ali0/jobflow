@@ -122,7 +122,7 @@ export default async function BoardPage(props: PageProps<"/board">) {
   const settings = getSettings();
   const roleLabel = new Map(settings.roles.map((role) => [role.key, role.label]));
 
-  const jobs = listJobs({ status: [...PREPARING, ...TABLE_STATUSES] });
+  const jobs = listJobs({ status: [...PREPARING, ...TABLE_STATUSES], archived: false });
   const preparing = jobs.filter((job) => PREPARING.includes(job.status));
   // The Offer gate counts offers answered too.
   const count = (status: Status) => jobs.filter((job) => job.status === status || (status === "offer" && (job.status === "accepted" || job.status === "declined"))).length;

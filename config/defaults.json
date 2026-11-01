@@ -10,7 +10,8 @@
   "roles": [],
   "freshness": {
     "maxHours": 24,
-    "fastTrackMinutes": 60
+    "fastTrackMinutes": 60,
+    "archiveAfterDays": 7
   },
   "experience": {
     "levels": [

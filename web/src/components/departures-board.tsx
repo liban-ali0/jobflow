@@ -235,7 +235,7 @@ export function DeparturesBoard({
                   ) : job.status === "found" ? (
                     <span className="font-mono text-[11px] text-board-dim">rank first</span>
                   ) : null}
-                  <RowMenu job={{ id: job.id, status: job.status, url: job.url, ranked: job.score !== null }} />
+                  <RowMenu job={{ id: job.id, status: job.status, url: job.url, ranked: job.score !== null, archived: Boolean(job.archived_at) }} />
                 </div>
               </li>
             );

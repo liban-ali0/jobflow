@@ -2,13 +2,26 @@
 
 import { useRef, useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
-import { excludeJobs, rankJobs, removeFromSelected, restoreJobs, selectJobs } from "@/app/job-actions";
+import { archiveJobs, excludeJobs, rankJobs, removeFromSelected, restoreJobs, selectJobs, unarchiveJobs } from "@/app/job-actions";
 import { ExcludeForm } from "@/components/job-actions";
+
+// Which actions the bar offers, by what the table holds; "all" offers every one.
+export type BulkMode = "all" | "unranked" | "ranked" | "selected" | "preparing" | "excluded" | "archived";
+const ACTIONS: Record<BulkMode, string[]> = {
+  all: ["select", "remove", "rank", "exclude", "restore", "archive"],
+  unranked: ["rank", "exclude", "archive"],
+  ranked: ["select", "rank", "exclude", "archive"],
+  selected: ["remove", "exclude", "archive"],
+  preparing: ["archive"],
+  excluded: ["restore", "rank", "archive"],
+  archived: ["unarchive"],
+};
 
 // Wraps a departures board: tracks the ticked rows (checkboxes named "job")
 // and shows a bar of actions for them. The "select all" box ticks every row on
 // the current page.
-export function BulkSelection({ children }: { children: React.ReactNode }) {
+export function BulkSelection({ children, mode = "all" }: { children: React.ReactNode; mode?: BulkMode }) {
+  const offers = (action: string) => ACTIONS[mode].includes(action);
   const area = useRef<HTMLDivElement>(null);
   const [ids, setIds] = useState<number[]>([]);
   const [excluding, setExcluding] = useState(false);
@@ -61,21 +74,41 @@ export function BulkSelection({ children }: { children: React.ReactNode }) {
                 <span className="mr-2 text-sm font-medium">
                   <span className="font-mono">{ids.length}</span> selected
                 </span>
-                <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => selectJobs(ids))}>
-                  Select for research
-                </button>
-                <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => removeFromSelected(ids))}>
-                  Remove
-                </button>
-                <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => rankJobs(ids))}>
-                  Rank / re-rank
-                </button>
-                <button type="button" className="btn btn-quiet text-coral" disabled={pending} onClick={() => setExcluding(true)}>
-                  Not interested
-                </button>
-                <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => restoreJobs(ids))}>
-                  Restore
-                </button>
+                {offers("select") && (
+                  <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => selectJobs(ids))}>
+                    Select for research
+                  </button>
+                )}
+                {offers("unarchive") && (
+                  <button type="button" className="btn btn-primary" disabled={pending} onClick={() => run(() => unarchiveJobs(ids))}>
+                    Bring back
+                  </button>
+                )}
+                {offers("remove") && (
+                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => removeFromSelected(ids))}>
+                    Remove from selected
+                  </button>
+                )}
+                {offers("rank") && (
+                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => rankJobs(ids))}>
+                    Rank / re-rank
+                  </button>
+                )}
+                {offers("exclude") && (
+                  <button type="button" className="btn btn-quiet text-coral" disabled={pending} onClick={() => setExcluding(true)}>
+                    Not interested
+                  </button>
+                )}
+                {offers("restore") && (
+                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => restoreJobs(ids))}>
+                    Restore
+                  </button>
+                )}
+                {offers("archive") && (
+                  <button type="button" className="btn btn-quiet" disabled={pending} onClick={() => run(() => archiveJobs(ids))}>
+                    Archive
+                  </button>
+                )}
                 <a href={`/export?ids=${ids.join(",")}`} className="btn btn-quiet" download>
                   Export
                 </a>

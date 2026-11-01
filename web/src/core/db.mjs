@@ -163,7 +163,7 @@ const JOB_COLUMNS = [
   "title", "company", "country", "city", "work_mode", "role", "source", "url", "language",
   "description", "posted_at", "track", "score", "score_reason", "score_breakdown", "legitimacy",
   "salary_estimate", "status", "excluded_reason", "folder", "notes", "applied_at", "follow_up_due",
-  "apply_state", "apply_missing", "interview_at", "listing_state", "listing_reason", "listing_checked_at", "relisted_count", "relisted_at",
+  "apply_state", "apply_missing", "interview_at", "listing_state", "listing_reason", "listing_checked_at", "relisted_count", "relisted_at", "archived_at",
 ];
 
 const now = () => new Date().toISOString();
@@ -188,6 +188,9 @@ const ADDED_COLUMNS = [
   // How often the same opening was found again under a new link, and when last.
   ["jobs", "relisted_count", "INTEGER"],
   ["jobs", "relisted_at", "TEXT"],
+  // Set aside out of the lists (never deleted): unpicked jobs whose posting
+  // is too old, or any job the user archived before applying.
+  ["jobs", "archived_at", "TEXT"],
 ];
 
 // What a question is about: the candidate in general, a gap in their CV, or
@@ -320,6 +323,8 @@ export function updateJob(db, id, patch) {
   if (!current) throw new Error(`No job with id ${id}`);
   const values = { ...jobValues(patch), updated_at: now() };
   if (values.status === "applied" && patch.applied_at === undefined) values.applied_at = now();
+  // Picking an archived job (or anything but excluding it) brings it back.
+  if (values.status && values.status !== current.status && values.status !== "excluded" && values.archived_at === undefined) values.archived_at = null;
   const columns = Object.keys(values);
   db.prepare(`UPDATE jobs SET ${columns.map((c) => `${c} = ?`).join(", ")} WHERE id = ?`).run(
     ...columns.map((c) => values[c]),
@@ -338,9 +343,12 @@ export function getJob(db, id) {
 // Every column but the long description, for lists.
 const JOB_LIST_COLUMNS = `id, ${JOB_COLUMNS.filter((column) => column !== "description").join(", ")}, found_at, updated_at, description IS NOT NULL AS has_description`;
 
-function jobFilter({ status, since }) {
+function jobFilter({ status, since, archived }) {
   const where = [];
   const params = [];
+  // true: only archived jobs; false: only the rest; undefined: all.
+  if (archived === true) where.push("archived_at IS NOT NULL");
+  if (archived === false) where.push("archived_at IS NULL");
   if (status) {
     const list = Array.isArray(status) ? status : [status];
     where.push(`status IN (${list.map(() => "?").join(", ")})`);
@@ -355,8 +363,8 @@ function jobFilter({ status, since }) {
 
 // All matching jobs (no limit unless one is given). `slim` leaves out the
 // description, which lists never show.
-export function listJobs(db, { status, since, limit = null, slim = false } = {}) {
-  const { where, params } = jobFilter({ status, since });
+export function listJobs(db, { status, since, archived, limit = null, slim = false } = {}) {
+  const { where, params } = jobFilter({ status, since, archived });
   const sql = `SELECT ${slim ? JOB_LIST_COLUMNS : "*"} FROM jobs ${where}
     ORDER BY score IS NULL, score DESC, posted_at DESC${limit ? " LIMIT ?" : ""}`;
   return db.prepare(sql).all(...params, ...(limit ? [limit] : [])).map(parseJob);
@@ -581,7 +589,8 @@ export function getRun(db, id) {
 
 export function countByStatus(db) {
   const counts = Object.fromEntries(STATUSES.map((s) => [s, 0]));
-  for (const row of db.prepare("SELECT status, COUNT(*) AS n FROM jobs GROUP BY status").all()) counts[row.status] = row.n;
+  // The workflow's counts: archived jobs are out of the way.
+  for (const row of db.prepare("SELECT status, COUNT(*) AS n FROM jobs WHERE archived_at IS NULL GROUP BY status").all()) counts[row.status] = row.n;
   return counts;
 }
 
@@ -681,4 +690,42 @@ export function listingTargets(db, { ids = null, limit = 60 } = {}) {
 export function setListing(db, id, { state, reason = null }) {
   if (!["open", "closed", "unsure", "kept"].includes(state)) throw new Error(`Unknown listing state "${state}"`);
   db.prepare("UPDATE jobs SET listing_state = ?, listing_reason = ?, listing_checked_at = ? WHERE id = ?").run(state, reason, now(), id);
+}
+
+// ---------- the archive ----------
+
+// Jobs that can be archived: not yet applied to. Applications stay on the
+// Board, where their outcome matters.
+export const ARCHIVABLE = ["found", "ranked", "selected", "researched", "ready", "excluded"];
+
+export function archiveJobs(db, ids, archived = true) {
+  const archive = db.prepare(`UPDATE jobs SET archived_at = ? WHERE id = ? AND archived_at IS NULL AND status IN (${ARCHIVABLE.map(() => "?").join(", ")})`);
+  const bringBack = db.prepare("UPDATE jobs SET archived_at = NULL WHERE id = ? AND archived_at IS NOT NULL");
+  let changed = 0;
+  for (const id of new Set(ids.filter((id) => Number.isInteger(id) && id > 0))) {
+    const result = archived ? archive.run(now(), id, ...ARCHIVABLE) : bringBack.run(id);
+    if (!result.changes) continue;
+    addEvent(db, id, archived ? "archived" : "unarchived");
+    changed++;
+  }
+  return changed;
+}
+
+// Archives the jobs the user never picked (not ranked, ranked, excluded)
+// whose posting is older than `days`. Picked jobs are never archived on
+// their own. Returns how many.
+export function archiveStale(db, days) {
+  if (!days || days <= 0) return 0;
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+  const rows = db
+    .prepare("SELECT id FROM jobs WHERE archived_at IS NULL AND status IN ('found', 'ranked', 'excluded') AND COALESCE(posted_at, found_at) < ?")
+    .all(cutoff);
+  if (!rows.length) return 0;
+  const at = now();
+  const mark = db.prepare("UPDATE jobs SET archived_at = ? WHERE id = ?");
+  for (const { id } of rows) {
+    mark.run(at, id);
+    addEvent(db, id, "archived", "posting too old");
+  }
+  return rows.length;
 }

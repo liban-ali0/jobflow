@@ -146,7 +146,7 @@ export async function setStatus(jobId: number, status: string): Promise<ActionRe
 
   if (status === "selected") {
     const { dailyCap } = getSettings();
-    const selected = listJobs({ status: "selected" }).length;
+    const selected = listJobs({ status: "selected", archived: false }).length;
     if (selected >= dailyCap) {
       return { ok: false, message: `At most ${dailyCap} jobs can be selected at once. Remove a selected job or raise the limit in Settings.` };
     }
@@ -281,6 +281,7 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
     freshness: {
       maxHours: number(formData.get("maxHours"), current.freshness.maxHours, 1, 168),
       fastTrackMinutes: number(formData.get("fastTrackMinutes"), current.freshness.fastTrackMinutes, 5, 720),
+      archiveAfterDays: number(formData.get("archiveAfterDays"), current.freshness.archiveAfterDays ?? 7, 0, 365),
     },
     experience: {
       levels: EXPERIENCE_LEVELS.map((level) => level.key).filter((key) => formData.get(`level.${key}`) === "on"),

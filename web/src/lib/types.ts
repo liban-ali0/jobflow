@@ -57,6 +57,8 @@ export type Job = {
   // The same opening found again under a new link: how often, and when last.
   relisted_count: number | null;
   relisted_at: string | null;
+  // When it was archived (out of the lists, not deleted).
+  archived_at: string | null;
   updated_at: string;
 };
 
@@ -156,7 +158,8 @@ export type Settings = {
   // sponsorship: false when the user can already work there (missing means true).
   countries: { code?: string; name: string; priority: number; cities: string[]; sponsorship?: boolean }[];
   roles: { key: string; label: string; priority: number; keywords: string[] }[];
-  freshness: { maxHours: number; fastTrackMinutes: number };
+  // archiveAfterDays: unpicked jobs whose posting is older go to the archive (0 = never).
+  freshness: { maxHours: number; fastTrackMinutes: number; archiveAfterDays?: number };
   // levels: keys of EXPERIENCE_LEVELS in core/db.mjs. maxYears null means no limit.
   experience: { levels: string[]; maxYears: number | null; skipTitles: string[] };
   workModes: string[];
