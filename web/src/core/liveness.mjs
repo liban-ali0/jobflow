@@ -162,53 +162,68 @@ function checkedUrl(url) {
   return address;
 }
 
-function request(address, accept) {
+// One request with a hard deadline (a server dripping bytes cannot hold it
+// open) and a cap on the decompressed body; whatever comes first ends it.
+function request(address, accept, deadline) {
   return new Promise((resolve, reject) => {
     const client = address.protocol === "https:" ? https : http;
-    const req = client.request(
+    let settled = false;
+    let req;
+    let stream = null;
+    const settle = (error, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      stream?.destroy();
+      req?.destroy();
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const timer = setTimeout(() => settle(Object.assign(new Error("timeout"), { name: "TimeoutError" })), Math.max(0, deadline - Date.now()));
+    req = client.request(
       address,
       {
         headers: { "User-Agent": USER_AGENT, "Accept-Language": "en", Accept: accept, "Accept-Encoding": "gzip, deflate, br" },
         lookup: guardedLookup,
-        timeout: TIMEOUT_MS,
       },
       (response) => {
         const status = response.statusCode ?? 0;
         const location = status >= 300 && status < 400 ? response.headers.location : null;
-        if (location) {
-          response.resume();
-          return resolve({ status, location, text: "" });
-        }
+        if (location) return settle(null, { status, location, text: "" });
         const encoding = String(response.headers["content-encoding"] ?? "").toLowerCase();
-        const stream =
-          encoding === "gzip" ? response.pipe(zlib.createGunzip()) : encoding === "deflate" ? response.pipe(zlib.createInflate()) : encoding === "br" ? response.pipe(zlib.createBrotliDecompress()) : response;
+        const decoder = encoding === "gzip" ? zlib.createGunzip() : encoding === "deflate" ? zlib.createInflate() : encoding === "br" ? zlib.createBrotliDecompress() : null;
+        stream = decoder ? response.pipe(decoder) : response;
+        if (decoder) response.on("error", (error) => settle(error));
         const chunks = [];
         let size = 0;
-        const finish = () => resolve({ status, location: null, text: Buffer.concat(chunks).subarray(0, MAX_BYTES).toString("utf8") });
+        const finish = () => settle(null, { status, location: null, text: Buffer.concat(chunks).toString("utf8") });
         stream.on("data", (chunk) => {
-          chunks.push(chunk);
-          size += chunk.length;
+          if (settled) return;
+          const room = MAX_BYTES - size;
+          chunks.push(chunk.length > room ? chunk.subarray(0, room) : chunk);
+          size += Math.min(chunk.length, room);
           if (size >= MAX_BYTES) {
             response.destroy();
             finish();
           }
         });
         stream.on("end", finish);
-        stream.on("error", reject);
+        stream.on("error", (error) => settle(error));
       },
     );
-    req.on("timeout", () => req.destroy(Object.assign(new Error("timeout"), { name: "TimeoutError" })));
-    req.on("error", reject);
+    req.on("error", (error) => settle(error));
     req.end();
   });
 }
 
 async function load(url, accept = "text/html,application/json") {
+  // One deadline for the whole check, redirects included.
+  const deadline = Date.now() + TIMEOUT_MS;
   let current = url;
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     const address = checkedUrl(current);
     if (!address) throw new RefusedAddress();
-    const { status, location, text } = await request(address, accept);
+    const { status, location, text } = await request(address, accept, deadline);
     if (!location) return { status, finalUrl: current, text };
     current = new URL(location, current).href;
   }
