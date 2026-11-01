@@ -40,7 +40,7 @@ The pictures show a demo with a fictional candidate and fictional companies.
 
 Download the **LTS** version from [nodejs.org](https://nodejs.org) and install it with the default options. You need version **22.13 or newer**.
 
-Check it: open a terminal (Windows: *Terminal* or *PowerShell*; macOS: *Terminal*) and run:
+Check it: open a terminal (Windows: *Terminal* or *PowerShell*; macOS: *Terminal*; Linux: your usual terminal) and run:
 
 ```
 node --version
@@ -69,7 +69,7 @@ Either:
 - with Git: `git clone https://github.com/liban-ali0/offerbound.git offerbound`, or
 - download the ZIP from the project's GitHub page (green **Code** button → **Download ZIP**) and unzip it.
 
-Then open a terminal **in the Offerbound folder** (the one with `README.md` in it). On Windows you can right-click the folder in Explorer and choose *Open in Terminal*.
+Then open a terminal **in the Offerbound folder** (the one with `README.md` in it). On Windows you can right-click the folder in Explorer and choose *Open in Terminal*; on macOS, right-click it in Finder and choose *New Terminal at Folder* (or type `cd ` in Terminal and drag the folder in); on Linux, most file managers have *Open in Terminal* in the right-click menu.
 
 ## 5. Install it
 
@@ -100,6 +100,17 @@ npm start
 The first start builds the app (a minute or two). When it prints `Offerbound is starting at http://localhost:3000`, open **http://localhost:3000** in your browser.
 
 Keep that terminal open while you use Offerbound; Ctrl+C stops it. Next time, `npm start` is all you need.
+
+**Rather have it as an app?** Close that terminal (Ctrl+C) and run these two instead:
+
+```
+node scripts/service.mjs start
+node scripts/service.mjs autostart on
+```
+
+Offerbound now runs in the background, without a window, and starts by itself whenever you sign in (Windows, macOS and Linux alike; `node scripts/service.mjs autostart off` undoes it). In Chrome or Edge, open http://localhost:3000, go to **Settings → This computer** and press **Install Offerbound** (or use the install icon at the right of the address bar; on a Mac, Safari's File → Add to Dock works too). It then opens in its own window, with a taskbar or Dock icon and an entry in the Start menu, Launchpad or app list.
+
+Both are optional, and neither is on until you run them.
 
 ## 8. Setup: your CV and facts
 
@@ -214,7 +225,7 @@ Record what happens on the job page (*Replied*, *Interview*, *Offer*, *Rejected*
 
 ## 17. Every day
 
-1. `npm start` (if it is not running) and open http://localhost:3000.
+1. Open Offerbound (the app, or http://localhost:3000). If you do not run it in the background, `npm start` first.
 2. **Today:** answer questions, handle *Waiting on you* and replies.
 3. **Find new jobs** (or let the schedule do it), then pick on **Jobs → Ranked** and **Select and research**.
 4. Review and approve documents, then apply.
@@ -230,6 +241,7 @@ Record what happens on the job page (*Replied*, *Interview*, *Offer*, *Rejected*
 | PDFs fail: *the PDF browser is not installed* | Run `npm run setup` again. |
 | Settings → Sources says the extension is not installed | Reload the extension on the browser's extensions page, then press *I installed it: check again*. |
 | A job site shows a captcha or *are you a robot* | Open that site yourself once in your browser; Offerbound never tries to get around it. |
-| After an update something looks odd | Run `npm run setup`, then `npm start`; it rebuilds itself. |
+| After an update something looks odd | Run `npm run setup`, then `npm start`; it rebuilds itself. In the background: `node scripts/service.mjs update`. |
+| The app window says the site cannot be reached | Offerbound is not running: `node scripts/service.mjs start`. If it keeps stopping, `node scripts/service.mjs logs` shows why. |
 
 Your data is in three folders inside Offerbound: `candidate/`, `jobs/` and `data/`. To back up or move to another computer, stop Offerbound and copy them.

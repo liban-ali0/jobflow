@@ -37,17 +37,47 @@ Then, once, let your engine work in this folder:
 - Claude Code: run `claude` in this folder, sign in if asked, accept the prompt to trust the folder, then type `/exit`.
 - Codex: run `codex` in this folder, sign in, trust the folder, then exit.
 
-## Start
+## Getting started
 
-```
-npm start
-```
+Run these in a terminal opened in the Offerbound folder: **PowerShell** or **Windows Terminal** on Windows, **Terminal** on macOS, your usual terminal on Linux. The commands are the same on all three.
 
-Open http://localhost:3000. The first start builds the app (a minute or two); later starts are quick. Stop it with Ctrl+C in its terminal.
+### Choose how to run it
 
-The **Setup** screen walks you through the rest: check the engine, upload your CV, add facts the CV does not say, choose countries, roles and keywords, and build your profile. Then go to **Today** and press **Find new jobs**: new jobs are found and ranked for you.
+| | Start | Stop | Good for |
+|---|---|---|---|
+| **In a terminal** | `npm start` | Ctrl+C, or close the terminal | Trying it out; running it only when you need it |
+| **In the background** | `node scripts/service.mjs start` | `node scripts/service.mjs stop` | Daily use: no window to keep open, and it starts again if it ever stops |
+| **For development** | `npm run app` | Ctrl+C | Working on Offerbound's code (reloads as you edit) |
 
-(`npm run app` starts the development version instead, for working on Offerbound's code.)
+Then open **http://localhost:3000**. The first start builds the app (a minute or two); later starts are quick. The **Setup** screen walks you through the rest: check the engine, upload your CV, add facts the CV does not say, choose countries, roles and keywords, and build your profile. Then go to **Today** and press **Find new jobs**.
+
+### Make it feel like an app (optional)
+
+- **Start when you sign in:** `node scripts/service.mjs autostart on` (or the switch in **Settings → This computer**). It uses the usual place on each system, for your user only, without administrator rights:
+
+  | System | Where it goes |
+  |---|---|
+  | Windows | The sign-in list in the registry (*Startup apps* in Windows settings), started without a window |
+  | macOS | A LaunchAgent in `~/Library/LaunchAgents` |
+  | Linux | A desktop autostart entry in `~/.config/autostart` (GNOME, KDE, Xfce and others) |
+
+  `node scripts/service.mjs autostart off` removes it.
+- **Its own window:** install it from the browser: **Settings → This computer → Install Offerbound**, or the install icon at the right of the address bar in **Chrome** or **Edge** (Windows, macOS, Linux). On a Mac, **Safari** can do it too: File → Add to Dock. It then has its own window, a taskbar or Dock icon and an entry in the Start menu, Launchpad or app list. Firefox cannot install sites as apps; use it in a tab.
+- **The other commands:** `node scripts/service.mjs status`, `restart`, `update` (gets the latest version and restarts) and `logs` (why it stopped, if it did).
+
+### Off until you turn it on
+
+Nothing runs by itself, opens to your network or reads your mail until you choose it:
+
+| Feature | Where to switch it on |
+|---|---|
+| Start at sign-in | Settings → This computer, or `autostart on` |
+| Searching on a schedule (and checking whether listings are still open) | Settings → Schedule |
+| Opening it on your phone over home Wi-Fi | Settings → Other devices |
+| Watching Gmail for replies | Settings → Email |
+| Job sites read in your browser (Indeed, Bayt and others) | Settings → Sources |
+
+Old, unpicked postings are moved to the archive after 7 days to keep the lists short (Settings → Freshness; nothing is deleted, and 0 turns it off).
 
 ## The screens
 
@@ -102,11 +132,11 @@ What it does:
 
 ## Your phone
 
-Settings → Other devices explains how to open Offerbound on your phone through [Tailscale](https://tailscale.com) (free for personal use). The app itself only listens on your computer; other devices need the one-time link from that screen.
+Settings → Other devices: on your home Wi-Fi (switch it on, then scan the code with the phone once), or from anywhere through [Tailscale](https://tailscale.com) (free for personal use). The app itself only listens on your computer; other devices need the one-time pairing code or link from that screen.
 
 ## Schedule
 
-Settings → Schedule checks for fresh postings every few minutes during the hours you choose and ranks new ones at once, and runs a full search once a day. It works while the app is running.
+Settings → Schedule (off until you turn it on) checks for fresh postings every few minutes during the hours you choose and ranks new ones at once, and runs a full search once a day. It works while the app is running, so it pairs well with running it in the background.
 
 ## Your data
 
@@ -114,7 +144,7 @@ Settings → Schedule checks for fresh postings every few minutes during the hou
 
 ## Updating
 
-`git pull` (or replace the project files with the new version, keeping `candidate/`, `jobs/` and `data/`), then `npm run setup` again. The next `npm start` rebuilds the app.
+`git pull` (or replace the project files with the new version, keeping `candidate/`, `jobs/` and `data/`), then `npm run setup` again. The next `npm start` rebuilds the app. If it runs in the background, `node scripts/service.mjs update` does all of this and restarts it.
 
 ## Rules it keeps
 

@@ -17,6 +17,8 @@ const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", subsets: ["latin"
 export const metadata: Metadata = {
   title: "Offerbound",
   description: "Find, rank, research, and track job applications",
+  appleWebApp: { title: "Offerbound", capable: true },
+  icons: { apple: "/app/apple-touch.png" },
 };
 
 // Every screen reads the local database, so nothing is prerendered.
