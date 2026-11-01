@@ -71,3 +71,5 @@ export function addMail(db: Db, mail: Row): boolean;
 export function listMails(db: Db, filter?: { state?: string; jobId?: number | null; limit?: number }): Row[];
 export function getMail(db: Db, id: number): Row | null;
 export function updateMail(db: Db, id: number, patch: { job_id?: number | null; state?: string; suggestion?: string | null }): void;
+export function listingTargets(db: Db, options?: { ids?: number[] | null; limit?: number }): { id: number; title: string; company: string; url: string; status: string }[];
+export function setListing(db: Db, id: number, check: { state: "open" | "closed" | "unsure" | "kept"; reason?: string | null }): void;

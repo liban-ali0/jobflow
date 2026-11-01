@@ -50,6 +50,10 @@ export type Job = {
   apply_missing: string[] | null;
   // When the interview is, if known (ISO time).
   interview_at: string | null;
+  // Whether the listing is still open: "kept" when the user said it is.
+  listing_state: "open" | "closed" | "unsure" | "kept" | null;
+  listing_reason: string | null;
+  listing_checked_at: string | null;
   updated_at: string;
 };
 

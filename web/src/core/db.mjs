@@ -163,7 +163,7 @@ const JOB_COLUMNS = [
   "title", "company", "country", "city", "work_mode", "role", "source", "url", "language",
   "description", "posted_at", "track", "score", "score_reason", "score_breakdown", "legitimacy",
   "salary_estimate", "status", "excluded_reason", "folder", "notes", "applied_at", "follow_up_due",
-  "apply_state", "apply_missing", "interview_at",
+  "apply_state", "apply_missing", "interview_at", "listing_state", "listing_reason", "listing_checked_at",
 ];
 
 const now = () => new Date().toISOString();
@@ -180,6 +180,11 @@ const ADDED_COLUMNS = [
   ["jobs", "apply_missing", "TEXT"],
   // When the interview is (ISO time), if the user gave it.
   ["jobs", "interview_at", "TEXT"],
+  // Whether the listing is still open (open, closed, unsure, or kept when the
+  // user says it is open), why, and when that was checked.
+  ["jobs", "listing_state", "TEXT"],
+  ["jobs", "listing_reason", "TEXT"],
+  ["jobs", "listing_checked_at", "TEXT"],
 ];
 
 // What a question is about: the candidate in general, a gap in their CV, or
@@ -626,4 +631,40 @@ export function updateMail(db, id, patch) {
   const columns = Object.keys(patch).filter((key) => allowed.includes(key));
   if (!columns.length) return;
   db.prepare(`UPDATE mails SET ${columns.map((c) => `${c} = ?`).join(", ")} WHERE id = ?`).run(...columns.map((c) => patch[c]), id);
+}
+
+// ---------- is the listing still open ----------
+
+// Jobs worth checking: not yet given up, not decided by the employer. The
+// ones the user is working on are checked daily, the rest every three days.
+const LISTING_ACTIVE = ["selected", "researched", "ready"];
+const LISTING_CHECKED = ["found", "ranked", ...LISTING_ACTIVE, "applied"];
+
+export function listingTargets(db, { ids = null, limit = 60 } = {}) {
+  if (ids) {
+    const list = ids.filter((id) => Number.isInteger(id) && id > 0);
+    if (!list.length) return [];
+    return db.prepare(`SELECT id, title, company, url, status FROM jobs WHERE id IN (${list.map(() => "?").join(", ")})`).all(...list).map((row) => ({ ...row }));
+  }
+  const day = 24 * 3600000;
+  const recent = new Date(Date.now() - day + 3600000).toISOString();
+  const older = new Date(Date.now() - 3 * day + 3600000).toISOString();
+  return db
+    .prepare(
+      `SELECT id, title, company, url, status FROM jobs
+       WHERE status IN (${LISTING_CHECKED.map(() => "?").join(", ")}) AND url LIKE 'http%'
+         AND (listing_state IS NULL OR listing_state NOT IN ('closed', 'kept'))
+         AND (listing_checked_at IS NULL OR listing_checked_at < CASE WHEN status IN (${LISTING_ACTIVE.map(() => "?").join(", ")}) THEN ? ELSE ? END)
+       ORDER BY CASE status WHEN 'ready' THEN 0 WHEN 'researched' THEN 1 WHEN 'selected' THEN 2 WHEN 'ranked' THEN 3 WHEN 'applied' THEN 4 ELSE 5 END,
+         listing_checked_at IS NOT NULL, listing_checked_at, score IS NULL, score DESC, id DESC
+       LIMIT ?`,
+    )
+    .all(...LISTING_CHECKED, ...LISTING_ACTIVE, recent, older, limit)
+    .map((row) => ({ ...row }));
+}
+
+// Stores a check without touching updated_at: nothing about the job changed.
+export function setListing(db, id, { state, reason = null }) {
+  if (!["open", "closed", "unsure", "kept"].includes(state)) throw new Error(`Unknown listing state "${state}"`);
+  db.prepare("UPDATE jobs SET listing_state = ?, listing_reason = ?, listing_checked_at = ? WHERE id = ?").run(state, reason, now(), id);
 }

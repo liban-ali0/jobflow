@@ -183,3 +183,6 @@ export const addMail = (mail: Partial<Mail> & { message_id: string }) => core.ad
 export const listMails = (filter: { state?: Mail["state"]; jobId?: number | null; limit?: number } = {}) => core.listMails(db(), filter) as Mail[];
 export const getMail = (id: number) => core.getMail(db(), id) as Mail | null;
 export const updateMail = (id: number, patch: { job_id?: number | null; state?: Mail["state"]; suggestion?: Status | null }) => core.updateMail(db(), id, patch);
+
+// Whether saved jobs' listings are still open (core/liveness.mjs checks them).
+export const setListing = (id: number, check: { state: NonNullable<Job["listing_state"]>; reason?: string | null }) => core.setListing(db(), id, check);

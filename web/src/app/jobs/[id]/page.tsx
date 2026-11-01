@@ -14,6 +14,8 @@ import { RewriteDocuments } from "@/components/rewrite-documents";
 import { StatusSelect } from "@/components/status-select";
 import { OutcomeBar } from "@/components/tracking";
 import { MailReplies } from "@/components/mail-replies";
+import { ListingNotice, ListingStatus } from "@/components/listing-notice";
+import { listingSite } from "@/core/liveness.mjs";
 import { applyPack } from "@/lib/apply";
 import { checkCv } from "@/lib/ats";
 import { targetForJob } from "@/lib/ats-keywords";
@@ -120,6 +122,20 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const applicationEmail = pack?.email ? asGmail("application") : null;
   const filling = stageRunning("apply-job", job.id);
   const chrome = applyInChrome(job.url, pack?.approved ?? false);
+  // Whether the listing is still open (checked daily, or with "Check now").
+  const beforeApplying = ["found", "ranked", "selected", "researched", "ready"].includes(job.status);
+  const listingClosed = job.listing_state === "closed" && (beforeApplying || job.status === "applied" || job.status === "no_response");
+  const listingChecked = job.listing_checked_at ? formatDateTime(job.listing_checked_at) : null;
+  const listingLabel =
+    job.listing_state === "open"
+      ? "Still open"
+      : job.listing_state === "closed"
+        ? "Closed"
+        : job.listing_state === "unsure"
+          ? `Unclear: ${job.listing_reason ?? "could not tell"}`
+          : job.listing_state === "kept"
+            ? "Open (you said so)"
+            : "Not checked yet";
   const breakdown = Object.entries(job.score_breakdown ?? {}).map(([name, value]) => {
     const shown = OLD_NAMES[name] ?? name;
     return { name: shown, value, max: SCORE_MAX[shown] ?? SCORE_MAX[name] ?? 15 };
@@ -140,6 +156,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="min-w-0 space-y-6">
+          {listingClosed && <ListingNotice jobId={job.id} reason={job.listing_reason} checked={listingChecked} beforeApplying={beforeApplying} />}
+
           {jobMails.length > 0 && (
             <section aria-labelledby="job-mail" className="space-y-2">
               <h2 id="job-mail" className="section-title">
@@ -284,6 +302,15 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
               {job.applied_at && <Detail label="Applied">{formatDateTime(job.applied_at)}</Detail>}
               {job.follow_up_due && job.status === "applied" && <Detail label="Follow up">{formatDateTime(job.follow_up_due)}</Detail>}
               {job.excluded_reason && job.status === "excluded" && <Detail label="Not interested because">{job.excluded_reason}</Detail>}
+              {job.url && (
+                <Detail label="Listing">
+                  <ListingStatus
+                    jobId={job.id}
+                    label={`${listingLabel}${listingChecked && job.listing_state !== "kept" ? ` · checked ${listingChecked}` : ""}`}
+                    checkable={listingSite(job.url) !== null}
+                  />
+                </Detail>
+              )}
               <Detail label="Found">
                 {formatDateTime(job.found_at)}
                 {job.source && ` on ${job.source === "linkedin" ? "LinkedIn" : job.source}`}

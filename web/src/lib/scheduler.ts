@@ -9,11 +9,13 @@ import type { Run } from "./types";
 //   Workable are searched, and jobs posted within the fast-track window are
 //   ranked at once, so a fresh match is on Today within minutes.
 // - Daily run: at the set time, every source is searched (the Chrome sources
-//   too, when on), then the new jobs are ranked.
+//   too, when on), then the new jobs are ranked, then saved jobs' listings are
+//   checked for any that closed.
 // What a scheduled run leads to is decided here, from the runs table, so it
 // survives a restart of the app.
 
-const SEARCH: Stage[] = ["find-jobs", "browse-jobs", "rank-jobs"];
+// One at a time: they read the same sites (LinkedIn most of all).
+const SEARCH: Stage[] = ["find-jobs", "browse-jobs", "rank-jobs", "check-open"];
 const minutes = (time: string) => {
   const [hours, mins] = time.split(":").map(Number);
   return hours * 60 + mins;
@@ -48,6 +50,7 @@ function followUps(runs: Run[], date: Date) {
       if (!chromeSourcesOn() && !followedBy(runs, run, "rank-jobs")) return launch("rank-jobs", null, "daily");
     }
     if (run.stage === "browse-jobs" && run.trigger === "daily" && !followedBy(runs, run, "rank-jobs")) return launch("rank-jobs", null, "daily");
+    if (run.stage === "rank-jobs" && run.trigger === "daily" && stageReady("check-open") && !followedBy(runs, run, "check-open")) return launch("check-open", null, "daily");
   }
   return null;
 }

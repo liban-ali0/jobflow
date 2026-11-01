@@ -16,6 +16,7 @@ type StageDef = { label: string; perJob: boolean; script?: string; chrome?: bool
 export const STAGES = {
   "build-profile": { label: "Build profile from CV", perJob: false },
   "find-jobs": { label: "Find new jobs", perJob: false, script: "scripts/collect.mjs" },
+  "check-open": { label: "Check listings are open", perJob: false, script: "scripts/check-open.mjs" },
   "browse-jobs": { label: "Find jobs in Chrome", perJob: false, chrome: true },
   "import-jobs": { label: "Import jobs from the browser", perJob: false },
   "apply-job": { label: "Fill application in Chrome", perJob: true, chrome: true },

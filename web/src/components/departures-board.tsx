@@ -166,6 +166,11 @@ export function DeparturesBoard({
                     {job.work_mode && ` · ${job.work_mode}`}
                     {job.source && ` · ${job.source}`}
                   </div>
+                  {job.listing_state === "closed" && !excluded && (
+                    <span className="mt-1 inline-block rounded-full bg-coral-soft px-2 py-0.5 text-[11px] font-medium text-coral" title={job.listing_reason ?? undefined}>
+                      Listing closed
+                    </span>
+                  )}
                   {reason && <p className="mt-1 line-clamp-2 text-xs text-board-dim">{reason}</p>}
                 </div>
 

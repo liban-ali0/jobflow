@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import type { ActionResult } from "@/app/actions";
 import { sendMessage } from "@/app/actions";
-import { createConversation, getJob, getSettings, listJobs, setSettings, unapprovedDocuments, updateJob } from "@/lib/data";
+import { createConversation, getJob, getSettings, listJobs, setListing, setSettings, unapprovedDocuments, updateJob } from "@/lib/data";
+import { checkListing } from "@/core/liveness.mjs";
 import { exportPdfs } from "@/lib/apply";
 import { engineFor, launch, queueResearch, stageRunning } from "@/lib/engine";
 import type { Job } from "@/lib/types";
@@ -163,4 +164,35 @@ export async function fillInChrome(id: number): Promise<ActionResult> {
     return { ok: false, message: (error as Error).message };
   }
   return done("Filling the form in Chrome. It stops before Submit: check it there and submit it yourself.");
+}
+
+// ---------- is the listing still open ----------
+
+const BEFORE_APPLYING = ["found", "ranked", "selected", "researched", "ready"];
+
+// Checks one job's listing now (the daily run checks the rest).
+export async function checkListingNow(id: number): Promise<ActionResult> {
+  const job = getJob(Number(id));
+  if (!job?.url) return { ok: false, message: "This job has no link to check." };
+  const check = await checkListing(job.url);
+  if (!check) return { ok: false, message: "This site cannot be checked automatically. Open the listing to see." };
+  if (check.blocked) return { ok: false, message: check.reason };
+  setListing(job.id, check);
+  return done(check.state === "open" ? "Still open." : check.state === "closed" ? "The listing has closed." : check.reason);
+}
+
+// The user says the listing is still open: later checks leave it alone.
+export async function keepListing(id: number): Promise<ActionResult> {
+  const job = getJob(Number(id));
+  if (!job) return { ok: false, message: "No such job." };
+  setListing(job.id, { state: "kept", reason: "You said it is still open." });
+  return done("Noted. It is not checked again.");
+}
+
+// Moves jobs whose listing closed, not applied to yet, to Excluded.
+export async function setAsideClosed(ids: number[]): Promise<ActionResult> {
+  const jobs = loadJobs(ids).filter((job) => job.listing_state === "closed" && BEFORE_APPLYING.includes(job.status));
+  if (jobs.length === 0) return { ok: false, message: "None of these listings are closed." };
+  for (const job of jobs) updateJob(job.id, { status: "excluded", excluded_reason: "The listing closed", apply_state: null, apply_missing: null });
+  return done(`Moved ${plural(jobs.length, "job")} to Excluded.`);
 }

@@ -9,7 +9,7 @@ import { FilterBar } from "@/components/filter-bar";
 import { PageHeader } from "@/components/page-header";
 import { Pagination } from "@/components/pagination";
 import { QuestionCard } from "@/components/question-card";
-import { researchSelected } from "@/app/job-actions";
+import { researchSelected, setAsideClosed } from "@/app/job-actions";
 import { FollowUpRow } from "@/components/tracking";
 import { CheckMailButton } from "@/components/gmail";
 import { MailReplies } from "@/components/mail-replies";
@@ -128,7 +128,7 @@ export default async function TodayPage(props: PageProps<"/">) {
 
   closeAbandonedRuns();
   const runs = listRuns(50);
-  const lastRuns = (["find-jobs", "browse-jobs", "rank-jobs"] as const)
+  const lastRuns = (["find-jobs", "browse-jobs", "rank-jobs", "check-open"] as const)
     .map((stage) => runs.find((run) => run.stage === stage))
     .filter((run): run is Run => Boolean(run));
   const active = lastRuns.some((run) => run.status === "running");
@@ -166,6 +166,8 @@ export default async function TodayPage(props: PageProps<"/">) {
     .filter((row) => row.waiting + row.changes > 0);
 
   const followUps = followUpsDue();
+  // Saved jobs whose listing closed before the user applied.
+  const closedListings = listJobs({ status: ["found", "ranked", "selected", "researched", "ready"] }).filter((job) => job.listing_state === "closed");
   // Emails about applications found in Gmail, waiting for the user.
   const mails = listMails({ state: "new" });
   const mailApplications = mails.some((mail) => !mail.job_id)
@@ -404,6 +406,36 @@ export default async function TodayPage(props: PageProps<"/">) {
             {followUps.map(({ job, sent, draftId, daysSinceApplied }) => (
               <FollowUpRow key={job.id} jobId={job.id} title={job.title} company={job.company} days={daysSinceApplied} sent={sent} draftId={draftId} gmail={draftId && !sent ? followUpEmail(job.id) : null} />
             ))}
+          </ul>
+        </section>
+      )}
+
+      {closedListings.length > 0 && (
+        <section id="closed" className="anchor mt-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="section-title">Listings that closed</h2>
+            <span className="font-mono text-xs text-slate">{closedListings.length}</span>
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="text-sm text-slate">These no longer take applications, so there is no point preparing them. Nothing moves until you choose.</p>
+            <ActionButton action={setAsideClosed.bind(null, closedListings.map((job) => job.id))}>
+              Move {closedListings.length === 1 ? "it" : `all ${closedListings.length}`} to Excluded
+            </ActionButton>
+          </div>
+          <ul className="card mt-3 divide-y divide-line rounded-xl">
+            {closedListings.slice(0, 8).map((job) => (
+              <li key={job.id} className="px-4 py-3 text-sm">
+                <Link href={`/jobs/${job.id}`} className="font-medium hover:text-teal hover:underline" dir="auto">
+                  {job.title}
+                </Link>
+                <span className="text-slate" dir="auto">
+                  {" "}
+                  · {job.company}
+                </span>
+                <p className="mt-0.5 text-xs text-slate">{job.listing_reason}</p>
+              </li>
+            ))}
+            {closedListings.length > 8 && <li className="px-4 py-3 text-xs text-slate">and {closedListings.length - 8} more, marked on the board below.</li>}
           </ul>
         </section>
       )}

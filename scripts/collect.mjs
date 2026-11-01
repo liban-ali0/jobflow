@@ -20,7 +20,7 @@ process.emitWarning = (warning, ...rest) => {
 };
 const core = await import("../web/src/core/db.mjs");
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT = process.env.JOBFLOW_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DRY_RUN = process.argv.includes("--dry-run");
 
 const USER_AGENT =
