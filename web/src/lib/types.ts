@@ -54,6 +54,9 @@ export type Job = {
   listing_state: "open" | "closed" | "unsure" | "kept" | null;
   listing_reason: string | null;
   listing_checked_at: string | null;
+  // The same opening found again under a new link: how often, and when last.
+  relisted_count: number | null;
+  relisted_at: string | null;
   updated_at: string;
 };
 

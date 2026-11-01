@@ -163,7 +163,7 @@ const JOB_COLUMNS = [
   "title", "company", "country", "city", "work_mode", "role", "source", "url", "language",
   "description", "posted_at", "track", "score", "score_reason", "score_breakdown", "legitimacy",
   "salary_estimate", "status", "excluded_reason", "folder", "notes", "applied_at", "follow_up_due",
-  "apply_state", "apply_missing", "interview_at", "listing_state", "listing_reason", "listing_checked_at",
+  "apply_state", "apply_missing", "interview_at", "listing_state", "listing_reason", "listing_checked_at", "relisted_count", "relisted_at",
 ];
 
 const now = () => new Date().toISOString();
@@ -185,6 +185,9 @@ const ADDED_COLUMNS = [
   ["jobs", "listing_state", "TEXT"],
   ["jobs", "listing_reason", "TEXT"],
   ["jobs", "listing_checked_at", "TEXT"],
+  // How often the same opening was found again under a new link, and when last.
+  ["jobs", "relisted_count", "INTEGER"],
+  ["jobs", "relisted_at", "TEXT"],
 ];
 
 // What a question is about: the candidate in general, a gap in their CV, or
@@ -284,12 +287,23 @@ export function addEvent(db, jobId, type, detail = null) {
 // title and company) is already stored.
 export function addJob(db, job) {
   if (!job.title || !job.company) throw new Error("A job needs a title and a company");
-  const existing =
-    (job.url && db.prepare("SELECT id FROM jobs WHERE url = ?").get(job.url)) ||
-    db
-      .prepare("SELECT id FROM jobs WHERE lower(title) = lower(?) AND lower(company) = lower(?) AND found_at > ?")
-      .get(job.title, job.company, new Date(Date.now() - 30 * 86400000).toISOString());
-  if (existing) return { id: existing.id, created: false };
+  const byUrl = job.url && db.prepare("SELECT id FROM jobs WHERE url = ?").get(job.url);
+  if (byUrl) return { id: byUrl.id, created: false };
+  // The same title at the same company within 30 days is the same opening.
+  // Under a new link on a later day it was listed again: noted on the job
+  // (a repost after applying usually means the role is still open).
+  const same = db
+    .prepare("SELECT id, url, found_at, relisted_at FROM jobs WHERE lower(title) = lower(?) AND lower(company) = lower(?) AND found_at > ? ORDER BY found_at DESC")
+    .get(job.title, job.company, new Date(Date.now() - 30 * 86400000).toISOString());
+  if (same) {
+    const last = Date.parse(same.relisted_at ?? same.found_at);
+    if (job.url && job.url !== same.url && Date.now() - last >= 20 * 3600000) {
+      db.prepare("UPDATE jobs SET relisted_count = COALESCE(relisted_count, 0) + 1, relisted_at = ? WHERE id = ?").run(now(), same.id);
+      addEvent(db, same.id, "relisted", job.url);
+      return { id: same.id, created: false, relisted: true };
+    }
+    return { id: same.id, created: false };
+  }
 
   const values = { ...jobValues(job), found_at: now(), updated_at: now() };
   const columns = Object.keys(values);

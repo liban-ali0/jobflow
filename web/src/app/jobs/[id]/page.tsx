@@ -16,6 +16,8 @@ import { OutcomeBar } from "@/components/tracking";
 import { MailReplies } from "@/components/mail-replies";
 import { ListingNotice, ListingStatus } from "@/components/listing-notice";
 import { listingSite } from "@/core/liveness.mjs";
+import { repostNote } from "@/lib/reposts";
+import Link from "next/link";
 import { applyPack } from "@/lib/apply";
 import { checkCv } from "@/lib/ats";
 import { targetForJob } from "@/lib/ats-keywords";
@@ -124,6 +126,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const applicationEmail = pack?.email ? asGmail("application") : null;
   const filling = stageRunning("apply-job", job.id);
   const chrome = applyInChrome(job.url, pack?.approved ?? false);
+  const repost = repostNote(job);
   // Whether the listing is still open (checked daily, or with "Check now").
   const beforeApplying = ["found", "ranked", "selected", "researched", "ready"].includes(job.status);
   const listingClosed = job.listing_state === "closed" && (beforeApplying || job.status === "applied" || job.status === "no_response");
@@ -158,6 +161,18 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="min-w-0 space-y-6">
+          {repost && (
+            <div className={`card space-y-1 rounded-xl p-4 ${repost.kind === "applied" ? "border-coral" : ""}`}>
+              <p className="font-medium">{repost.label}</p>
+              <p className="text-sm text-slate">{repost.text}</p>
+              {repost.other && (
+                <Link href={`/jobs/${repost.other.id}`} className="text-sm text-teal underline">
+                  Open the other listing
+                </Link>
+              )}
+            </div>
+          )}
+
           {listingClosed && <ListingNotice jobId={job.id} reason={job.listing_reason} checked={listingChecked} beforeApplying={beforeApplying} />}
 
           {jobMails.length > 0 && (

@@ -244,7 +244,7 @@ async function main() {
   const skipTitle = titleFilter(settings.experience.skipTitles);
 
   const seen = new Set();
-  const stats = { listings: 0, tooOld: 0, skipped: 0, duplicate: 0, added: [], withoutDescription: 0 };
+  const stats = { listings: 0, tooOld: 0, skipped: 0, duplicate: 0, relisted: [], added: [], withoutDescription: 0 };
   const perCountry = new Map(countries.map((country) => [country.name, 0]));
   // New jobs waiting for their description, in the order found: by country
   // priority first, then role priority.
@@ -290,9 +290,10 @@ async function main() {
                 perCountry.set(country.name, perCountry.get(country.name) + 1);
                 continue;
               }
-              const { id, created } = core.addJob(db, record);
+              const { id, created, relisted } = core.addJob(db, record);
               if (!created) {
                 stats.duplicate++;
+                if (relisted) stats.relisted.push(id);
                 continue;
               }
               pending.push({ id, job, source: source.key, record });
@@ -325,7 +326,7 @@ async function main() {
   const lines = [
     `${stats.added.length} new jobs${fast.length ? `, ${fast.length} posted within ${fastTrackMinutes} minutes` : ""}.`,
     `By country, in your priority order: ${[...perCountry].map(([name, count]) => `${name} ${count}`).join(", ")}.`,
-    `Checked ${stats.listings} listings in ${totalRequests()} requests (${Object.entries(requests).map(([source, count]) => `${source} ${count}`).join(", ") || "none"}): ${stats.duplicate} already stored, ${stats.skipped} outside your levels or skipped titles, ${stats.tooOld} older than ${maxHours} hours.`,
+    `Checked ${stats.listings} listings in ${totalRequests()} requests (${Object.entries(requests).map(([source, count]) => `${source} ${count}`).join(", ") || "none"}): ${stats.duplicate} already stored${stats.relisted.length ? ` (${stats.relisted.length} of them listed again under a new link)` : ""}, ${stats.skipped} outside your levels or skipped titles, ${stats.tooOld} older than ${maxHours} hours.`,
   ];
   if (stats.withoutDescription) lines.push(`${stats.withoutDescription} saved without a description (request budget used up${exhausted.size ? ` for ${[...exhausted].join(", ")}` : ""}); research reads the listing.`);
   if (blocked.size) lines.push(`Blocked by: ${[...blocked].join(", ")}. Try again later.`);

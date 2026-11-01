@@ -3,6 +3,7 @@ import { setStatus } from "@/app/actions";
 import { ActionButton } from "@/components/action-button";
 import { RowMenu } from "@/components/job-actions";
 import { ageMinutes, formatAgeShort } from "@/lib/format";
+import { repostNote } from "@/lib/reposts";
 import { boarding, placeCode, type Boarding } from "@/lib/places";
 import { SORT_KEYS, SORT_LABELS, type SortDir, type SortKey } from "@/lib/sort";
 import { STATUS_LABELS, type Job, type Settings } from "@/lib/types";
@@ -41,6 +42,20 @@ function SortHeader({ column, sorting }: { column: SortKey; sorting?: Sorting })
         {active && sorting.dir === "asc" ? "↑" : "↓"}
       </span>
     </Link>
+  );
+}
+
+// "Applied before", "Reposted"…: the same opening listed more than once.
+function RepostChip({ job }: { job: Job }) {
+  const note = repostNote(job);
+  if (!note) return null;
+  return (
+    <span
+      className={`mt-1 mr-1 inline-block rounded-full px-2 py-0.5 text-[11px] font-medium ${note.kind === "applied" ? "bg-coral-soft text-coral" : "bg-board-line text-board-text"}`}
+      title={note.text}
+    >
+      {note.label}
+    </span>
   );
 }
 
@@ -166,6 +181,7 @@ export function DeparturesBoard({
                     {job.work_mode && ` · ${job.work_mode}`}
                     {job.source && ` · ${job.source}`}
                   </div>
+                  {!excluded && <RepostChip job={job} />}
                   {job.listing_state === "closed" && !excluded && (
                     <span className="mt-1 inline-block rounded-full bg-coral-soft px-2 py-0.5 text-[11px] font-medium text-coral" title={job.listing_reason ?? undefined}>
                       Listing closed

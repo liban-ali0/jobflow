@@ -16,6 +16,7 @@ process.emitWarning = (warning, ...rest) => {
 const core = await import("../web/src/core/db.mjs");
 const { scoreJob, normalizeAssessment, ASSESSED } = await import("../web/src/core/score.mjs");
 const { checkFacts } = await import("../web/src/core/fact-check.mjs");
+const { findReposts } = await import("../web/src/core/reposts.mjs");
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -106,6 +107,8 @@ function main() {
         contacts: core.listContacts(db, job.id),
         documents: core.listDocuments(db, job.id),
         events: core.listEvents(db, job.id),
+        // Other listings of the same opening (same company, title and site).
+        otherListings: (findReposts(core.listJobs(db, {})).get(job.id) ?? []).map(({ id, status, found_at, applied_at }) => ({ id, status, found_at, applied_at })),
       });
     }
     case "add": {

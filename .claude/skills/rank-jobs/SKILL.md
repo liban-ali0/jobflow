@@ -14,6 +14,7 @@ This is the quick, cheap check. It decides which jobs are worth the full researc
    - If it starts with `ids:`, rank exactly those job ids, whatever their current status. This is a re-rank when a job was ranked or excluded before: assess it again from scratch with the current rules.
    - Otherwise list the waiting jobs with `node scripts/jobs.mjs list --status found` and take the newest first, up to that number (20 if no number was given).
 3. For each job, read it with `node scripts/jobs.mjs get <id>` and assess it as described below.
+   If `otherListings` (or `relisted_count`) shows the same opening was listed before, say so in `reason`: "already applied through job <id>" when one of them has a sent status (applied, replied, interview, offer, rejected, no_response), otherwise "reposted, first seen <date>". Do not lower the score for a repost alone.
 4. Write the assessment to `jobs/_work/rank-<id>.json` and apply it with `node scripts/jobs.mjs score <id> --file jobs/_work/rank-<id>.json`. The script computes the score and sets the status to `ranked` or `excluded`.
 5. End with a short report: how many were ranked and excluded, the five best with their scores and one-line reasons, and any job you could not assess.
 

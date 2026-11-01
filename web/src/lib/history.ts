@@ -8,6 +8,8 @@ export function describeEvent(event: JobEvent): string {
   switch (event.type) {
     case "found":
       return event.detail ? `Found on ${SOURCES[event.detail] ?? event.detail}` : "Found";
+    case "relisted":
+      return "Listed again under a new link";
     case "status": {
       const [, to] = (event.detail ?? "").split(" → ");
       return to ? `Moved to ${label(to)}` : "Status changed";
