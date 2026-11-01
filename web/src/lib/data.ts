@@ -186,3 +186,4 @@ export const updateMail = (id: number, patch: { job_id?: number | null; state?: 
 
 // Whether saved jobs' listings are still open (core/liveness.mjs checks them).
 export const setListing = (id: number, check: { state: NonNullable<Job["listing_state"]>; reason?: string | null }) => core.setListing(db(), id, check);
+export const listingTargets = (options: { ids?: number[] | null; limit?: number } = {}) => core.listingTargets(db(), options);

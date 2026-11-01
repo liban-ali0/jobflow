@@ -18,8 +18,9 @@ import { classifyLiveness } from "../vendor/career-ops/liveness-core.mjs";
 const USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
 const TIMEOUT_MS = 20000;
 
-// Sites that refuse every automatic visit (Indeed answers with a sign-in wall):
-// a check there could only ever say "unsure".
+// Sites that refuse every automatic visit (Indeed answers with a sign-in wall).
+// Checking them from here could only ever say "unsure"; the extension reads
+// them in the user's own browser instead (browserListing, classifyBrowserPage).
 const UNCHECKABLE = /(^|\.)indeed\.com$/i;
 
 const decode = (text) =>
@@ -323,4 +324,31 @@ export async function checkListing(url) {
     const timeout = error?.name === "TimeoutError" || error?.name === "AbortError";
     return { state: "unsure", reason: timeout ? "The site took too long to answer. It is checked again later." : "Could not reach the site. It is checked again later." };
   }
+}
+
+// Listings only a real browser can read: the extension checks these in the
+// user's own browser and hands the page to classifyBrowserPage.
+export function browserListing(url) {
+  try {
+    const address = new URL(url);
+    return /^https?:$/.test(address.protocol) && UNCHECKABLE.test(address.hostname);
+  } catch {
+    return false;
+  }
+}
+
+// A listing page as the extension read it: its address after any redirects,
+// its visible text, and the labels of its links and buttons.
+export function classifyBrowserPage({ url, finalUrl = "", text = "", controls = [] }) {
+  if (LOCAL_CLOSED.some((pattern) => pattern.test(fold(text)))) return { state: "closed", reason: "The page says the listing is closed." };
+  // Indeed names the listing in "jk"; a page without it is some other page
+  // (a search), whose Apply buttons belong to other jobs.
+  let jk = null;
+  try {
+    jk = new URL(url).searchParams.get("jk");
+  } catch {
+    // Not a web address; read as unsure below.
+  }
+  if (jk && finalUrl && !finalUrl.includes(jk)) return { state: "unsure", reason: "The link now leads somewhere else. Open it to see." };
+  return fromPage(classifyLiveness({ status: 200, requestedUrl: url, finalUrl, bodyText: text, applyControls: controls }), text);
 }

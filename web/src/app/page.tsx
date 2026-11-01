@@ -16,11 +16,12 @@ import { MailReplies } from "@/components/mail-replies";
 import { composeFor } from "@/lib/mail";
 import { followUpsDue, upcomingInterviews } from "@/lib/followups";
 import { CollectButton } from "@/components/collect-button";
+import { CheckListingsButton } from "@/components/check-listings-button";
 import { BROWSER_SITES } from "@/lib/browser-sites";
 import { countByStatus, getJob, hasCv, listDocuments, listJobs, listMails, listQuestions, listRuns, readProfile } from "@/lib/data";
 import { SHOW_VIEWS, buildDepartures } from "@/lib/departures";
 import { scheduleStatus } from "@/lib/scheduler";
-import { ENGINES, STAGES, closeAbandonedRuns, engineFor, queuedResearch, stageReady, type EngineKey } from "@/lib/engine";
+import { ENGINES, closeAbandonedRuns, engineFor, queuedResearch, runLabel, stageReady, type EngineKey } from "@/lib/engine";
 import { paginate } from "@/lib/filters";
 import { formatDateTime } from "@/lib/format";
 import { sortJobs } from "@/lib/sort";
@@ -37,7 +38,7 @@ function Stat({ label, value, note, tone = "plain" }: { label: string; value: st
 }
 
 function LastRun({ run }: { run: Run }) {
-  const label = STAGES[run.stage as keyof typeof STAGES]?.label ?? run.stage;
+  const label = runLabel(run.stage);
   const firstLine = run.summary?.split("\n").find((line) => line.trim())?.replace(/[*#|]/g, "").trim();
   const engine = run.engine && run.engine !== "script" ? ENGINES[run.engine as EngineKey]?.label : null;
   return (
@@ -128,7 +129,7 @@ export default async function TodayPage(props: PageProps<"/">) {
 
   closeAbandonedRuns();
   const runs = listRuns(50);
-  const lastRuns = (["find-jobs", "browse-jobs", "rank-jobs", "check-open"] as const)
+  const lastRuns = (["find-jobs", "browse-jobs", "rank-jobs", "check-open", "browser-listings"] as const)
     .map((stage) => runs.find((run) => run.stage === stage))
     .filter((run): run is Run => Boolean(run));
   const active = lastRuns.some((run) => run.status === "running");
@@ -223,13 +224,7 @@ export default async function TodayPage(props: PageProps<"/">) {
             >
               Check and rank
             </ActionButton>
-            <ActionButton
-              action={runStage.bind(null, "check-open", null)}
-              disabled={!stageReady("check-open")}
-              title="Checks whether your saved jobs' listings still take applications (up to 60 at a time; also part of the daily run)"
-            >
-              Check listings
-            </ActionButton>
+            <CheckListingsButton ownReady={stageReady("check-open")} />
           </>
         }
       />

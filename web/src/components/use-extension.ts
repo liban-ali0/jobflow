@@ -9,7 +9,7 @@ type Reply = { ok: boolean; message?: string; version?: string; connected?: bool
 
 let counter = 0;
 
-function ask(type: "ping" | "apply" | "connect" | "collect" | "checkMail" | "compose", jobIds: number[] = [], timeout = 1500, token?: string, payload?: unknown): Promise<Reply | null> {
+function ask(type: "ping" | "apply" | "connect" | "collect" | "checkMail" | "compose" | "checkListings", jobIds: number[] = [], timeout = 1500, token?: string, payload?: unknown): Promise<Reply | null> {
   return new Promise((resolve) => {
     const id = `jobflow-${Date.now()}-${(counter += 1)}`;
     const done = (reply: Reply | null) => {
@@ -94,5 +94,11 @@ export function useJobflowExtension() {
     return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
   }, []);
 
-  return { state, version, apply, connect, collect, checkMail, compose, recheck: check };
+  // Checks Indeed listings in this browser (it answers at once).
+  const checkListings = useCallback(async () => {
+    const reply = await ask("checkListings", [], 10000);
+    return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
+  }, []);
+
+  return { state, version, apply, connect, collect, checkMail, compose, checkListings, recheck: check };
 }

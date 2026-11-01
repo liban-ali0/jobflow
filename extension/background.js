@@ -250,6 +250,51 @@ async function collect(trigger = "manual") {
   }
 }
 
+// ---------- is the listing still open, on sites only a browser can read ----------
+
+// Offerbound checks most listings itself; Indeed refuses that, so the
+// extension reads those listings in the user's own browser, in a minimized
+// window at a person's pace, and stops at the first "are you a robot" page.
+const LISTINGS_EVERY_MINUTES = 360;
+let checkingListings = false;
+
+async function checkListings(trigger = "manual") {
+  if (checkingListings) return { ok: false, message: "Already checking listings." };
+  checkingListings = true;
+  let windowId = null;
+  try {
+    const plan = await jobflowCall(`/api/listings/browser?trigger=${trigger}`);
+    if (!plan.jobs.length) return { ok: true, message: "No listings in your browser are due a check." };
+    const counts = { open: 0, closed: 0, unsure: 0 };
+    let stopped = "";
+    const win = await chrome.windows.create({ url: "about:blank", focused: false, state: "minimized" });
+    windowId = win.id;
+    const tabId = win.tabs[0].id;
+    for (const job of plan.jobs) {
+      await visit(tabId, job.url);
+      await sleep(2500);
+      const page = await read(tabId, () => globalThis.jobflowReadPage()).catch((error) => ({ blocked: `the page could not be read (${error.message})` }));
+      if (!page || page.blocked) {
+        stopped = page?.blocked ?? "the page could not be read";
+        break;
+      }
+      const reply = await jobflowCall("/api/listings/browser", {
+        method: "POST",
+        body: JSON.stringify({ runId: plan.runId, id: job.id, finalUrl: page.url, text: page.text, controls: page.controls }),
+      }).catch(() => null);
+      if (reply?.state in counts) counts[reply.state]++;
+      await sleep(PAGE_PAUSE);
+    }
+    const done = await jobflowCall("/api/listings/browser/done", { method: "POST", body: JSON.stringify({ runId: plan.runId, ...counts, stopped }) });
+    return { ok: true, message: done.message };
+  } catch (error) {
+    return { ok: false, message: error.message };
+  } finally {
+    checkingListings = false;
+    if (windowId !== null) chrome.windows.remove(windowId).catch(() => null);
+  }
+}
+
 // ---------- Gmail: replies to applications, and emails the user sends ----------
 
 // Gmail's own feed of new (unread) inbox mail, read with the user's signed-in
@@ -320,10 +365,12 @@ async function checkMail() {
 async function ensureMailAlarm() {
   if (!chrome.alarms) return;
   if (!(await chrome.alarms.get("mail"))) chrome.alarms.create("mail", { delayInMinutes: 1, periodInMinutes: MAIL_EVERY_MINUTES });
+  if (!(await chrome.alarms.get("listings"))) chrome.alarms.create("listings", { delayInMinutes: 10, periodInMinutes: LISTINGS_EVERY_MINUTES });
 }
 ensureMailAlarm();
 chrome.alarms?.onAlarm.addListener((alarm) => {
   if (alarm.name === "mail") checkMail();
+  if (alarm.name === "listings") checkListings("timer");
 });
 
 // Emails the user sends: Offerbound opens Gmail's compose window filled in,
@@ -449,6 +496,14 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
       }
       case "compose":
         return compose(message.payload, message.origin);
+      case "checkListings": {
+        // Runs for a minute or two: answer now, progress shows on Activity.
+        const { address } = await jobflowSettings();
+        if (message.origin !== address) return { ok: false, message: "Only your connected Offerbound can start a check." };
+        if (checkingListings) return { ok: false, message: "Already checking listings." };
+        checkListings("manual");
+        return { ok: true, message: "Checking Indeed listings in your browser, in a minimized window." };
+      }
       // From a Gmail compose window Offerbound opened (compose-watch.js).
       case "composeSend": {
         const state = await load(composeKey(tabId), null);
@@ -496,7 +551,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     }
   };
   // Opening the next form waits for nothing else; the rest is serialised.
-  const run = ["apply", "next", "skip", "ping", "collect", "checkMail", "compose"].includes(message?.type) ? handle() : serial(handle);
+  const run = ["apply", "next", "skip", "ping", "collect", "checkMail", "compose", "checkListings"].includes(message?.type) ? handle() : serial(handle);
   run.then(reply, (error) => reply({ ok: false, message: error.message }));
   return true;
 });

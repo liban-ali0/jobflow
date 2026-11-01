@@ -57,7 +57,7 @@ const stopped = (holder.jobflowStopped ??= new Set<number>());
 const queue = (holder.jobflowQueue ??= []);
 
 // Runs that are not engine steps, as Activity names them.
-export const OTHER_RUNS: Record<string, string> = { "browser-collect": "Collect in your browser" };
+export const OTHER_RUNS: Record<string, string> = { "browser-collect": "Collect in your browser", "browser-listings": "Check listings in your browser" };
 export const runLabel = (stage: string) => (isStage(stage) ? STAGES[stage].label : (OTHER_RUNS[stage] ?? stage));
 
 export function isStage(value: string): value is Stage {

@@ -1,7 +1,8 @@
 // Reads a job site's page for the Offerbound app, in the user's own browser.
 // jobflowReadCards(linkPattern): the job ads on a search page, each with its
 // title and the text of its card, or why the page cannot be read (a captcha,
-// "access denied"). jobflowReadListing(): one job ad's full text. It only
+// "access denied"). jobflowReadListing(): one job ad's full text.
+// jobflowReadPage(): a listing's text and buttons, to tell if it is open. It only
 // reads; it never clicks or types anything.
 (() => {
   if (globalThis.jobflowReadCards) return;
@@ -66,5 +67,17 @@
     const candidates = [...document.querySelectorAll("main, article, [class*='description' i], [class*='detail' i], [id*='description' i]")].filter(visible);
     const best = candidates.sort((a, b) => (b.innerText || "").length - (a.innerText || "").length)[0] || document.body;
     return { text: (best.innerText || "").replace(/\n{3,}/g, "\n\n").trim().slice(0, 30000), postedAt: null };
+  };
+
+  // A listing as it shows, for "is it still open?": its address, its text,
+  // and the labels of its visible links and buttons (where Apply would be).
+  globalThis.jobflowReadPage = () => {
+    const why = blocked();
+    if (why) return { blocked: why };
+    const controls = [...document.querySelectorAll("a, button, input[type=submit], [role=button]")]
+      .filter(visible)
+      .map((element) => clean(element.innerText || element.value || element.getAttribute("aria-label") || ""))
+      .filter((label) => label && label.length <= 80);
+    return { url: location.href, text: (document.body?.innerText || "").slice(0, 40000), controls: [...new Set(controls)].slice(0, 300) };
   };
 })();
