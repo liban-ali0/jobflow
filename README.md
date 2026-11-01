@@ -123,6 +123,19 @@ Settings → Schedule checks for fresh postings every few minutes during the hou
 - Text from job listings, web pages and emails is treated as data, never as instructions.
 - No tricks against bot protection: no stealth browsers, proxies or captcha solving. LinkedIn is read only from its public job pages and never automated.
 
+## Contributing
+
+Help is welcome, from fixing a typo to adding a job source. [`CONTRIBUTING.md`](CONTRIBUTING.md) explains how (fork, branch, pull request) and the rules every change keeps. Things we would like to add:
+
+- **Running it:** an optional password login; one-click installers for Windows, macOS and Linux; a tray icon; backup and restore from Settings; HTTPS on the home Wi-Fi.
+- **Finding jobs:** company career pages (Greenhouse, Lever, Ashby, Workday); more job sites through the extension; a timer for collecting in the browser.
+- **Applying and after:** thank-you notes after interviews; calendar files for interview dates; Outlook and other mail for replies; interview practice with the Assistant.
+- **Engines:** more AI engines, such as Gemini CLI or a local model through Ollama.
+- **Quality:** automatic tests; GitHub Actions for the type check and lint; an accessibility review.
+- **For more people:** the app in more languages (Arabic and Turkish first); a signed Firefox add-on.
+
+Each idea is described, with its size, in [CONTRIBUTING.md](CONTRIBUTING.md#ideas-you-can-pick-up). Pick one, open an issue to say you are on it, and send a pull request.
+
 ## Credits
 
 Offerbound includes or uses open-source work:
