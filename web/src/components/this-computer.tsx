@@ -2,6 +2,7 @@
 
 import { useEffect, useOptimistic, useState, useTransition } from "react";
 import { setStartAtSignIn } from "@/app/actions";
+import { PasswordPanel } from "@/components/password-panel";
 
 type Status = {
   mode: "background" | "terminal" | "development";
@@ -9,6 +10,7 @@ type Status = {
   autostartSupported: boolean;
   since: string | null;
   log: string;
+  password: boolean;
 };
 
 // Chrome and Edge offer installing a site as an app through this event.
@@ -111,6 +113,8 @@ export function ThisComputer({ status }: { status: Status }) {
           </>
         )}
       </div>
+
+      <PasswordPanel on={status.password} />
 
       <div className="space-y-1 px-5 py-3.5 md:px-6">
         <p className="font-medium">Updates and the log</p>

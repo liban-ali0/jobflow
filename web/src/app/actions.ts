@@ -26,6 +26,9 @@ import { isHex } from "@/lib/theme";
 import { recordOutcome } from "@/app/tracking-actions";
 import { ensureLan } from "@/lib/lan";
 import { setAutostart } from "@/lib/service";
+import { cookies } from "next/headers";
+import { checkPassword, clearPassword, hasPassword, makeSession, newSecret, setPassword } from "@/core/password.mjs";
+import { ROOT as LOGIN_ROOT, SESSION, recordTry, waitSeconds } from "@/lib/login";
 import { resetAccessKey } from "@/lib/access";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
 import type { Settings, Status } from "@/lib/types";
@@ -384,4 +387,51 @@ export async function setStartAtSignIn(on: boolean): Promise<ActionResult> {
   const result = await setAutostart(on);
   revalidatePath("/settings");
   return result;
+}
+
+// The password for opening Offerbound (Settings → This computer). Changing or
+// removing it needs the current one; this browser stays signed in.
+async function signInHere() {
+  const session = makeSession(LOGIN_ROOT, true);
+  if (session) (await cookies()).set(SESSION, session.value, { httpOnly: true, sameSite: "lax", path: "/", maxAge: session.maxAge });
+}
+
+function currentRight(current: string): ActionResult | null {
+  if (!hasPassword(LOGIN_ROOT)) return null;
+  const now = Date.now();
+  const wait = waitSeconds(now);
+  if (wait > 0) return { ok: false, message: `Too many wrong tries. Wait ${wait} seconds.` };
+  const ok = checkPassword(LOGIN_ROOT, current);
+  recordTry(ok, now);
+  return ok ? null : { ok: false, message: "The current password is not right." };
+}
+
+export async function savePassword(current: string, next: string): Promise<ActionResult> {
+  const wrong = currentRight(current);
+  if (wrong) return wrong;
+  const had = hasPassword(LOGIN_ROOT);
+  try {
+    setPassword(LOGIN_ROOT, next);
+  } catch (error) {
+    return { ok: false, message: (error as Error).message };
+  }
+  await signInHere();
+  revalidatePath("/settings");
+  return { ok: true, message: had ? "Password changed. Other devices must sign in again." : "Password set. Every device now signs in with it; this browser stays signed in." };
+}
+
+export async function removePassword(current: string): Promise<ActionResult> {
+  const wrong = currentRight(current);
+  if (wrong) return wrong;
+  clearPassword(LOGIN_ROOT);
+  (await cookies()).delete(SESSION);
+  revalidatePath("/settings");
+  return { ok: true, message: "Password removed: Offerbound opens without one." };
+}
+
+export async function signOutOtherBrowsers(): Promise<ActionResult> {
+  if (!hasPassword(LOGIN_ROOT)) return { ok: false, message: "No password is set." };
+  newSecret(LOGIN_ROOT);
+  await signInHere();
+  return { ok: true, message: "Every other browser and device is signed out." };
 }

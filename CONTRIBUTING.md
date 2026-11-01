@@ -32,7 +32,6 @@ Marked by size: 🟢 small (a few hours), 🟡 medium (a day or two), 🔴 large
 
 ### Getting started and running it
 
-- 🟡 **Password login (optional).** A password for opening Offerbound, off by default: for a computer shared with other people, and as a second lock on top of the pairing code for phones and other devices. Stored hashed (scrypt) in `data/`.
 - 🔴 **One-click installers:** a Windows installer, a macOS `.dmg` and a Linux package, so people do not need a terminal or Node.js.
 - 🟡 **Tray or menu bar icon** showing whether Offerbound is running, with Open, Stop and Update.
 - 🟢 **Backup and restore** from Settings: one zip of `candidate/`, `jobs/` and `data/`.
@@ -47,7 +46,6 @@ Marked by size: 🟢 small (a few hours), 🟡 medium (a day or two), 🔴 large
 ### Applying and after
 
 - 🟡 **Thank-you notes** after an interview, written from the interview pack (the reminder exists; the writing does not).
-- 🟢 **Calendar file (.ics)** for an interview date, to add it to any calendar.
 - 🟡 **Outlook and other mail** for replies, like the Gmail watch (no passwords, through the browser's own session).
 - 🟡 **Interview practice:** the Assistant asks the pack's questions and gives feedback on the answers.
 

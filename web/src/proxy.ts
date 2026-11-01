@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ACCESS_COOKIE, isLocalHost, keyMatches } from "./lib/access";
+import { SESSION, loginPage, safeNext, signInGate } from "./lib/login";
 
 // Offerbound is private. It listens on this computer only (127.0.0.1), so a
 // request with another host name came through Tailscale, or from a web page
@@ -15,7 +16,7 @@ const page = (title: string, text: string, status: number) =>
   );
 
 export function proxy(request: NextRequest) {
-  if (isLocalHost(request.headers.get("host") ?? "")) return NextResponse.next();
+  if (isLocalHost(request.headers.get("host") ?? "")) return passwordGate(request);
 
   // The pairing link: /pair?key=… sets the cookie for this device.
   if (request.nextUrl.pathname === "/pair") {
@@ -32,6 +33,23 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
-  if (keyMatches(request.cookies.get(ACCESS_COOKIE)?.value)) return NextResponse.next();
+  if (keyMatches(request.cookies.get(ACCESS_COOKIE)?.value)) return passwordGate(request);
   return page("Offerbound is private", "To open it on this device, use the link in Settings → Other devices on your computer.", 401);
+}
+
+// The optional password (Settings → This computer), after the device checks
+// above: lib/login.ts decides, and serves the sign-in page itself.
+function passwordGate(request: NextRequest) {
+  const gate = signInGate({ method: request.method, pathname: request.nextUrl.pathname, headers: request.headers, cookie: request.cookies.get(SESSION)?.value });
+  if (gate.open) return NextResponse.next();
+  if (!gate.page) return NextResponse.json({ ok: false, message: "Sign in to Offerbound first." }, { status: 401 });
+  const params = new URLSearchParams(request.nextUrl.search);
+  const notice = params.get("login");
+  const wait = Number(params.get("wait")) || 0;
+  for (const name of ["login", "wait"]) params.delete(name);
+  const next = safeNext(`${request.nextUrl.pathname}${params.size ? `?${params}` : ""}`);
+  return new NextResponse(loginPage(next, notice === "wrong" || notice === "wait" || notice === "out" ? notice : null, wait), {
+    status: 401,
+    headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store", "X-Frame-Options": "DENY" },
+  });
 }
