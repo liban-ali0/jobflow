@@ -63,7 +63,14 @@ function headersFor(req: http.IncomingMessage, port: number) {
 function cookieOf(req: http.IncomingMessage) {
   for (const part of (req.headers.cookie ?? "").split(";")) {
     const [name, ...value] = part.trim().split("=");
-    if (name === ACCESS_COOKIE) return decodeURIComponent(value.join("="));
+    if (name !== ACCESS_COOKIE) continue;
+    // A malformed value (a stray "%") must not throw: that would take the
+    // whole app down for anyone on the Wi-Fi.
+    try {
+      return decodeURIComponent(value.join("="));
+    } catch {
+      return null;
+    }
   }
   return null;
 }
@@ -87,29 +94,47 @@ function gateway(port: number, cidr: string) {
   const [network, prefix] = cidr.split("/");
   subnet.addSubnet(network, Number(prefix), "ipv4");
 
+  // Nothing a device sends may throw out of here: an error escaping a
+  // handler, or an unhandled stream error, would stop the whole app.
   const server = http.createServer((req, res) => {
-    const refused = allowed(req, subnet);
-    if (refused === "network") {
-      res.writeHead(403, { "Content-Type": "text/plain" }).end("Offerbound answers devices on this computer's home network only.");
-      return;
+    req.on("error", () => res.destroy());
+    res.on("error", () => req.destroy());
+    try {
+      const refused = allowed(req, subnet);
+      if (refused === "network") {
+        res.writeHead(403, { "Content-Type": "text/plain" }).end("Offerbound answers devices on this computer's home network only.");
+        return;
+      }
+      if (refused) {
+        res.writeHead(401, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(PRIVATE_PAGE);
+        return;
+      }
+      const upstream = http.request({ host: "127.0.0.1", port, method: req.method, path: req.url, headers: headersFor(req, port) }, (reply) => {
+        reply.on("error", () => res.destroy());
+        res.writeHead(reply.statusCode ?? 502, reply.headers);
+        reply.pipe(res);
+      });
+      upstream.on("error", () => {
+        if (!res.headersSent) res.writeHead(502, { "Content-Type": "text/plain" });
+        res.end("Offerbound is not answering. Is it running?");
+      });
+      req.pipe(upstream);
+    } catch {
+      if (!res.headersSent) res.writeHead(400, { "Content-Type": "text/plain" });
+      res.end("Bad request.");
     }
-    if (refused) {
-      res.writeHead(401, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" }).end(PRIVATE_PAGE);
-      return;
-    }
-    const upstream = http.request({ host: "127.0.0.1", port, method: req.method, path: req.url, headers: headersFor(req, port) }, (reply) => {
-      res.writeHead(reply.statusCode ?? 502, reply.headers);
-      reply.pipe(res);
-    });
-    upstream.on("error", () => {
-      if (!res.headersSent) res.writeHead(502, { "Content-Type": "text/plain" });
-      res.end("Offerbound is not answering. Is it running?");
-    });
-    req.pipe(upstream);
   });
+  server.on("clientError", (_error, socket) => socket.destroy());
   // Live updates (the development server's reload channel), same checks.
   server.on("upgrade", (req, socket, head) => {
-    if (allowed(req, subnet)) return socket.destroy();
+    socket.on("error", () => socket.destroy());
+    let refused: string | null = "pairing";
+    try {
+      refused = allowed(req, subnet);
+    } catch {
+      // Read as refused.
+    }
+    if (refused) return socket.destroy();
     const upstream = net.connect(port, "127.0.0.1", () => {
       const headers = headersFor(req, port);
       const lines = Object.entries(headers).flatMap(([name, value]) => (Array.isArray(value) ? value : [value]).map((one) => `${name}: ${one}`));
