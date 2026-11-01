@@ -16,10 +16,12 @@ const tabKey = (tabId) => `tab:${tabId}`;
 const packKey = (jobId) => `pack:${jobId}`;
 
 // Application systems whose forms sit on their own domain, often inside a
-// company's careers page. Filling is allowed in frames and tabs on these
-// hosts and on the form's own origin, nowhere else.
+// company's careers page: only the hosts that serve application forms, never
+// a platform's whole domain (oraclecloud.com, workday.com and the like also
+// host unrelated sites). Filling is allowed in frames and tabs on these hosts
+// and on the form's own origin, nowhere else.
 const ATS_HOSTS =
-  /(^|\.)(greenhouse\.io|lever\.co|workable\.com|ashbyhq\.com|smartrecruiters\.com|myworkdayjobs\.com|workday\.com|icims\.com|bamboohr\.com|jobvite\.com|taleo\.net|successfactors\.(com|eu)|recruitee\.com|personio\.(de|com)|teamtailor\.com|breezy\.hr|applytojob\.com|rippling\.com|comeet\.com|zohorecruit\.com|oraclecloud\.com|eightfold\.ai|phenom\.com|avature\.net)$/i;
+  /^((boards|job-boards|job-boards\.eu)\.greenhouse\.io|jobs\.(eu\.)?lever\.co|apply\.workable\.com|jobs\.ashbyhq\.com|jobs\.smartrecruiters\.com|[a-z0-9-]+\.(wd\d+\.)?myworkdayjobs\.com|[a-z0-9-]+\.icims\.com|[a-z0-9-]+\.bamboohr\.com|jobs\.jobvite\.com|[a-z0-9-]+\.taleo\.net|[a-z0-9-]+\.recruitee\.com|[a-z0-9-]+\.jobs\.personio\.(de|com)|[a-z0-9-]+\.teamtailor\.com|[a-z0-9-]+\.breezy\.hr|[a-z0-9-]+\.applytojob\.com|ats\.rippling\.com|www\.comeet\.com|[a-z0-9-]+\.zohorecruit\.com)$/i;
 const onFormSite = (url, formOrigin) => {
   try {
     const address = new URL(url);
