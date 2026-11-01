@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { OpenInGmail, type GmailEmail } from "@/components/gmail";
 import type { ActionResult } from "@/app/actions";
 import { fillInChrome, markApplied } from "@/app/job-actions";
 import type { ApplyAnswer, ApplyProfile } from "@/lib/apply";
@@ -35,6 +36,8 @@ export type ApplyPanelProps = {
   coverLetterText: string;
   files: { type: "cv" | "cover_letter"; documentId: number; fileName: string }[];
   emailTo: string | null;
+  // The email application, ready to open in Gmail.
+  gmail?: GmailEmail | null;
   // Claude Code steps can run, and the listing is not on a site where
   // automated filling risks the account.
   chrome: { available: boolean; reason?: string };
@@ -54,7 +57,7 @@ const EXTENSION_HINT = {
 // How to send the application: the form filled for you (in Chrome, or with
 // the extension), an email draft, or everything ready to paste. The user
 // always presses Submit.
-export function ApplyPanel({ jobId, url, profile, answers, coverLetterText, files, emailTo, chrome, filling, waiting }: ApplyPanelProps) {
+export function ApplyPanel({ jobId, url, profile, answers, coverLetterText, files, emailTo, gmail = null, chrome, filling, waiting }: ApplyPanelProps) {
   const [pending, start] = useTransition();
   const [result, setResult] = useState<ActionResult | null>(null);
   const extension = useJobflowExtension();
@@ -138,12 +141,15 @@ export function ApplyPanel({ jobId, url, profile, answers, coverLetterText, file
           <p className="font-mono text-[10px] tracking-[0.18em] text-slate uppercase">Way 3 · by email</p>
           <p className="mt-1 text-sm font-medium">Email draft</p>
           <p className="mt-0.5 text-xs text-slate">
-            {emailTo ? `To ${emailTo}, with the CV and cover letter attached. Opens in your mail app as a draft.` : "Needs a confirmed email address; research did not find one for this job."}
+            {emailTo ? `To ${emailTo}. Open it in Gmail and attach the CV and cover letter, or download a draft with them attached for your mail app.` : "Needs a confirmed email address; research did not find one for this job."}
           </p>
           {emailTo ? (
-            <a href={`/api/jobs/${jobId}/email-draft`} className="btn btn-quiet mt-2.5 w-full">
-              Download email draft
-            </a>
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {gmail && <OpenInGmail email={gmail} className="btn btn-quiet flex-1" />}
+              <a href={`/api/jobs/${jobId}/email-draft`} className="btn btn-quiet flex-1">
+                Download draft
+              </a>
+            </div>
           ) : (
             <button type="button" disabled className="btn btn-quiet mt-2.5 w-full">
               No confirmed address

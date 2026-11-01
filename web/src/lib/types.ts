@@ -158,7 +158,11 @@ export type Settings = {
   sources: { key: string; name: string; enabled: boolean; method: string }[];
   // activeFrom/activeTo: the hours fast-track checks run (HH:MM, local time).
   schedule: { enabled: boolean; fastTrackEveryMinutes: number; dailyRunAt: string; activeFrom?: string; activeTo?: string };
-  email: { sendingEnabled: boolean };
+  // watchReplies: the extension reads new Gmail for replies; account: which
+  // signed-in Gmail account (0 = the first).
+  email: { sendingEnabled: boolean; watchReplies: boolean; account: number };
+  // The extension's last Gmail check.
+  mailCheck?: { at: string; ok: boolean; message: string; address?: string | null };
   // What the research step covers, extra points to research, and free-text rules.
   research: { points: Record<ResearchPoint, boolean>; extraPoints: string[]; rules: string };
   // CV and cover letter templates: the default, and choices per role key.
@@ -197,4 +201,26 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   research: "Research",
   follow_up: "Follow-up email",
   interview_pack: "Interview pack",
+};
+
+// An email about an application, read from the user's Gmail by the extension.
+export type MailKind = "interview" | "offer" | "rejected" | "action" | "received" | "replied";
+export type Mail = {
+  id: number;
+  message_id: string;
+  job_id: number | null;
+  from_name: string | null;
+  from_email: string | null;
+  subject: string | null;
+  snippet: string | null;
+  link: string | null;
+  received_at: string | null;
+  kind: MailKind | null;
+  evidence: string | null;
+  suggestion: Status | null;
+  state: "new" | "done" | "dismissed" | "ignored";
+  created_at: string;
+  job_title: string | null;
+  job_company: string | null;
+  job_status: Status | null;
 };

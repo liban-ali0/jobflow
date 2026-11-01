@@ -13,10 +13,12 @@ import { Panel } from "@/components/panel";
 import { RewriteDocuments } from "@/components/rewrite-documents";
 import { StatusSelect } from "@/components/status-select";
 import { OutcomeBar } from "@/components/tracking";
+import { MailReplies } from "@/components/mail-replies";
 import { applyPack } from "@/lib/apply";
 import { checkCv } from "@/lib/ats";
 import { targetForJob } from "@/lib/ats-keywords";
-import { getJob, getSettings, listContacts, listDocuments, listEvents } from "@/lib/data";
+import { getJob, getSettings, listContacts, listDocuments, listEvents, listMails } from "@/lib/data";
+import { composeFor } from "@/lib/mail";
 import { PRINTABLE, readText } from "@/lib/documents";
 import { stageReady, stageRunning } from "@/lib/engine";
 import { followUpState } from "@/lib/followups";
@@ -108,6 +110,14 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   // Shown once every document is approved; before that, Documents is the next step.
   const fullPack = !afterApplying && documents.some((document) => document.type === "answers") ? applyPack(job.id) : null;
   const pack = fullPack?.approved ? fullPack : null;
+  // Emails in Gmail: replies waiting for the user, and the written ones to send.
+  const jobMails = listMails({ state: "new", jobId: job.id });
+  const asGmail = (kind: "follow_up" | "application") => {
+    const email = composeFor(job.id, kind);
+    return email ? { jobId: job.id, kind, url: email.url, to: email.to, attach: email.attach } : null;
+  };
+  const followUpEmail = job.status === "applied" ? asGmail("follow_up") : null;
+  const applicationEmail = pack?.email ? asGmail("application") : null;
   const filling = stageRunning("apply-job", job.id);
   const chrome = applyInChrome(job.url, pack?.approved ?? false);
   const breakdown = Object.entries(job.score_breakdown ?? {}).map(([name, value]) => {
@@ -130,8 +140,18 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
 
       <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
         <div className="min-w-0 space-y-6">
+          {jobMails.length > 0 && (
+            <section aria-labelledby="job-mail" className="space-y-2">
+              <h2 id="job-mail" className="section-title">
+                From your email
+              </h2>
+              <MailReplies mails={jobMails} showJob={false} />
+            </section>
+          )}
+
           {afterApplying && (
             <OutcomeBar
+              gmail={followUpEmail}
               jobId={job.id}
               status={job.status}
               applied={job.applied_at ? `Applied ${formatDateTime(job.applied_at)}` : null}
@@ -158,6 +178,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
                 coverLetterText={pack.coverLetterText}
                 files={pack.files}
                 emailTo={pack.email?.to ?? null}
+                gmail={applicationEmail}
                 chrome={chrome}
                 filling={filling}
                 waiting={job.status === "ready" ? job.apply_missing : null}

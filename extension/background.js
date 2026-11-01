@@ -1,7 +1,8 @@
 // The Offerbound extension's background worker: opens application forms for
 // ready jobs (one after another in an apply session), fills them on every
 // page load, keeps the app told what is left for the user, and records the
-// application when the user's submit is confirmed. It never submits.
+// application when the user's submit is confirmed. It never submits. It also
+// reads new Gmail for replies, and opens emails in Gmail for the user to send.
 // Chrome runs this as a service worker and loads common.js here; Firefox
 // loads both files as background scripts (see manifest.json).
 if (typeof jobflowCall === "undefined") importScripts("common.js");
@@ -249,6 +250,124 @@ async function collect(trigger = "manual") {
   }
 }
 
+// ---------- Gmail: replies to applications, and emails the user sends ----------
+
+// Gmail's own feed of new (unread) inbox mail, read with the user's signed-in
+// session in this browser. Offerbound keeps only the emails about applications.
+const MAIL_EVERY_MINUTES = 15;
+let mailChecking = false;
+
+const decode = (text) =>
+  text
+    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+    .replace(/&amp;/g, "&");
+const rawTag = (xml, name) => (xml.match(new RegExp(`<${name}(?:\\s[^>]*)?>([\\s\\S]*?)</${name}>`)) || [])[1] || "";
+const tag = (xml, name) => decode(rawTag(xml, name)).trim();
+
+// The feed as plain data (the worker has no XML parser).
+function parseFeed(xml) {
+  const address = (tag(xml, "title").match(/[^\s<>]+@[^\s<>]+/) || [])[0] || null;
+  const mails = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(([, entry]) => {
+    const author = rawTag(entry, "author");
+    return {
+      id: tag(entry, "id"),
+      subject: tag(entry, "title"),
+      summary: tag(entry, "summary"),
+      at: tag(entry, "issued") || tag(entry, "modified"),
+      link: decode((entry.match(/<link[^>]*href="([^"]*)"/) || [])[1] || ""),
+      fromName: tag(author, "name"),
+      fromEmail: tag(author, "email"),
+    };
+  });
+  return { address, mails: mails.filter((mail) => mail.id) };
+}
+
+async function checkMail() {
+  if (mailChecking) return { ok: false, message: "Already checking." };
+  mailChecking = true;
+  try {
+    const plan = await jobflowCall("/api/mail");
+    if (!plan.watch) return { ok: false, message: "Watching Gmail is off: turn it on in Offerbound → Settings → Email." };
+    let response;
+    try {
+      response = await fetch(`https://mail.google.com/mail/u/${Number(plan.account) || 0}/feed/atom`, { credentials: "include", cache: "no-store" });
+    } catch {
+      response = null;
+    }
+    const xml = response?.ok ? await response.text() : "";
+    if (!xml.includes("<feed")) {
+      const error = response?.status === 401 || response?.ok ? "Not signed in to Gmail in this browser, or no Gmail account with that number. Open Gmail here once." : "Gmail could not be reached.";
+      await jobflowCall("/api/mail", { method: "POST", body: JSON.stringify({ error }) });
+      return { ok: false, message: error };
+    }
+    const { address, mails } = parseFeed(xml);
+    return await jobflowCall("/api/mail", { method: "POST", body: JSON.stringify({ address, mails }) });
+  } catch (error) {
+    return { ok: false, message: error.message };
+  } finally {
+    mailChecking = false;
+  }
+}
+
+// One alarm, made once (making it again would restart its countdown each
+// time the worker wakes).
+async function ensureMailAlarm() {
+  if (!chrome.alarms) return;
+  if (!(await chrome.alarms.get("mail"))) chrome.alarms.create("mail", { delayInMinutes: 1, periodInMinutes: MAIL_EVERY_MINUTES });
+}
+ensureMailAlarm();
+chrome.alarms?.onAlarm.addListener((alarm) => {
+  if (alarm.name === "mail") checkMail();
+});
+
+// Emails the user sends: Offerbound opens Gmail's compose window filled in,
+// and records the email as sent once the user presses Send there.
+const composeKey = (tabId) => `compose:${tabId}`;
+const GMAIL_COMPOSE = /^https:\/\/mail\.google\.com\/mail\/u\/\d+\/\?view=cm&/;
+
+async function compose(payload, origin) {
+  const { address } = await jobflowSettings();
+  if (origin !== address) return { ok: false, message: "Only your connected Offerbound can open emails." };
+  const jobId = Number(payload?.jobId);
+  if (!jobId || !GMAIL_COMPOSE.test(payload?.url || "")) return { ok: false, message: "This is not an email Offerbound can open." };
+  const tab = await chrome.tabs.create({ url: payload.url, active: true });
+  await save(composeKey(tab.id), { jobId, kind: payload.kind === "application" ? "application" : "follow_up", to: String(payload.to || "").slice(0, 200), pressedAt: null, done: false });
+  return { ok: true, message: "Opened in Gmail. Check it, attach anything listed, and press Send there." };
+}
+
+async function composeSent(tabId) {
+  const state = await load(composeKey(tabId), null);
+  if (!state || state.done) return;
+  await save(composeKey(tabId), { ...state, done: true });
+  await jobflowCall("/api/mail/sent", { method: "POST", body: JSON.stringify({ jobId: state.jobId, kind: state.kind, to: state.to }) }).catch(() => null);
+}
+
+// Send pressed shortly before: leaving the compose window means it went.
+const justPressed = (state) => state?.pressedAt && Date.now() - state.pressedAt < 60000;
+
+chrome.tabs.onUpdated.addListener(async (tabId, info, tab) => {
+  const state = await load(composeKey(tabId), null);
+  if (!state || state.done) return;
+  const url = info.url || tab.url || "";
+  if (info.url && !url.includes("view=cm") && justPressed(state)) return composeSent(tabId);
+  if (info.status === "complete" && url.includes("view=cm")) {
+    chrome.scripting.executeScript({ target: { tabId }, files: ["compose-watch.js"] }).catch(() => null);
+  }
+});
+
+chrome.tabs.onRemoved.addListener(async (tabId) => {
+  const state = await load(composeKey(tabId), null);
+  if (!state) return;
+  if (!state.done && justPressed(state)) await composeSent(tabId);
+  await chrome.storage.session.remove(composeKey(tabId));
+});
+
 // Requests are handled one at a time, so frames reporting together do not
 // overwrite each other's state.
 let chain = Promise.resolve();
@@ -304,6 +423,19 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         if (collecting) return { ok: false, message: "Already collecting." };
         collect(message.trigger === "timer" ? "timer" : "manual");
         return { ok: true, message: "Collecting in your browser, in a minimized window. Follow it on Activity." };
+      case "checkMail":
+        return checkMail();
+      case "compose":
+        return compose(message.payload, message.origin);
+      // From a Gmail compose window Offerbound opened (compose-watch.js).
+      case "composeSend": {
+        const state = await load(composeKey(tabId), null);
+        if (state && !state.done) await save(composeKey(tabId), { ...state, pressedAt: Date.now() });
+        return { ok: true };
+      }
+      case "composeSent":
+        await composeSent(tabId);
+        return { ok: true };
       case "apply": {
         const ids = [...new Set((message.jobIds || []).map(Number).filter(Boolean))];
         if (!ids.length) return { ok: false, message: "No job to apply for." };
@@ -342,7 +474,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     }
   };
   // Opening the next form waits for nothing else; the rest is serialised.
-  const run = ["apply", "next", "skip", "ping", "collect"].includes(message?.type) ? handle() : serial(handle);
+  const run = ["apply", "next", "skip", "ping", "collect", "checkMail", "compose"].includes(message?.type) ? handle() : serial(handle);
   run.then(reply, (error) => reply({ ok: false, message: error.message }));
   return true;
 });

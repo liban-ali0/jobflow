@@ -65,3 +65,9 @@ export function countRuns(db: Db, options?: { status?: string | null }): number;
 export function listRunningRuns(db: Db): Row[];
 export function getRun(db: Db, id: number): Row | undefined;
 export { EXPERIENCE_LEVELS } from "./levels.mjs";
+
+export function hasMail(db: Db, messageId: string): boolean;
+export function addMail(db: Db, mail: Row): boolean;
+export function listMails(db: Db, filter?: { state?: string; jobId?: number | null; limit?: number }): Row[];
+export function getMail(db: Db, id: number): Row | null;
+export function updateMail(db: Db, id: number, patch: { job_id?: number | null; state?: string; suggestion?: string | null }): void;

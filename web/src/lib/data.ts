@@ -8,6 +8,7 @@ import type {
   Job,
   JobDocument,
   JobEvent,
+  Mail,
   Message,
   Question,
   Run,
@@ -175,3 +176,10 @@ export function confirmSkill(skill: string, evidence: string) {
       : `${facts.trimEnd()}\n\n${CONFIRMED_HEADING}\n\n${line}\n`,
   );
 }
+
+// Emails about applications, read from the user's Gmail by the extension.
+export const hasMail = (messageId: string) => core.hasMail(db(), messageId);
+export const addMail = (mail: Partial<Mail> & { message_id: string }) => core.addMail(db(), mail);
+export const listMails = (filter: { state?: Mail["state"]; jobId?: number | null; limit?: number } = {}) => core.listMails(db(), filter) as Mail[];
+export const getMail = (id: number) => core.getMail(db(), id) as Mail | null;
+export const updateMail = (id: number, patch: { job_id?: number | null; state?: Mail["state"]; suggestion?: Status | null }) => core.updateMail(db(), id, patch);

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import type { ActionResult } from "@/app/actions";
+import { OpenInGmail, type GmailEmail } from "@/components/gmail";
 import { markFollowUpSent, recordOutcome, setInterviewTime, setReminder, waitLonger, writeFollowUp, writeInterviewPack } from "@/app/tracking-actions";
 import { STATUS_LABELS, type Status } from "@/lib/types";
 
@@ -54,6 +55,7 @@ export function OutcomeBar({
   applied,
   followUp,
   interviewPack = null,
+  gmail = null,
 }: {
   jobId: number;
   status: Status;
@@ -63,6 +65,8 @@ export function OutcomeBar({
   // At the interview stage: whether the pack exists or is being written,
   // and when the interview is.
   interviewPack?: { exists: boolean; running: boolean; at: string | null } | null;
+  // The written follow-up, ready to open in Gmail.
+  gmail?: GmailEmail | null;
 }) {
   const [choice, setChoice] = useState<Status | null>(null);
   const [note, setNote] = useState("");
@@ -246,8 +250,9 @@ export function OutcomeBar({
               <button type="button" disabled={pending} onClick={() => run(() => writeFollowUp(jobId))} className="btn btn-quiet px-3 py-1.5 text-xs">
                 {followUp.draft ? "Write it again" : "Write follow-up"}
               </button>
+              {followUp.draft && gmail && <OpenInGmail email={gmail} className="btn btn-primary px-3 py-1.5 text-xs" />}
               {followUp.draft && (
-                <button type="button" disabled={pending} onClick={() => run(() => markFollowUpSent(jobId))} className="btn btn-primary px-3 py-1.5 text-xs">
+                <button type="button" disabled={pending} onClick={() => run(() => markFollowUpSent(jobId))} className={`btn px-3 py-1.5 text-xs ${gmail ? "btn-quiet" : "btn-primary"}`}>
                   Mark follow-up sent
                 </button>
               )}
@@ -268,6 +273,7 @@ export function FollowUpRow({
   days,
   sent,
   draftId,
+  gmail = null,
 }: {
   jobId: number;
   title: string;
@@ -275,6 +281,7 @@ export function FollowUpRow({
   days: number | null;
   sent: boolean;
   draftId: number | null;
+  gmail?: GmailEmail | null;
 }) {
   const { pending, result, run } = useRun();
   return (
@@ -307,7 +314,8 @@ export function FollowUpRow({
             <Link href={`/jobs/${jobId}#documents`} className="btn btn-quiet px-3 py-1.5 text-xs">
               Review email
             </Link>
-            <button type="button" disabled={pending} onClick={() => run(() => markFollowUpSent(jobId))} className="btn btn-primary px-3 py-1.5 text-xs">
+            {gmail && <OpenInGmail email={gmail} className="btn btn-primary px-3 py-1.5 text-xs" />}
+            <button type="button" disabled={pending} onClick={() => run(() => markFollowUpSent(jobId))} className={`btn px-3 py-1.5 text-xs ${gmail ? "btn-quiet" : "btn-primary"}`}>
               Mark as sent
             </button>
           </>

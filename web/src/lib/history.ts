@@ -15,7 +15,12 @@ export function describeEvent(event: JobEvent): string {
     case "document":
       return `${DOCUMENT_LABELS[event.detail ?? ""] ?? "Document"} written`;
     case "follow-up sent":
-      return "Follow-up sent";
+      // "Sent from Gmail to …" when the extension saw it go.
+      return event.detail ? `Follow-up sent ${event.detail.replace(/^Sent /, "")}` : "Follow-up sent";
+    case "email":
+      return event.detail ?? "Email received";
+    case "email sent":
+      return event.detail ?? "Email sent";
     default:
       return [event.type.replace(/^\w/, (letter) => letter.toUpperCase()), event.detail].filter(Boolean).join(": ");
   }

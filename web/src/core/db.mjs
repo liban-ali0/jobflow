@@ -129,6 +129,26 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+-- Emails from the user's mailbox about their applications, read by the
+-- browser extension. Mail that is about nothing the user applied to is kept
+-- only as its id (state 'ignored'), so it is not read again.
+CREATE TABLE IF NOT EXISTS mails (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  message_id TEXT NOT NULL UNIQUE,
+  job_id INTEGER REFERENCES jobs(id) ON DELETE SET NULL,
+  from_name TEXT,
+  from_email TEXT,
+  subject TEXT,
+  snippet TEXT,
+  link TEXT,
+  received_at TEXT,
+  kind TEXT,
+  evidence TEXT,
+  suggestion TEXT,
+  state TEXT NOT NULL DEFAULT 'new',
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS mails_state ON mails(state);
 CREATE INDEX IF NOT EXISTS jobs_status ON jobs(status);
 CREATE INDEX IF NOT EXISTS jobs_found_at ON jobs(found_at);
 CREATE INDEX IF NOT EXISTS jobs_applied_at ON jobs(applied_at);
@@ -216,6 +236,8 @@ export function getSettings(db) {
   }
   settings.experience = normalizeExperience(settings.experience);
   settings.sources = normalizeSources(defaults.sources, settings.sources);
+  // Email settings saved before a key existed take its default.
+  settings.email = { ...defaults.email, ...settings.email };
   return settings;
 }
 
@@ -542,4 +564,66 @@ export function countByStatus(db) {
   const counts = Object.fromEntries(STATUSES.map((s) => [s, 0]));
   for (const row of db.prepare("SELECT status, COUNT(*) AS n FROM jobs GROUP BY status").all()) counts[row.status] = row.n;
   return counts;
+}
+
+// ---------- emails about applications ----------
+
+export function hasMail(db, messageId) {
+  return Boolean(db.prepare("SELECT 1 FROM mails WHERE message_id = ?").get(messageId));
+}
+
+// Stores one email (once per message id). Returns whether it was new.
+export function addMail(db, mail) {
+  const result = db
+    .prepare(
+      `INSERT OR IGNORE INTO mails (message_id, job_id, from_name, from_email, subject, snippet, link, received_at, kind, evidence, suggestion, state, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      mail.message_id,
+      mail.job_id ?? null,
+      mail.from_name ?? null,
+      mail.from_email ?? null,
+      mail.subject ?? null,
+      mail.snippet ?? null,
+      mail.link ?? null,
+      mail.received_at ?? null,
+      mail.kind ?? null,
+      mail.evidence ?? null,
+      mail.suggestion ?? null,
+      mail.state ?? "new",
+      now(),
+    );
+  return result.changes > 0;
+}
+
+// Emails waiting for the user (state 'new'), newest first, with their job.
+export function listMails(db, { state = "new", jobId = null, limit = 100 } = {}) {
+  const where = ["m.state = ?"];
+  const params = [state];
+  if (jobId !== null) {
+    where.push("m.job_id = ?");
+    params.push(jobId);
+  }
+  return db
+    .prepare(
+      `SELECT m.*, j.title AS job_title, j.company AS job_company, j.status AS job_status
+       FROM mails m LEFT JOIN jobs j ON j.id = m.job_id
+       WHERE ${where.join(" AND ")} ORDER BY m.received_at DESC, m.id DESC LIMIT ?`,
+    )
+    .all(...params, limit)
+    // Plain objects: the app hands these to the browser.
+    .map((row) => ({ ...row }));
+}
+
+export function getMail(db, id) {
+  const row = db.prepare("SELECT * FROM mails WHERE id = ?").get(id);
+  return row ? { ...row } : null;
+}
+
+export function updateMail(db, id, patch) {
+  const allowed = ["job_id", "state", "suggestion"];
+  const columns = Object.keys(patch).filter((key) => allowed.includes(key));
+  if (!columns.length) return;
+  db.prepare(`UPDATE mails SET ${columns.map((c) => `${c} = ?`).join(", ")} WHERE id = ?`).run(...columns.map((c) => patch[c]), id);
 }

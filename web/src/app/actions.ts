@@ -306,7 +306,11 @@ export async function saveSettings(_: ActionResult | null, formData: FormData): 
       activeFrom: /^\d{2}:\d{2}$/.test(String(formData.get("schedule.activeFrom"))) ? String(formData.get("schedule.activeFrom")) : (current.schedule.activeFrom ?? "07:00"),
       activeTo: /^\d{2}:\d{2}$/.test(String(formData.get("schedule.activeTo"))) ? String(formData.get("schedule.activeTo")) : (current.schedule.activeTo ?? "23:00"),
     },
-    email: { sendingEnabled: formData.get("email.sendingEnabled") === "on" },
+    email: {
+      sendingEnabled: current.email.sendingEnabled,
+      watchReplies: formData.get("email.watchReplies") === "on",
+      account: number(formData.get("email.account"), current.email.account ?? 0, 0, 9),
+    },
     research: {
       points: Object.fromEntries(RESEARCH_POINTS.map(({ key }) => [key, formData.get(`research.${key}`) === "on"])) as Settings["research"]["points"],
       extraPoints: list(formData.get("research.extraPoints")).slice(0, 20),

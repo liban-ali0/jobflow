@@ -138,6 +138,8 @@
     "activeTo": "23:00"
   },
   "email": {
-    "sendingEnabled": false
+    "sendingEnabled": false,
+    "watchReplies": false,
+    "account": 0
   }
 }

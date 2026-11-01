@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Offerbound",
-  "version": "0.3.0",
-  "description": "Connects your browser to your own Offerbound app: sends job listings to it and fills application forms from your approved documents. It never submits.",
+  "version": "0.4.0",
+  "description": "Connects your browser to your own Offerbound app: sends job listings to it, fills application forms from your approved documents, and watches your Gmail for replies to applications. It never submits or sends anything.",
   "action": {
     "default_popup": "popup.html",
     "default_title": "Offerbound",
@@ -21,6 +21,7 @@
   },
   "permissions": [
     "activeTab",
+    "alarms",
     "scripting",
     "storage",
     "tabGroups"

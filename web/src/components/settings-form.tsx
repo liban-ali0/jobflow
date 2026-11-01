@@ -1,5 +1,6 @@
 "use client";
 
+import { CheckMailButton } from "@/components/gmail";
 import { ExtensionSetup } from "@/components/extension-setup";
 import { OtherDevices } from "@/components/other-devices";
 import { createContext, startTransition, useActionState, useContext, useEffect, useRef, useState } from "react";
@@ -770,17 +771,43 @@ export function SettingsForm({
           </div>
         </Section>
 
-        <Section id="email" title="Email" hint="Emails are always written and saved with the job." flush>
+        <Section id="email" title="Email" hint="Replies from Gmail, and emails opened in Gmail for you to send. Uses the Gmail you are signed into in this browser: no password is stored." flush>
           <SwitchList>
             <SwitchRow
-              name="email.sendingEnabled"
-              label="Create email drafts"
-              hint="Also put each email in your mailbox as a draft, ready to send."
-              checked={settings.email.sendingEnabled}
-              disabled
-              badge="Coming later"
+              name="email.watchReplies"
+              label="Watch Gmail for replies"
+              hint="The Offerbound extension reads your new, unread Gmail every 15 minutes while your browser is open. Only emails about your applications are kept; nothing is marked as read, moved, or changed."
+              checked={settings.email.watchReplies}
             />
           </SwitchList>
+          <div className="space-y-4 border-t border-line/70 px-5 py-4 md:px-6">
+            <div>
+              <label className="label" htmlFor="email-account">
+                Gmail account
+              </label>
+              <select id="email-account" name="email.account" defaultValue={String(settings.email.account ?? 0)} className="field w-auto">
+                {["First", "Second", "Third", "Fourth", "Fifth"].map((label, index) => (
+                  <option key={label} value={index}>
+                    {label} account signed in to this browser
+                  </option>
+                ))}
+              </select>
+              <Help>The order Gmail lists your accounts in (the account picker at its top right). Used to read replies and to open emails.</Help>
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
+              <span className={settings.mailCheck && !settings.mailCheck.ok ? "text-coral" : "text-slate"}>
+                {settings.mailCheck ? (
+                  <span suppressHydrationWarning>
+                    Last checked {new Date(settings.mailCheck.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
+                    {settings.mailCheck.address ? ` (${settings.mailCheck.address})` : ""}: {settings.mailCheck.message}
+                  </span>
+                ) : (
+                  "Not checked yet. Save with watching on, then check once."
+                )}
+              </span>
+              <CheckMailButton />
+            </div>
+          </div>
         </Section>
 
         <GroupHeading gate="D" />

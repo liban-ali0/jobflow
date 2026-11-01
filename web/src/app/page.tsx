@@ -11,17 +11,20 @@ import { Pagination } from "@/components/pagination";
 import { QuestionCard } from "@/components/question-card";
 import { researchSelected } from "@/app/job-actions";
 import { FollowUpRow } from "@/components/tracking";
+import { CheckMailButton } from "@/components/gmail";
+import { MailReplies } from "@/components/mail-replies";
+import { composeFor } from "@/lib/mail";
 import { followUpsDue, upcomingInterviews } from "@/lib/followups";
 import { CollectButton } from "@/components/collect-button";
 import { BROWSER_SITES } from "@/lib/browser-sites";
-import { countByStatus, getJob, hasCv, listDocuments, listJobs, listQuestions, listRuns, readProfile } from "@/lib/data";
+import { countByStatus, getJob, hasCv, listDocuments, listJobs, listMails, listQuestions, listRuns, readProfile } from "@/lib/data";
 import { SHOW_VIEWS, buildDepartures } from "@/lib/departures";
 import { scheduleStatus } from "@/lib/scheduler";
 import { ENGINES, STAGES, closeAbandonedRuns, engineFor, queuedResearch, stageReady, type EngineKey } from "@/lib/engine";
 import { paginate } from "@/lib/filters";
 import { formatDateTime } from "@/lib/format";
 import { sortJobs } from "@/lib/sort";
-import type { Run } from "@/lib/types";
+import { SENT_STATUSES, type Run } from "@/lib/types";
 
 function Stat({ label, value, note, tone = "plain" }: { label: string; value: string | number; note?: string; tone?: "plain" | "signal" }) {
   return (
@@ -163,6 +166,17 @@ export default async function TodayPage(props: PageProps<"/">) {
     .filter((row) => row.waiting + row.changes > 0);
 
   const followUps = followUpsDue();
+  // Emails about applications found in Gmail, waiting for the user.
+  const mails = listMails({ state: "new" });
+  const mailApplications = mails.some((mail) => !mail.job_id)
+    ? listJobs({ status: SENT_STATUSES })
+        .sort((a, b) => Date.parse(b.applied_at ?? "") - Date.parse(a.applied_at ?? ""))
+        .map((job) => ({ id: job.id, label: `${job.title} · ${job.company}` }))
+    : [];
+  const followUpEmail = (jobId: number) => {
+    const email = composeFor(jobId, "follow_up");
+    return email ? { jobId, kind: "follow_up" as const, url: email.url, to: email.to, attach: email.attach } : null;
+  };
   // Enabled sites the extension reads in the browser.
   const browserSites = BROWSER_SITES.filter((site) => settings.sources.some((source) => source.key === site.key && source.enabled)).map((site) => site.name);
   const allInterviews = upcomingInterviews();
@@ -355,6 +369,30 @@ export default async function TodayPage(props: PageProps<"/">) {
         </section>
       )}
 
+      {(mails.length > 0 || settings.email.watchReplies) && (
+        <section id="replies" className="anchor mt-8">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="section-title">Replies in your email</h2>
+            {mails.length > 0 && <span className="font-mono text-xs text-slate">{mails.length}</span>}
+          </div>
+          <div className="mt-0.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+            <p className="text-sm text-slate">
+              {mails.length > 0
+                ? "Found in your Gmail. Nothing changes until you choose."
+                : settings.mailCheck
+                  ? `Last checked ${new Date(settings.mailCheck.at).toLocaleString("en-GB", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}: ${settings.mailCheck.message}`
+                  : "The Offerbound extension checks your Gmail every 15 minutes while your browser is open."}
+            </p>
+            <CheckMailButton />
+          </div>
+          {mails.length > 0 && (
+            <div className="mt-3">
+              <MailReplies mails={mails} applications={mailApplications} />
+            </div>
+          )}
+        </section>
+      )}
+
       {followUps.length > 0 && (
         <section className="mt-8">
           <div className="flex items-baseline justify-between gap-3">
@@ -364,7 +402,7 @@ export default async function TodayPage(props: PageProps<"/">) {
           <p className="mt-0.5 text-sm text-slate">Applications without a reply after {settings.followUpDays} days. One short follow-up each.</p>
           <ul className="card mt-3 divide-y divide-line rounded-xl">
             {followUps.map(({ job, sent, draftId, daysSinceApplied }) => (
-              <FollowUpRow key={job.id} jobId={job.id} title={job.title} company={job.company} days={daysSinceApplied} sent={sent} draftId={draftId} />
+              <FollowUpRow key={job.id} jobId={job.id} title={job.title} company={job.company} days={daysSinceApplied} sent={sent} draftId={draftId} gmail={draftId && !sent ? followUpEmail(job.id) : null} />
             ))}
           </ul>
         </section>

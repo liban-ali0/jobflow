@@ -5,11 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 // Talks to the Offerbound browser extension through its bridge script on this
 // page (extension/bridge.js): is it installed, and open application forms.
 
-type Reply = { ok: boolean; message?: string; version?: string; connected?: boolean; pending?: boolean };
+type Reply = { ok: boolean; message?: string; version?: string; connected?: boolean; pending?: boolean; kept?: number };
 
 let counter = 0;
 
-function ask(type: "ping" | "apply" | "connect" | "collect", jobIds: number[] = [], timeout = 1500, token?: string): Promise<Reply | null> {
+function ask(type: "ping" | "apply" | "connect" | "collect" | "checkMail" | "compose", jobIds: number[] = [], timeout = 1500, token?: string, payload?: unknown): Promise<Reply | null> {
   return new Promise((resolve) => {
     const id = `jobflow-${Date.now()}-${(counter += 1)}`;
     const done = (reply: Reply | null) => {
@@ -22,7 +22,7 @@ function ask(type: "ping" | "apply" | "connect" | "collect", jobIds: number[] = 
     };
     const timer = setTimeout(() => done(null), timeout);
     window.addEventListener("message", listen);
-    window.postMessage({ source: "jobflow-app", id, type, jobIds, token }, window.location.origin);
+    window.postMessage({ source: "jobflow-app", id, type, jobIds, token, payload }, window.location.origin);
   });
 }
 
@@ -82,5 +82,17 @@ export function useJobflowExtension() {
     return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
   }, []);
 
-  return { state, version, apply, connect, collect, recheck: check };
+  // Reads new Gmail now (otherwise the extension checks every 15 minutes).
+  const checkMail = useCallback(async () => {
+    const reply = await ask("checkMail", [], 60000);
+    return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
+  }, []);
+
+  // Opens an email in Gmail's compose window; the extension notes when it is sent.
+  const compose = useCallback(async (email: { jobId: number; kind: string; url: string; to: string }) => {
+    const reply = await ask("compose", [], 10000, undefined, email);
+    return reply ?? { ok: false, message: "The Offerbound extension did not answer. Reload this page and try again." };
+  }, []);
+
+  return { state, version, apply, connect, collect, checkMail, compose, recheck: check };
 }
