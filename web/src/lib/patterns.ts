@@ -25,7 +25,28 @@ export type Finding = {
   jobs?: { id: number; title: string; company: string; days: number }[];
 };
 
-export type Patterns = { decided: number; positive: number; findings: Finding[]; needed: number };
+// The path from found to offer: how many jobs ever reached each stage.
+export type FunnelStep = { key: string; label: string; count: number; rate: number | null };
+// Reply rate per score band; rate is null below the sample floor.
+export type ScoreBand = { label: string; decided: number; positive: number; rate: number | null; waiting: number };
+export type Calibration = { bands: ScoreBand[]; verdict: "predicts" | "does-not" | "too-early"; text: string };
+// Days between stages: the median of the ones that moved, and how many are
+// still waiting (left out of the median, so it is not flattered).
+export type Step = { label: string; median: number | null; moved: number; waiting: number };
+export type Reason = { reason: string; count: number };
+
+export type Patterns = {
+  decided: number;
+  positive: number;
+  findings: Finding[];
+  needed: number;
+  funnel: FunnelStep[];
+  calibration: Calibration | null;
+  steps: Step[];
+  setAside: { total: number; reasons: Reason[] };
+};
+
+const BAND_FLOOR = 5; // decided applications in a band before its rate is shown
 
 function outcomeOf(job: Job, events: JobEvent[]): Outcome {
   const reached = new Set<string>([job.status]);
@@ -106,7 +127,24 @@ export function findPatterns(jobs: Job[], eventsByJob: ReadonlyMap<number, JobEv
     });
   }
 
-  if (decidedRows.length < MIN_TOTAL) return { decided: decidedRows.length, positive, findings, needed: MIN_TOTAL - decidedRows.length };
+  const extra = { funnel: funnelOf(jobs, eventsByJob), setAside: setAsideOf(jobs), steps: stepsOf(rows, now), calibration: calibrate(rows) };
+
+  // Effort spent on jobs never sent: researched or ready for a week or more.
+  const idle = jobs
+    .filter((job) => ["researched", "ready"].includes(job.status) && !job.archived_at)
+    .map((job) => ({ id: job.id, title: job.title, company: job.company, days: Math.floor((now - Date.parse(job.updated_at)) / DAY) }))
+    .filter((item) => item.days >= 7)
+    .sort((a, b) => b.days - a.days);
+  if (idle.length >= 2) {
+    findings.push({
+      tone: "info",
+      title: `${idle.length} prepared jobs were never sent`,
+      detail: "Researched or with documents ready, untouched for a week or more. Apply while they are open, or set them aside so the daily list has room.",
+      jobs: idle.slice(0, 5),
+    });
+  }
+
+  if (decidedRows.length < MIN_TOTAL) return { decided: decidedRows.length, positive, findings, needed: MIN_TOTAL - decidedRows.length, ...extra };
 
   // Best and worst groups (analyze-patterns' best/worst decided segment).
   const roleLabel = new Map(settings.roles.map((role) => [role.key, role.label]));
@@ -198,7 +236,110 @@ export function findPatterns(jobs: Job[], eventsByJob: ReadonlyMap<number, JobEv
     });
   }
 
-  return { decided: decidedRows.length, positive, findings, needed: 0 };
+  return { decided: decidedRows.length, positive, findings, needed: 0, ...extra };
+}
+
+// Every stage a job ever reached (its status history, not only where it is now).
+function reachedOf(job: Job, events: JobEvent[]) {
+  const reached = new Set<string>([job.status]);
+  for (const event of events) if (event.type === "status") for (const status of (event.detail ?? "").split("→")) reached.add(status.trim());
+  if (job.applied_at) reached.add("applied");
+  if (job.score !== null) reached.add("ranked");
+  return reached;
+}
+
+const SENT = SENT_STATUSES.filter((status) => status !== "withdrawn");
+const FUNNEL: { key: string; label: string; from: string[] }[] = [
+  { key: "found", label: "Found", from: [] },
+  { key: "ranked", label: "Ranked", from: ["ranked", "selected", "researched", "ready", ...SENT] },
+  { key: "selected", label: "Selected", from: ["selected", "researched", "ready", ...SENT] },
+  { key: "ready", label: "Documents ready", from: ["ready", ...SENT] },
+  { key: "applied", label: "Applied", from: SENT },
+  { key: "replied", label: "Replied", from: ["replied", "interview", "offer", "accepted", "declined"] },
+  { key: "interview", label: "Interview", from: ["interview", "offer", "accepted", "declined"] },
+  { key: "offer", label: "Offer", from: ["offer", "accepted", "declined"] },
+];
+
+function funnelOf(jobs: Job[], eventsByJob: ReadonlyMap<number, JobEvent[]>): FunnelStep[] {
+  const reached = jobs.map((job) => reachedOf(job, eventsByJob.get(job.id) ?? []));
+  const counts = FUNNEL.map((step) => (step.from.length ? reached.filter((set) => step.from.some((status) => set.has(status))).length : jobs.length));
+  // Each step as a share of the one before it.
+  return FUNNEL.map((step, index) => ({ key: step.key, label: step.label, count: counts[index], rate: index === 0 || !counts[index - 1] ? null : percent(counts[index], counts[index - 1]) }));
+}
+
+function setAsideOf(jobs: Job[]) {
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const job of jobs) {
+    if (job.status !== "excluded" || !job.excluded_reason) continue;
+    total++;
+    // "Listed as Mid-Senior level" and "Listed as Director" are the same kind of reason.
+    const reason = job.excluded_reason
+      .replace(/^Not interested: .*/, "You said not interested")
+      .replace(/^Listed as .*/, "Outside your experience levels")
+      .replace(/^(Likely not a genuine listing):.*/, "$1")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 90);
+    counts.set(reason, (counts.get(reason) ?? 0) + 1);
+  }
+  return { total, reasons: [...counts].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count).slice(0, 6) };
+}
+
+// How long each step takes, from the status history.
+function stepsOf(rows: Row[], now: number): Step[] {
+  const at = (row: Row, statuses: string[]) => statuses.map((status) => statusAt(row.events, status)).filter((value): value is string => Boolean(value)).sort()[0] ?? null;
+  const measure = (label: string, start: (row: Row) => string | null, end: (row: Row) => string | null, open: (row: Row) => boolean): Step => {
+    const days: number[] = [];
+    let waiting = 0;
+    for (const row of rows) {
+      const from = start(row);
+      if (!from) continue;
+      const to = end(row);
+      if (to) {
+        const value = (Date.parse(to) - Date.parse(from)) / DAY;
+        if (Number.isFinite(value) && value >= 0) days.push(value);
+      } else if (open(row) && now > Date.parse(from)) waiting++;
+    }
+    return { label, median: days.length >= 3 ? Math.round((median(days) ?? 0) * 10) / 10 : null, moved: days.length, waiting };
+  };
+  return [
+    measure("Applied → first answer", (row) => row.job.applied_at, (row) => at(row, ["replied", "interview", "offer", "rejected"]), (row) => row.job.status === "applied"),
+    measure("Reply → interview", (row) => at(row, ["replied"]), (row) => at(row, ["interview"]), (row) => row.job.status === "replied"),
+    measure("Interview → offer or no", (row) => at(row, ["interview"]), (row) => at(row, ["offer", "rejected"]), (row) => row.job.status === "interview"),
+  ];
+}
+
+// Do higher-scored jobs get more replies for this user? (After career-ops'
+// calibrate, MIT: applications still waiting are not data points, and no
+// rate is shown for a band smaller than the floor.)
+function calibrate(rows: Row[]): Calibration | null {
+  const scored = rows.filter((row) => row.job.score !== null);
+  if (!scored.length) return null;
+  const bands = [
+    { label: "75 and up", test: (score: number) => score >= 75 },
+    { label: "60 to 74", test: (score: number) => score >= 60 && score < 75 },
+    { label: "Below 60", test: (score: number) => score < 60 },
+  ].map(({ label, test }) => {
+    const inBand = scored.filter((row) => test(row.job.score!));
+    const decided = inBand.filter((row) => row.outcome !== "waiting");
+    const positive = decided.filter((row) => row.outcome === "positive").length;
+    return { label, decided: decided.length, positive, rate: decided.length >= BAND_FLOOR ? percent(positive, decided.length) : null, waiting: inBand.length - decided.length };
+  });
+  const rated = bands.filter((band) => band.rate !== null);
+  if (rated.length < 2) {
+    return { bands, verdict: "too-early", text: `Too early to tell: at least two score bands need ${BAND_FLOOR} answered applications each.` };
+  }
+  // Bands run high to low: the rate should not rise as the score falls.
+  const ordered = rated.every((band, index) => index === 0 || band.rate! <= rated[index - 1].rate! + 5);
+  const spread = rated[0].rate! - rated[rated.length - 1].rate!;
+  return ordered && spread >= 10
+    ? { bands, verdict: "predicts", text: "Higher-scored jobs get more replies for you: the ranking points the right way. Keep favouring the top of the list." }
+    : {
+        bands,
+        verdict: "does-not",
+        text: "Your scores do not predict replies yet: lower-scored jobs answer about as often, or more. The ranking may weigh the wrong things for you; add ranking rules on Profile for what actually gets answers.",
+      };
 }
 
 export function getPatterns() {
