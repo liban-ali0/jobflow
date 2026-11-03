@@ -111,6 +111,10 @@ export function answeredFacts() {
 export const getSettings = () => core.getSettings(db()) as Settings;
 export const setSettings = (patch: Partial<Settings>) => core.setSettings(db(), patch) as Settings;
 
+// Companies in the saved jobs, most jobs first (for "Find boards for the
+// companies in my jobs").
+export const companiesInJobs = (limit: number) => core.companyCounts(db(), limit);
+
 // Jobs for lists: every match, without the long description (use getJob for it).
 export const listJobs = (filter: { status?: Status | Status[]; since?: string; archived?: boolean; limit?: number } = {}) =>
   core.listJobs(db(), { ...filter, slim: true }) as Job[];

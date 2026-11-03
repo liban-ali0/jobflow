@@ -183,8 +183,24 @@ export type Settings = {
   cvTemplates?: { default: string; byRole: Record<string, string>; byJob?: Record<string, string> };
   // Base CVs (by role key) the user edited; rebuilding the profile leaves them alone.
   cvLocked?: string[];
+  // Companies whose own job boards are read (core/boards.mjs); maxDays: how
+  // old a board's job may be and still be collected.
+  companies?: { maxDays: number; list: FollowedCompany[] };
   // The last engine check from the Setup screen.
   setupCheck?: { engine: string; ok: boolean; message: string; at: string };
+};
+
+// state: "found" (board read), "check" (a board with that name, not confirmed),
+// "none" (no board found), "new" (not looked for yet).
+export type FollowedCompany = {
+  name: string;
+  website?: string;
+  board?: { vendor: string; slug: string; url: string; host?: string; tenant?: string; site?: string; lang?: string } | null;
+  state: "found" | "check" | "none" | "new";
+  message?: string;
+  jobs?: number;
+  matching?: number;
+  checkedAt?: string;
 };
 
 export const STATUS_LABELS: Record<Status, string> = {

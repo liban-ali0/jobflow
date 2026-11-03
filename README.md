@@ -108,7 +108,7 @@ On a phone the top bar shows Today, Jobs, Board and Questions; the rest and sear
 
 ## A job's way through
 
-1. **Find** — LinkedIn and Workable are searched without logging in, in your countries' order. Sites that block automated access (Indeed, Bayt, GulfTalent, Naukrigulf, Kariyer.net and more) are read in your own browser by the extension.
+1. **Find** — LinkedIn and Workable are searched without logging in, in your countries' order. Sites that block automated access (Indeed, Bayt, GulfTalent, Naukrigulf, Kariyer.net and more) are read in your own browser by the extension. You can also follow companies: Offerbound finds their own job boards (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Workday, Oracle) and reads them on every search.
 2. **Rank** — each job gets a score and a short reason from your profile and rules. Jobs you never pick go to the archive after a week (Settings → Freshness).
 3. **Select and research** — tick the jobs worth it; research writes notes on the company and the people, then the tailored CV, cover letter, outreach email and form answers.
 4. **Review** — read and approve each document. A fact check lists anything the documents claim that your CV and facts do not back, and the ATS check shows how application systems read the CV.

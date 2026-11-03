@@ -352,3 +352,9 @@ export function classifyBrowserPage({ url, finalUrl = "", text = "", controls = 
   if (jk && finalUrl && !finalUrl.includes(jk)) return { state: "unsure", reason: "The link now leads somewhere else. Open it to see." };
   return fromPage(classifyLiveness({ status: 200, requestedUrl: url, finalUrl, bodyText: text, applyControls: controls }), text);
 }
+
+// A public web page through the same guarded loader (company websites, when
+// looking for their job board).
+export async function loadPage(url) {
+  return load(url, "text/html");
+}

@@ -7,6 +7,7 @@ import { getSettings } from "@/lib/data";
 import { accessKey } from "@/lib/access";
 import { lanAddresses, lanOpen } from "@/lib/lan";
 import { serviceStatus } from "@/lib/service";
+import { followed, suggestions } from "@/lib/companies";
 import QRCode from "qrcode";
 
 // Addresses other devices can use: the Tailscale name and address set in
@@ -51,7 +52,7 @@ export default async function SettingsPage() {
         }
       />
       <div className="mt-8">
-        <SettingsForm settings={{ ...settings, countries }} countryOptions={COUNTRY_OPTIONS} extension={{ token, folder: EXTENSION_DIR }} devices={{ links: pairingLinks(key), path: `/pair?key=${key}`, lan: { enabled: settings.network?.lan ?? false, open: lanOpen(), links: await lanLinks(key) } }} computer={await serviceStatus()} />
+        <SettingsForm settings={{ ...settings, countries }} countryOptions={COUNTRY_OPTIONS} extension={{ token, folder: EXTENSION_DIR }} devices={{ links: pairingLinks(key), path: `/pair?key=${key}`, lan: { enabled: settings.network?.lan ?? false, open: lanOpen(), links: await lanLinks(key) } }} computer={await serviceStatus()} companies={{ ...followed(settings), suggested: suggestions(10).length }} />
       </div>
     </div>
   );
