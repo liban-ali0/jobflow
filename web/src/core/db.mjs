@@ -165,7 +165,7 @@ const JOB_COLUMNS = [
   "title", "company", "country", "city", "work_mode", "role", "source", "url", "language",
   "description", "posted_at", "track", "score", "score_reason", "score_breakdown", "legitimacy",
   "salary_estimate", "status", "excluded_reason", "folder", "notes", "applied_at", "follow_up_due",
-  "apply_state", "apply_missing", "interview_at", "listing_state", "listing_reason", "listing_checked_at", "relisted_count", "relisted_at", "archived_at",
+  "apply_state", "apply_missing", "interview_at", "listing_state", "listing_reason", "listing_checked_at", "relisted_count", "relisted_at", "archived_at", "offer",
 ];
 
 const now = () => new Date().toISOString();
@@ -193,6 +193,8 @@ const ADDED_COLUMNS = [
   // Set aside out of the lists (never deleted): unpicked jobs whose posting
   // is too old, or any job the user archived before applying.
   ["jobs", "archived_at", "TEXT"],
+  // The offer's terms the user entered (JSON, see lib/offers.ts).
+  ["jobs", "offer", "TEXT"],
 ];
 
 // What a question is about: the candidate in general, a gap in their CV, or
@@ -268,6 +270,7 @@ function parseJob(row) {
     ...row,
     score_breakdown: row.score_breakdown ? JSON.parse(row.score_breakdown) : null,
     apply_missing: row.apply_missing ? JSON.parse(row.apply_missing) : null,
+    offer: row.offer ? JSON.parse(row.offer) : null,
   };
 }
 
@@ -276,7 +279,7 @@ function jobValues(job) {
   for (const column of JOB_COLUMNS) {
     if (job[column] === undefined) continue;
     const value = job[column];
-    values[column] = (column === "score_breakdown" || column === "apply_missing") && value !== null ? JSON.stringify(value) : value;
+    values[column] = (column === "score_breakdown" || column === "apply_missing" || column === "offer") && value !== null ? JSON.stringify(value) : value;
   }
   if (values.status !== undefined && !STATUSES.includes(values.status)) {
     throw new Error(`Unknown status "${values.status}". Use one of: ${STATUSES.join(", ")}`);

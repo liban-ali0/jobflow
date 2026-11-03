@@ -37,6 +37,7 @@ const HELP = `Usage: node scripts/jobs.mjs <command>
   document <id> <type> <path>      Register a document file for a job
   folder <id>                      Create and print the job's folder
   cv-text                          The text of the CV in candidate/ (for engines that cannot read a PDF)
+  offers                           Jobs with an offer or at the interview stage, with the offer terms and the market range
   factcheck <id>                   Claims in the job's CV, cover letter and email that the profile and facts do not back
   statuses                         Print valid statuses and document types
 
@@ -201,6 +202,29 @@ async function main() {
           ? "Claims marked \"not in profile or facts\" are not backed by candidate/profile.md, facts.md or the base CVs: reword or remove them; never add facts the user did not give. A number that is not about the user's past (a request such as \"ten minutes for a call\", a plan) can stay. Phrases under \"forbidden\" are ones the user ruled out: remove them."
           : "Every checked claim is backed by the profile and facts.",
       });
+    }
+    case "offers": {
+      const jobs = core.listJobs(db, { status: ["offer", "accepted", "declined", "interview"] });
+      const readPay = (job) => {
+        try {
+          return JSON.parse(fs.readFileSync(path.join(ROOT, job.folder, "report.json"), "utf8")).pay ?? null;
+        } catch {
+          return null;
+        }
+      };
+      return print(
+        jobs.map((job) => ({
+          id: job.id,
+          title: job.title,
+          company: job.company,
+          country: job.country,
+          city: job.city,
+          status: job.status,
+          folder: job.folder,
+          offer: job.offer,
+          market: readPay(job) ?? (job.salary_estimate ? { range: job.salary_estimate } : null),
+        })),
+      );
     }
     case "folder": {
       const job = requireJob(db, args[0]);

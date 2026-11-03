@@ -333,6 +333,7 @@ const ENGINE_STAGES = [
   { key: "weave-keyword", label: "Work keyword into CV" },
   { key: "import-jobs", label: "Import jobs from the browser" },
   { key: "interview-pack", label: "Interview pack" },
+  { key: "compare-offers", label: "Compare offers" },
 ];
 
 const EFFORTS = [

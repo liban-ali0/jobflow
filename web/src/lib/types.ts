@@ -59,7 +59,29 @@ export type Job = {
   relisted_at: string | null;
   // When it was archived (out of the lists, not deleted).
   archived_at: string | null;
+  // The offer's terms, as the user entered them.
+  offer: Offer | null;
   updated_at: string;
+};
+
+// pay: per period, in currency. Amounts are numbers the user typed; nothing
+// is converted or taxed.
+export type Offer = {
+  pay: number | null;
+  currency: string;
+  period: "month" | "year";
+  bonus: number | null;
+  allowances: number | null;
+  benefits: string;
+  title: string;
+  location: string;
+  workMode: string;
+  start: string;
+  deadline: string;
+  contract: string;
+  probation: string;
+  notes: string;
+  updatedAt: string;
 };
 
 export type Contact = {

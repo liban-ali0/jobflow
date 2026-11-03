@@ -30,6 +30,7 @@ const RUNNING_LABELS: Record<string, string> = {
   "import-jobs": "Importing jobs…",
   "apply-job": "Filling an application…",
   "interview-pack": "Writing the interview pack…",
+  "compare-offers": "Comparing your offers…",
   "rank-jobs": "Ranking…",
   "build-profile": "Rebuilding profile…",
   "research-job": "Researching…",
@@ -127,7 +128,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full">
         <div className="sticky top-0 z-30">
           <Nav
-            counts={{ "/": counts.found + counts.ranked, "/questions": questions, "/board": counts.selected + inResearch }}
+            counts={{ "/": counts.found + counts.ranked, "/questions": questions, "/board": counts.selected + inResearch, "/offers": counts.offer }}
             running={running}
           />
           {/* The strip reads the "show" filter from the address. */}

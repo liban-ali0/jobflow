@@ -10,6 +10,8 @@ const LINKS = [
   { href: "/jobs", label: "Jobs", hint: "every saved job by stage", daily: true },
   { href: "/questions", label: "Questions", hint: "questions for you", urgent: true, daily: true },
   { href: "/board", label: "Board", hint: "in progress", daily: true },
+  // Shown only while there are offers.
+  { href: "/offers", label: "Offers", hint: "offers side by side", whenCounted: true },
   { href: "/assistant", label: "Assistant" },
   { href: "/profile", label: "Profile" },
   { href: "/cvs", label: "CVs" },
@@ -83,7 +85,8 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
       </li>
     );
   };
-  const others = LINKS.filter((link) => !link.daily);
+  const links = LINKS.filter((link) => !("whenCounted" in link) || (counts[link.href] ?? 0) > 0);
+  const others = links.filter((link) => !link.daily);
 
   return (
     <header className="border-b-2 border-primary bg-saffron text-on-saffron">
@@ -94,7 +97,7 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
           <span className="font-display text-2xl font-semibold tracking-wider uppercase">Offerbound</span>
         </Link>
 
-        <ul className="flex items-stretch px-2">{LINKS.map((link) => tab(link))}</ul>
+        <ul className="flex items-stretch px-2">{links.map((link) => tab(link))}</ul>
 
         <div className="ml-auto flex shrink-0 items-center gap-3 pr-5 pl-3">
           {/* Search every job, whatever its stage. */}
@@ -118,7 +121,7 @@ export function Nav({ counts, running }: { counts: Record<string, number>; runni
         <Link href="/" className="flex shrink-0 items-center bg-primary px-2 text-on-primary" aria-label="Offerbound, Today">
           <LogoMark className="size-6" />
         </Link>
-        <ul className="flex min-w-0 items-stretch overflow-x-auto px-0.5">{LINKS.filter((link) => link.daily).map((link) => tab(link, true))}</ul>
+        <ul className="flex min-w-0 items-stretch overflow-x-auto px-0.5">{links.filter((link) => link.daily).map((link) => tab(link, true))}</ul>
         <div className="ml-auto flex shrink-0 items-center gap-1 pr-1.5">
           {running && (
             <Link href="/activity" className="grid size-8 place-items-center rounded-sm bg-primary" aria-label={`Running: ${running}`} title={running}>
