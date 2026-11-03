@@ -8,6 +8,9 @@ import { PageHeader } from "@/components/page-header";
 import { TextForm } from "@/components/text-form";
 import { getSettings, hasCv, listQuestions, listRuns, profileUpdatedAt, readFacts, readProfile } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
+import { StoryBank } from "@/components/story-bank";
+import { readStories } from "@/core/stories.mjs";
+import { ROOT } from "@/lib/data";
 
 const RULES_EXAMPLE = `Examples:
 - Skip jobs that require German or French.
@@ -86,6 +89,8 @@ export default function ProfilePage() {
           rows={18}
           button="Save facts"
         />
+
+        <StoryBank stories={readStories(ROOT)} />
 
         <TextForm
           action={saveRules}

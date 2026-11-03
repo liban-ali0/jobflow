@@ -160,7 +160,7 @@ Help is welcome, from fixing a typo to adding a job source. [`CONTRIBUTING.md`](
 
 - **Running it:** one-click installers for Windows, macOS and Linux; a tray icon; backup and restore from Settings; HTTPS on the home Wi-Fi.
 - **Finding jobs:** company career pages (Greenhouse, Lever, Ashby, Workday); more job sites through the extension; a timer for collecting in the browser.
-- **Applying and after:** thank-you notes after interviews; Outlook and other mail for replies; interview practice with the Assistant.
+- **Applying and after:** Outlook and other mail for replies; voice practice for interviews.
 - **Engines:** more AI engines, such as Gemini CLI or a local model through Ollama.
 - **Quality:** automatic tests; GitHub Actions for the type check and lint; an accessibility review.
 - **For more people:** the app in more languages (Arabic and Turkish first); a signed Firefox add-on.

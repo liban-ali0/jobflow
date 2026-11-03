@@ -1,0 +1,21 @@
+export type Story = {
+  id: number;
+  title: string;
+  theme: string;
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+  reflection: string;
+  skills: string[];
+  source: { job_id?: number; profile?: boolean };
+  confirmed: boolean;
+  unbacked: string[];
+  added_at: string;
+};
+export function readStories(root: string): Story[];
+export function normalizeStory(raw: unknown): { story: Omit<Story, "id" | "confirmed" | "unbacked" | "added_at">; problems: string[] };
+export function addStories(root: string, input: unknown, unbacked?: (text: string) => string[]): { added: { id: number; title: string; unbacked: string[] }[]; problems: string[] };
+export function updateStory(root: string, id: number, patch: Partial<Story>): boolean;
+export function removeStory(root: string, id: number): boolean;
+export function matchStories(stories: Story[], requirements: string[], perRequirement?: number): { requirement: string; stories: { id: number; title: string; confirmed: boolean; fit: number }[] }[];

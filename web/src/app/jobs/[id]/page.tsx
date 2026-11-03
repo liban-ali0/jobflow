@@ -32,6 +32,9 @@ import { formatDateTime } from "@/lib/format";
 import { describeEvent } from "@/lib/history";
 import { DOCUMENT_LABELS, SENT_STATUSES } from "@/lib/types";
 import { ASSESSED } from "@/core/score.mjs";
+import { InterviewPrep } from "@/components/interview-prep";
+import { matchStories, readStories } from "@/core/stories.mjs";
+import { jobRequirements } from "@/core/requirements.mjs";
 
 // The most each part of the score can contribute (see core/score.mjs).
 const SCORE_MAX: Record<string, number> = {
@@ -44,7 +47,7 @@ const SCORE_MAX: Record<string, number> = {
 const OLD_NAMES: Record<string, string> = { Arabic: "Language", "Entry-level fit": "Experience fit" };
 
 // Tabs in this order; the research is read-only reference.
-const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "follow_up", "research", "interview_pack"];
+const DOCUMENT_ORDER = ["cv", "cover_letter", "email", "answers", "follow_up", "research", "interview_pack", "debrief", "thank_you"];
 
 // Whether "Fill it in Chrome" can be used for this job, and why not.
 function applyInChrome(url: string | null, approved: boolean) {
@@ -88,7 +91,8 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const tailoring = stageRunning("tailor-job", job.id);
   const improving = stageRunning("improve-cv", job.id);
   const packing = stageRunning("interview-pack", job.id);
-  const working = researching ? "Researching this job…" : tailoring ? "Writing the documents…" : improving ? "Improving the CV for ATS…" : packing ? "Writing the interview pack…" : null;
+  const debriefing = stageRunning("interview-debrief", job.id);
+  const working = researching ? "Researching this job…" : tailoring ? "Writing the documents…" : improving ? "Improving the CV for ATS…" : packing ? "Writing the interview pack…" : debriefing ? "Writing the debrief and thank-you note…" : null;
   const atsTarget = targetForJob(job.id);
   const reviewDocs: ReviewDoc[] = documents
     .filter((document) => DOCUMENT_ORDER.includes(document.type))
@@ -101,12 +105,16 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
       note: document.review_note,
       text: readText(document.path) ?? "(The file is missing.)",
       printable: PRINTABLE.has(document.type),
-      inPackage: !["research", "follow_up", "interview_pack"].includes(document.type),
+      inPackage: !["research", "follow_up", "interview_pack", "debrief", "thank_you"].includes(document.type),
       version: document.updated_at,
     }))
     .map((doc) => (doc.type === "cv" && !doc.text.startsWith("(The file is missing") ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc))
     .map((doc) => (["cv", "cover_letter", "email"].includes(doc.type) && !doc.text.startsWith("(The file is missing") ? { ...doc, facts: checkFacts(ROOT, doc.text) } : doc));
   const hasResearch = documents.some((document) => document.type === "research");
+  // The interview stage: stories that fit this job, debrief and thank-you note.
+  const interviewing = ["interview", "offer"].includes(job.status);
+  const stories = interviewing ? readStories(ROOT) : [];
+  const storyMatches = interviewing ? matchStories(stories, jobRequirements(ROOT, job)) : [];
   // The application documents, for "Rewrite documents".
   const packageDocs = documents
     .filter((document) => ["cv", "cover_letter", "email", "answers"].includes(document.type))
@@ -119,7 +127,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
   const pack = fullPack?.approved ? fullPack : null;
   // Emails in Gmail: replies waiting for the user, and the written ones to send.
   const jobMails = listMails({ state: "new", jobId: job.id });
-  const asGmail = (kind: "follow_up" | "application") => {
+  const asGmail = (kind: "follow_up" | "thank_you" | "application") => {
     const email = composeFor(job.id, kind);
     return email ? { jobId: job.id, kind, url: email.url, to: email.to, attach: email.attach } : null;
   };
@@ -208,6 +216,19 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
                   : null
               }
             />
+          )}
+
+          {interviewing && (
+            <Panel id="interview" title="Interview" hint="Your stories for this job, a practice round, and after it, the debrief and thank-you note.">
+              <InterviewPrep
+                jobId={job.id}
+                matches={storyMatches}
+                storyCount={stories.length}
+                running={stageRunning("interview-debrief", job.id)}
+                hasDebrief={documents.some((document) => document.type === "debrief")}
+                thankYou={asGmail("thank_you")}
+              />
+            </Panel>
           )}
 
           {pack && (

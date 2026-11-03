@@ -131,7 +131,7 @@ export const listDocuments = (jobId: number) => core.listDocuments(db(), jobId) 
 export const getDocument = (id: number) => core.getDocument(db(), id) as JobDocument | null;
 // Application documents (not the research) the user has not approved yet.
 export const unapprovedDocuments = (jobId: number) =>
-  listDocuments(jobId).filter((doc) => !["research", "follow_up", "interview_pack"].includes(doc.type) && doc.review !== "approved");
+  listDocuments(jobId).filter((doc) => !["research", "follow_up", "interview_pack", "debrief", "thank_you"].includes(doc.type) && doc.review !== "approved");
 export type DocumentWithJob = JobDocument & { job_title: string; job_company: string; job_role: string | null; job_status: Status };
 export const listAllDocuments = (types?: string[]) => core.listAllDocuments(db(), types) as DocumentWithJob[];
 export const listEvents = (jobId: number) => core.listEvents(db(), jobId) as JobEvent[];

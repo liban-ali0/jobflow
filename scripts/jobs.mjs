@@ -17,6 +17,8 @@ const core = await import("../web/src/core/db.mjs");
 const { scoreJob, normalizeAssessment, ASSESSED } = await import("../web/src/core/score.mjs");
 const { checkFacts } = await import("../web/src/core/fact-check.mjs");
 const { findReposts } = await import("../web/src/core/reposts.mjs");
+const { addStories, matchStories, readStories } = await import("../web/src/core/stories.mjs");
+const { jobRequirements } = await import("../web/src/core/requirements.mjs");
 const { cvText, findCv } = await import("./cv-text.mjs");
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,6 +39,8 @@ const HELP = `Usage: node scripts/jobs.mjs <command>
   document <id> <type> <path>      Register a document file for a job
   folder <id>                      Create and print the job's folder
   cv-text                          The text of the CV in candidate/ (for engines that cannot read a PDF)
+  stories [--job <id>]             The story bank; with --job, the stories that fit that job's requirements
+  story [<id>]                     Add interview stories (JSON object or array; see the interview-pack skill), from job <id> if given
   factcheck <id>                   Claims in the job's CV, cover letter and email that the profile and facts do not back
   statuses                         Print valid statuses and document types
 
@@ -200,6 +204,30 @@ async function main() {
         advice: open
           ? "Claims marked \"not in profile or facts\" are not backed by candidate/profile.md, facts.md or the base CVs: reword or remove them; never add facts the user did not give. A number that is not about the user's past (a request such as \"ten minutes for a call\", a plan) can stay. Phrases under \"forbidden\" are ones the user ruled out: remove them."
           : "Every checked claim is backed by the profile and facts.",
+      });
+    }
+    case "stories": {
+      const stories = readStories(ROOT);
+      const jobId = option(args, "--job");
+      if (!jobId) return print({ stories });
+      const job = requireJob(db, jobId);
+      const requirements = jobRequirements(ROOT, job);
+      return print({ job: job.id, requirements, matches: matchStories(stories, requirements), stories });
+    }
+    case "story": {
+      const jobId = args[0] && !args[0].startsWith("--") ? requireJob(db, args[0]).id : null;
+      const input = readInput(args);
+      const list = (Array.isArray(input) ? input : [input]).map((story) => (jobId ? { ...story, job_id: jobId } : story));
+      // Figures in a story that the profile and facts do not back.
+      const unbacked = (text) => checkFacts(ROOT, text).items.filter((item) => !item.advisory).map((item) => item.value);
+      const { added, problems } = addStories(ROOT, list, unbacked);
+      if (problems.length && !added.length) throw new Error(`No story was saved. Fix these and run it again:\n- ${problems.join("\n- ")}`);
+      return print({
+        added,
+        problems,
+        advice: added.some((story) => story.unbacked.length)
+          ? "Figures under unbacked are not in the profile or facts: the user is asked to confirm each story before it counts as true. Do not present those figures as facts."
+          : undefined,
       });
     }
     case "folder": {

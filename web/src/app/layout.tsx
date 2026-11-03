@@ -30,6 +30,7 @@ const RUNNING_LABELS: Record<string, string> = {
   "import-jobs": "Importing jobs…",
   "apply-job": "Filling an application…",
   "interview-pack": "Writing the interview pack…",
+  "interview-debrief": "Writing the debrief and thank-you note…",
   "rank-jobs": "Ranking…",
   "build-profile": "Rebuilding profile…",
   "research-job": "Researching…",

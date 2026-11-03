@@ -218,7 +218,7 @@ export function recordMailCheck(ok: boolean, message: string, address: string | 
 
 // ---------- writing emails in Gmail ----------
 
-export type ComposeKind = "follow_up" | "application";
+export type ComposeKind = "follow_up" | "thank_you" | "application";
 export type Compose = { kind: ComposeKind; to: string; subject: string; body: string; attach: string[]; url: string };
 
 // A written email: the To and Subject lines, then the body.
@@ -254,7 +254,7 @@ export function composeFor(jobId: number, kind: ComposeKind): Compose | null {
     if (!pack?.email) return null;
     return { kind, to: pack.email.to, subject: pack.email.subject, body: pack.email.body, attach: pack.files.map((file) => file.fileName), url: gmailComposeUrl(pack.email.to, pack.email.subject, pack.email.body) };
   }
-  const document = listDocuments(jobId).find((doc) => doc.type === "follow_up");
+  const document = listDocuments(jobId).find((doc) => doc.type === kind);
   const markdown = document ? readText(document.path) : null;
   if (!markdown) return null;
   const email = parseEmail(markdown);
