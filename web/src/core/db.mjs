@@ -323,6 +323,14 @@ export function addJob(db, job) {
   return { id, created: true };
 }
 
+// The user's other jobs at the same company (for the job report).
+export function companyJobs(db, company, exceptId) {
+  return db
+    .prepare("SELECT id, title, status, applied_at, found_at FROM jobs WHERE lower(company) = lower(?) AND id <> ? ORDER BY found_at DESC LIMIT 20")
+    .all(company, exceptId)
+    .map((row) => ({ ...row }));
+}
+
 export function updateJob(db, id, patch) {
   const current = db.prepare("SELECT status FROM jobs WHERE id = ?").get(id);
   if (!current) throw new Error(`No job with id ${id}`);

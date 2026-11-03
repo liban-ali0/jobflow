@@ -110,6 +110,7 @@ export function answeredFacts() {
 
 export const getSettings = () => core.getSettings(db()) as Settings;
 export const setSettings = (patch: Partial<Settings>) => core.setSettings(db(), patch) as Settings;
+export const otherJobsAt = (company: string, exceptId: number) => core.companyJobs(db(), company, exceptId);
 
 // Jobs for lists: every match, without the long description (use getJob for it).
 export const listJobs = (filter: { status?: Status | Status[]; since?: string; archived?: boolean; limit?: number } = {}) =>

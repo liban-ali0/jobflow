@@ -32,6 +32,8 @@ import { formatDateTime } from "@/lib/format";
 import { describeEvent } from "@/lib/history";
 import { DOCUMENT_LABELS, SENT_STATUSES } from "@/lib/types";
 import { ASSESSED } from "@/core/score.mjs";
+import { JobReportView } from "@/components/job-report";
+import { jobFacts, matchFigure, orderedRequirements, readReport } from "@/lib/report";
 
 // The most each part of the score can contribute (see core/score.mjs).
 const SCORE_MAX: Record<string, number> = {
@@ -107,6 +109,7 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
     .map((doc) => (doc.type === "cv" && !doc.text.startsWith("(The file is missing") ? { ...doc, ats: checkCv(doc.text, atsTarget) } : doc))
     .map((doc) => (["cv", "cover_letter", "email"].includes(doc.type) && !doc.text.startsWith("(The file is missing") ? { ...doc, facts: checkFacts(ROOT, doc.text) } : doc));
   const hasResearch = documents.some((document) => document.type === "research");
+  const report = readReport(job);
   // The application documents, for "Rewrite documents".
   const packageDocs = documents
     .filter((document) => ["cv", "cover_letter", "email", "answers"].includes(document.type))
@@ -229,6 +232,12 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
                 filling={filling}
                 waiting={job.status === "ready" ? job.apply_missing : null}
               />
+            </Panel>
+          )}
+
+          {report && (
+            <Panel id="report" title="Report" hint={report.saved_at ? `From the research of ${formatDateTime(report.saved_at)}.` : "From the research."}>
+              <JobReportView report={report} match={matchFigure(report)} requirements={orderedRequirements(report)} facts={jobFacts(job)} />
             </Panel>
           )}
 

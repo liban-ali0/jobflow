@@ -12,7 +12,7 @@ These documents go to a real employer under the candidate's name. They must be t
 ## Steps
 
 1. Read the job with `node scripts/jobs.mjs get <id>` (it lists existing documents and their review state) and the settings with `node scripts/jobs.mjs settings`. Read the job's notes: answers to questions about this job are there.
-2. Get the folder with `node scripts/jobs.mjs folder <id>` and read `<folder>/research.md`. If there is no research, stop and report: "Run Research for this job first."
+2. Get the folder with `node scripts/jobs.mjs folder <id>` and read `<folder>/research.md` and `<folder>/report.json` (the requirements with their match and evidence, the gaps and how to answer them, and `cv_changes`). If there is no research, stop and report: "Run Research for this job first."
 3. Read `candidate/profile.md`, `candidate/facts.md`, the base CV for the job's role, `candidate/base-cv-<role>.md` (if missing, use the closest base CV), and the format rules in `templates/CV-FORMAT.md`.
 4. Decide what to write:
    - No documents yet: write all four.

@@ -10,6 +10,7 @@ export function openDb(rootDir: string): Db;
 export function getSettings(db: Db): Row;
 export function setSettings(db: Db, patch: Row): Row;
 
+export function companyJobs(db: Db, company: string, exceptId: number): { id: number; title: string; status: string; applied_at: string | null; found_at: string }[];
 export function addJob(db: Db, job: Row): { id: number; created: boolean };
 export function updateJob(db: Db, id: number, patch: Row): Row;
 export function getJob(db: Db, id: number): Row | null;
