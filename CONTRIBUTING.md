@@ -45,7 +45,6 @@ Marked by size: 🟢 small (a few hours), 🟡 medium (a day or two), 🔴 large
 
 ### Applying and after
 
-- 🟡 **Thank-you notes** after an interview, written from the interview pack (the reminder exists; the writing does not).
 - 🟡 **Outlook and other mail** for replies, like the Gmail watch (no passwords, through the browser's own session).
 - 🟡 **Interview practice:** the Assistant asks the pack's questions and gives feedback on the answers.
 

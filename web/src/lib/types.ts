@@ -213,6 +213,8 @@ export const DOCUMENT_LABELS: Record<string, string> = {
   research: "Research",
   follow_up: "Follow-up email",
   interview_pack: "Interview pack",
+  debrief: "Interview debrief",
+  thank_you: "Thank-you note",
 };
 
 // An email about an application, read from the user's Gmail by the extension.

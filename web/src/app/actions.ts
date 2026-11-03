@@ -37,7 +37,7 @@ import { RESEARCH_POINTS, STATUS_LABELS } from "@/lib/types";
 export type ActionResult = { ok: boolean; message: string };
 
 
-const ENGINE_STAGES = ["build-profile", "rank-jobs", "research-job", "tailor-job", "design-template", "follow-up", "improve-cv", "weave-keyword", "import-jobs", "interview-pack"];
+const ENGINE_STAGES = ["build-profile", "rank-jobs", "research-job", "tailor-job", "design-template", "follow-up", "improve-cv", "weave-keyword", "import-jobs", "interview-pack", "interview-debrief"];
 const EFFORTS = ["", "low", "medium", "high", "xhigh", "max"];
 
 export async function runStage(stage: string, jobId: number | null = null): Promise<ActionResult> {

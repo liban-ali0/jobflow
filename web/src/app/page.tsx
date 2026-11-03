@@ -180,9 +180,9 @@ export default async function TodayPage(props: PageProps<"/">) {
         .sort((a, b) => Date.parse(b.applied_at ?? "") - Date.parse(a.applied_at ?? ""))
         .map((job) => ({ id: job.id, label: `${job.title} · ${job.company}` }))
     : [];
-  const followUpEmail = (jobId: number) => {
-    const email = composeFor(jobId, "follow_up");
-    return email ? { jobId, kind: "follow_up" as const, url: email.url, to: email.to, attach: email.attach } : null;
+  const followUpEmail = (jobId: number, kind: "follow_up" | "thank_you" = "follow_up") => {
+    const email = composeFor(jobId, kind);
+    return email ? { jobId, kind, url: email.url, to: email.to, attach: email.attach } : null;
   };
   // Enabled sites the extension reads in the browser.
   const browserSites = BROWSER_SITES.filter((site) => settings.sources.some((source) => source.key === site.key && source.enabled)).map((site) => site.name);
@@ -429,7 +429,7 @@ export default async function TodayPage(props: PageProps<"/">) {
                 sent={sent}
                 draftId={draftId}
                 draftFresh={draftFresh}
-                gmail={kind === "follow-up" && draftFresh ? followUpEmail(job.id) : null}
+                gmail={kind === "follow-up" && draftFresh ? followUpEmail(job.id) : kind === "thank-you" ? followUpEmail(job.id, "thank_you") : null}
               />
             ))}
           </ul>

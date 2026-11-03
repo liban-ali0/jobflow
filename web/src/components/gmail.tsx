@@ -5,7 +5,7 @@ import { useState } from "react";
 import type { ActionResult } from "@/app/actions";
 import { useJobflowExtension } from "@/components/use-extension";
 
-export type GmailEmail = { jobId: number; kind: "follow_up" | "application"; url: string; to: string; attach: string[] };
+export type GmailEmail = { jobId: number; kind: "follow_up" | "thank_you" | "application"; url: string; to: string; attach: string[] };
 
 function Note({ result }: { result: ActionResult | null }) {
   if (!result) return null;

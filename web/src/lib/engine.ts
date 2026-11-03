@@ -21,6 +21,7 @@ export const STAGES = {
   "import-jobs": { label: "Import jobs from the browser", perJob: false },
   "apply-job": { label: "Fill application in Chrome", perJob: true, chrome: true },
   "interview-pack": { label: "Interview pack", perJob: true },
+  "interview-debrief": { label: "Interview debrief", perJob: true },
   "rank-jobs": { label: "Check and rank", perJob: false },
   "research-job": { label: "Research", perJob: true },
   "tailor-job": { label: "Tailor documents", perJob: true },
@@ -307,7 +308,7 @@ const ASSISTANT_INTRO = `You are the assistant inside the Offerbound web app, th
 
 - Reply in short, plain language. The user sees your final message only, plus a list of the commands you ran.
 - Read and change job data only through \`node scripts/jobs.mjs\` (run it with \`help\` for the commands).
-- To run a workflow step (build-profile, rank-jobs, research-job, tailor-job, follow-up, interview-pack, improve-cv, weave-keyword, import-jobs), follow its instruction file in \`.claude/skills/<step>/SKILL.md\`.
+- To run a workflow step (build-profile, rank-jobs, research-job, tailor-job, follow-up, interview-pack, interview-debrief, interview-practice, improve-cv, weave-keyword, import-jobs), follow its instruction file in \`.claude/skills/<step>/SKILL.md\`.
 - The user's facts are in \`candidate/facts.md\`, the profile in \`candidate/profile.md\`. Extra ranking rules are set with \`node scripts/jobs.mjs rules --file <path>\`.
 - When you need a fact from the user that later steps should remember, ask it with \`node scripts/jobs.mjs ask --file <path>\` (JSON: text, why, options). It appears in the app's Questions, and the answer is saved to the facts. For a quick clarification in this conversation, just ask in your reply.
 - If something is outside what you may do here, say so and tell the user how to do it in the app.

@@ -447,7 +447,7 @@ async function compose(payload, origin) {
   const email = gmailCompose(payload?.url || "");
   if (!Number.isInteger(jobId) || jobId <= 0 || !email) return { ok: false, message: "This is not an email Offerbound can open." };
   const tab = await chrome.tabs.create({ url: email.url, active: true });
-  await save(composeKey(tab.id), { jobId, kind: payload.kind === "application" ? "application" : "follow_up", to: email.to, pressedAt: null, done: false });
+  await save(composeKey(tab.id), { jobId, kind: ["application", "thank_you"].includes(payload.kind) ? payload.kind : "follow_up", to: email.to, pressedAt: null, done: false });
   return { ok: true, message: "Opened in Gmail. Check it, attach anything listed, and press Send there." };
 }
 
