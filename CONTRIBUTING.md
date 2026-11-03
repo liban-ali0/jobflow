@@ -39,7 +39,7 @@ Marked by size: 🟢 small (a few hours), 🟡 medium (a day or two), 🔴 large
 
 ### Finding jobs
 
-- 🔴 **Company career pages** (the "Coming later" source): Greenhouse, Lever, Ashby and Workday job boards of companies the user names.
+- 🟡 **More company board types** for Companies you follow (`web/src/core/boards.mjs`): Personio, Teamtailor, SuccessFactors, Taleo, iCIMS. Each needs a reader and a link pattern.
 - 🟡 **More job sites** through the extension, especially for countries and fields not covered yet.
 - 🟢 **A timer for Collect in your browser,** like the schedule (off by default).
 

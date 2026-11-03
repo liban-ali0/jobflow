@@ -10,6 +10,7 @@
 //
 //   node scripts/collect.mjs            search every enabled source
 //   node scripts/collect.mjs --dry-run  search, print, store nothing
+import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -19,6 +20,7 @@ process.emitWarning = (warning, ...rest) => {
   if (type !== "ExperimentalWarning") emitWarning.call(process, warning, ...rest);
 };
 const core = await import("../web/src/core/db.mjs");
+const boards = await import("../web/src/core/boards.mjs");
 
 const ROOT = process.env.JOBFLOW_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DRY_RUN = process.argv.includes("--dry-run");
@@ -222,6 +224,69 @@ const workable = {
 
 const SOURCES = { linkedin, workable };
 
+// ---------- Job boards of the companies the user follows ----------
+
+// Board requests go to many different hosts, so they are paced and counted
+// on their own, and a host that refuses is left alone for the rest of the run.
+const BOARD_DELAY_MS = 700;
+const BOARD_REQUESTS = 200;
+const boardHosts = new Set();
+let boardRequests = 0;
+let lastBoardRequest = 0;
+const boardContext = {
+  async fetch(url, options) {
+    const host = new URL(url).hostname;
+    if (boardHosts.has(host) || boardRequests >= BOARD_REQUESTS) return { status: 0, text: "" };
+    const wait = lastBoardRequest + BOARD_DELAY_MS - Date.now();
+    if (wait > 0) await sleep(wait);
+    lastBoardRequest = Date.now();
+    boardRequests++;
+    requests.careers = (requests.careers ?? 0) + 1;
+    try {
+      const reply = await boards.defaultContext.fetch(url, options);
+      if (reply.status === 403 || reply.status === 429) boardHosts.add(host);
+      return reply;
+    } catch {
+      return { status: 0, text: "" };
+    }
+  },
+};
+
+// Cities per country code, to place a board's "Riyadh" in Saudi Arabia.
+function placesIndex() {
+  try {
+    const file = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../web/src/data/places.json");
+    const map = new Map(JSON.parse(fs.readFileSync(file, "utf8")).map((place) => [place.code, place.cities]));
+    return (code) => map.get(code) ?? null;
+  } catch {
+    return () => null;
+  }
+}
+
+// Every followed company's board, once per run: the jobs that fit the user's
+// roles and countries, posted within the board window.
+async function companyJobs(settings) {
+  const list = (settings.companies?.list ?? []).filter((company) => company.state === "found" && company.board?.vendor);
+  const maxAge = (settings.companies?.maxDays ?? 14) * 86400000;
+  const matches = boards.jobMatcher(settings, placesIndex());
+  const keywords = boards.searchWords(settings);
+  const found = [];
+  const unread = [];
+  for (const company of list) {
+    const read = await boards.readBoard(company.board, boardContext, keywords);
+    if (!read.jobs) {
+      unread.push(company.name);
+      continue;
+    }
+    for (const job of read.jobs) {
+      if (job.posted_at && Date.now() - Date.parse(job.posted_at) > maxAge) continue;
+      const fit = matches(job);
+      if (fit) found.push({ ...job, company: company.name, board: company.board, fit });
+    }
+  }
+  return { found, unread, read: list.length - unread.length };
+}
+
 const escape = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 // Title words the user wants skipped, as whole words: "lead" skips
@@ -314,10 +379,56 @@ async function main() {
       }
     }
 
+    // 1b. The followed companies' own boards.
+    if (settings.sources.some((source) => source.key === "careers" && source.enabled)) {
+      const { found, unread, read } = await companyJobs(settings);
+      stats.boards = { read, unread };
+      for (const job of found) {
+        stats.listings++;
+        if (seen.has(job.url)) continue;
+        seen.add(job.url);
+        if (skipTitle(job.title)) {
+          stats.skipped++;
+          continue;
+        }
+        const ageMinutes = job.posted_at ? (Date.now() - Date.parse(job.posted_at)) / 60000 : Infinity;
+        const record = {
+          title: job.title,
+          company: job.company,
+          country: job.fit.country,
+          city: job.fit.city,
+          work_mode: job.work_mode ?? undefined,
+          role: job.fit.role,
+          source: "careers",
+          url: job.url,
+          language: "en",
+          posted_at: job.posted_at,
+          track: ageMinutes <= fastTrackMinutes ? "fast" : "standard",
+        };
+        if (DRY_RUN) {
+          stats.added.push(record);
+          perCountry.set(record.country, (perCountry.get(record.country) ?? 0) + 1);
+          continue;
+        }
+        // Already saved from LinkedIn or another site.
+        if (core.openingExists(db, record)) {
+          stats.duplicate++;
+          continue;
+        }
+        const { id, created, relisted } = core.addJob(db, record);
+        if (!created) {
+          stats.duplicate++;
+          if (relisted) stats.relisted.push(id);
+          continue;
+        }
+        pending.push({ id, job, source: "careers", record });
+      }
+    }
+
     // 2. Descriptions, in the same priority order, while each source's
     // budget lasts. A job left without one is still kept.
     for (const { id, job, source, record } of pending) {
-      const description = await SOURCES[source].details(job);
+      const description = source === "careers" ? await boards.readDescription(job.board, job, boardContext) : await SOURCES[source].details(job);
       const level = description?.match(LISTED_LEVEL)?.[1]?.trim();
       if (level && outsideLevels(level)) {
         core.updateJob(db, id, { description, status: "excluded", excluded_reason: `Listed as ${level}` });
@@ -340,6 +451,7 @@ async function main() {
     `Checked ${stats.listings} listings in ${totalRequests()} requests (${Object.entries(requests).map(([source, count]) => `${source} ${count}`).join(", ") || "none"}): ${stats.duplicate} already stored${stats.relisted.length ? ` (${stats.relisted.length} of them listed again under a new link)` : ""}, ${stats.skipped} outside your levels or skipped titles, ${stats.tooOld} older than ${maxHours} hours.`,
   ];
   if (stats.withoutDescription) lines.push(`${stats.withoutDescription} saved without a description (request budget used up${exhausted.size ? ` for ${[...exhausted].join(", ")}` : ""}); research reads the listing.`);
+  if (stats.boards) lines.push(`Company boards: read ${stats.boards.read}${stats.boards.unread.length ? `, could not read ${stats.boards.unread.join(", ")}` : ""}.`);
   if (blocked.size) lines.push(`Blocked by: ${[...blocked].join(", ")}. Try again later.`);
   if (stopped) lines.push(`Stopped early: ${stopped}.`);
   for (const job of stats.added.slice(0, 15)) {

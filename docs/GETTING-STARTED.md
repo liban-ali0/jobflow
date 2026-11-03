@@ -159,7 +159,7 @@ Go to **Settings → Sources** and follow the steps shown for your browser:
 
 Then press **Connect** on that page and confirm in the small window that opens.
 
-In the same section, switch on the job sites you want (LinkedIn and Workable are on by default; Bayt, GulfTalent, Indeed, Kariyer.net and others are read through the extension).
+In the same section, switch on the job sites you want (LinkedIn and Workable are on by default; Bayt, GulfTalent, Indeed, Kariyer.net and others are read through the extension). To collect from particular employers, add them under **Companies you follow** and switch on **Company job boards**: Offerbound finds each company's own job board from its name, its website, or a link you paste.
 
 ## 12. Find and pick jobs
 

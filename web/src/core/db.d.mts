@@ -11,6 +11,8 @@ export function getSettings(db: Db): Row;
 export function setSettings(db: Db, patch: Row): Row;
 
 export function addJob(db: Db, job: Row): { id: number; created: boolean };
+export function openingExists(db: Db, job: { title: string; company: string; country?: string | null }): boolean;
+export function companyCounts(db: Db, limit: number): { name: string; count: number }[];
 export function updateJob(db: Db, id: number, patch: Row): Row;
 export function getJob(db: Db, id: number): Row | null;
 export function listJobs(db: Db, filter?: { status?: string | string[]; since?: string; archived?: boolean; limit?: number | null; slim?: boolean }): Row[];

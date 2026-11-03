@@ -216,7 +216,7 @@ export default async function TodayPage(props: PageProps<"/">) {
               variant="primary"
               action={runStage.bind(null, "find-jobs", null)}
               disabled={!findReady}
-              title={`Search ${settings.sources.filter((source) => source.enabled && source.key !== "careers").map((source) => source.name).join(", ") || "the enabled sources"} for jobs posted in the last ${settings.freshness.maxHours} hours`}
+              title={`Search ${settings.sources.filter((source) => source.enabled).map((source) => source.name).join(", ") || "the enabled sources"} for jobs posted in the last ${settings.freshness.maxHours} hours`}
             >
               Find new jobs
             </ActionButton>

@@ -104,9 +104,9 @@
     },
     {
       "key": "careers",
-      "name": "Company career pages",
+      "name": "Company job boards",
       "enabled": false,
-      "method": "Not built yet"
+      "method": "The job boards of companies you follow (Greenhouse, Lever, Ashby, Workable, SmartRecruiters, Recruitee, Workday, Oracle), read through their public feeds. Add companies below."
     }
   ],
   "engines": {
@@ -137,6 +137,10 @@
     "dailyRunAt": "09:00",
     "activeFrom": "07:00",
     "activeTo": "23:00"
+  },
+  "companies": {
+    "maxDays": 14,
+    "list": []
   },
   "network": {
     "lan": false

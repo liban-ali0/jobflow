@@ -323,6 +323,24 @@ export function addJob(db, job) {
   return { id, created: true };
 }
 
+// Is this opening already saved from another site within 30 days? (A job on
+// a company's own board is often the same one found on LinkedIn.)
+export function openingExists(db, { title, company, country }) {
+  return Boolean(
+    db
+      .prepare("SELECT 1 FROM jobs WHERE lower(title) = lower(?) AND lower(company) = lower(?) AND COALESCE(country, '') = ? AND found_at > ? LIMIT 1")
+      .get(title, company, country ?? "", new Date(Date.now() - 30 * 86400000).toISOString()),
+  );
+}
+
+// Companies in the saved jobs, most jobs first.
+export function companyCounts(db, limit) {
+  return db
+    .prepare("SELECT company AS name, COUNT(*) AS count, MAX(found_at) AS last FROM jobs WHERE company IS NOT NULL AND trim(company) <> '' GROUP BY lower(company) ORDER BY count DESC, last DESC LIMIT ?")
+    .all(limit)
+    .map((row) => ({ name: String(row.name), count: Number(row.count) }));
+}
+
 export function updateJob(db, id, patch) {
   const current = db.prepare("SELECT status FROM jobs WHERE id = ?").get(id);
   if (!current) throw new Error(`No job with id ${id}`);

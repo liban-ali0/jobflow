@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckMailButton } from "@/components/gmail";
+import { CompanyBoards } from "@/components/company-boards";
 import { ExtensionSetup } from "@/components/extension-setup";
 import { OtherDevices } from "@/components/other-devices";
 import { ThisComputer } from "@/components/this-computer";
@@ -11,7 +12,7 @@ import { CityPicker } from "@/components/city-picker";
 import { TagInput } from "@/components/tag-input";
 import { useReorder } from "@/components/use-reorder";
 import { EXPERIENCE_LEVELS } from "@/core/levels.mjs";
-import { RESEARCH_POINTS, type Settings } from "@/lib/types";
+import { RESEARCH_POINTS, type FollowedCompany, type Settings } from "@/lib/types";
 
 export type CountryOption = { code: string; name: string };
 
@@ -469,7 +470,7 @@ function GroupHeading({ gate }: { gate: string }) {
 
 // Only LinkedIn is collected automatically; the others wait for job alert
 // emails, so they cannot be switched on yet.
-const BUILT_SOURCES = new Set(["linkedin", "workable", "indeed", "bayt", "gulftalent", "naukrigulf", "kariyer", "eleman", "techcareer"]);
+const BUILT_SOURCES = new Set(["linkedin", "workable", "indeed", "bayt", "gulftalent", "naukrigulf", "kariyer", "eleman", "techcareer", "careers"]);
 
 const SECTION_IDS = GROUPS.flatMap((group) => group.sections.map((section) => section.id));
 
@@ -485,12 +486,14 @@ export function SettingsForm({
   extension,
   devices,
   computer,
+  companies,
 }: {
   settings: Settings;
   countryOptions: CountryOption[];
   extension: { token: string; folder: string };
   devices: { links: string[]; path: string; lan: { enabled: boolean; open: boolean; links: { link: string; qr: string }[] } };
   computer: React.ComponentProps<typeof ThisComputer>["status"];
+  companies: { list: FollowedCompany[]; maxDays: number; suggested: number };
 }) {
   const [result, action, pending] = useActionState(saveSettings, null);
   const form = useRef<HTMLFormElement>(null);
@@ -673,6 +676,7 @@ export function SettingsForm({
               );
             })}
           </SwitchList>
+          <CompanyBoards companies={companies.list} maxDays={companies.maxDays} suggested={companies.suggested} enabled={settings.sources.find((source) => source.key === "careers")?.enabled ?? false} />
           <ExtensionSetup {...extension} />
         </Section>
 
