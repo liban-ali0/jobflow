@@ -21,6 +21,7 @@ export const STAGES = {
   "import-jobs": { label: "Import jobs from the browser", perJob: false },
   "apply-job": { label: "Fill application in Chrome", perJob: true, chrome: true },
   "interview-pack": { label: "Interview pack", perJob: true },
+  "compare-offers": { label: "Compare offers", perJob: false },
   "rank-jobs": { label: "Check and rank", perJob: false },
   "research-job": { label: "Research", perJob: true },
   "tailor-job": { label: "Tailor documents", perJob: true },

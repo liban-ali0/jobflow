@@ -32,6 +32,7 @@ import { formatDateTime } from "@/lib/format";
 import { describeEvent } from "@/lib/history";
 import { DOCUMENT_LABELS, SENT_STATUSES } from "@/lib/types";
 import { ASSESSED } from "@/core/score.mjs";
+import { OfferForm } from "@/components/offer-form";
 
 // The most each part of the score can contribute (see core/score.mjs).
 const SCORE_MAX: Record<string, number> = {
@@ -208,6 +209,12 @@ export default async function JobPage(props: PageProps<"/jobs/[id]">) {
                   : null
               }
             />
+          )}
+
+          {["offer", "accepted", "declined"].includes(job.status) && (
+            <Panel id="offer" title="The offer" hint="Enter its terms to put it side by side with your other offers.">
+              <OfferForm jobId={job.id} offer={job.offer} market={job.salary_estimate} />
+            </Panel>
           )}
 
           {pack && (
