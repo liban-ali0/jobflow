@@ -17,6 +17,7 @@ const core = await import("../web/src/core/db.mjs");
 const { scoreJob, normalizeAssessment, ASSESSED } = await import("../web/src/core/score.mjs");
 const { checkFacts } = await import("../web/src/core/fact-check.mjs");
 const { findReposts } = await import("../web/src/core/reposts.mjs");
+const { normalizeReport, matchFigure } = await import("../web/src/core/report.mjs");
 const { cvText, findCv } = await import("./cv-text.mjs");
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -37,6 +38,7 @@ const HELP = `Usage: node scripts/jobs.mjs <command>
   document <id> <type> <path>      Register a document file for a job
   folder <id>                      Create and print the job's folder
   cv-text                          The text of the CV in candidate/ (for engines that cannot read a PDF)
+  report <id>                      Check and save the job report (JSON, see the research-job skill) as report.json in the job's folder
   factcheck <id>                   Claims in the job's CV, cover letter and email that the profile and facts do not back
   statuses                         Print valid statuses and document types
 
@@ -201,6 +203,16 @@ async function main() {
           ? "Claims marked \"not in profile or facts\" are not backed by candidate/profile.md, facts.md or the base CVs: reword or remove them; never add facts the user did not give. A number that is not about the user's past (a request such as \"ten minutes for a call\", a plan) can stay. Phrases under \"forbidden\" are ones the user ruled out: remove them."
           : "Every checked claim is backed by the profile and facts.",
       });
+    }
+    case "report": {
+      const job = requireJob(db, args[0]);
+      const { report, problems, fixed } = normalizeReport(readInput(args));
+      if (problems.length) throw new Error(`The report was not saved. Fix these and run it again:
+- ${problems.join("
+- ")}`);
+      if (!job.folder) throw new Error("Run: node scripts/jobs.mjs folder <id> first.");
+      fs.writeFileSync(path.join(ROOT, job.folder, "report.json"), JSON.stringify({ ...report, saved_at: new Date().toISOString() }, null, 2));
+      return print({ job: job.id, saved: `${job.folder}/report.json`, match: matchFigure(report), corrected: fixed });
     }
     case "folder": {
       const job = requireJob(db, args[0]);

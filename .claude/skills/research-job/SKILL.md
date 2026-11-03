@@ -1,6 +1,6 @@
 ---
 name: research-job
-description: Deep research for one selected job - company brief, job analysis against the candidate's profile, people to contact from public sources, and a market salary estimate, written to research.md in the job's folder. Argument - the job id.
+description: Deep research for one selected job - company brief, job analysis against the candidate's profile, people to contact from public sources, and a market salary estimate, written to research.md in the job's folder, plus the job report (verdict, weighted requirement match, gaps, level, pay, legitimacy) saved with jobs.mjs report. Argument - the job id.
 ---
 
 # Research one job
@@ -16,11 +16,12 @@ The job id is: `$ARGUMENTS`
 3. Read `candidate/profile.md` and `candidate/facts.md`.
 4. Research the points switched on in the settings' `research.points` (company, job, people, salary, sponsorship), plus every item in `research.extraPoints`, as described below. Skip a point that is switched off, and leave its section out of `research.md`. Follow `research.rules`: they are the user's own rules and win over this file when the two disagree.
 5. Write `<folder>/research.md` using the structure below, and register it with `node scripts/jobs.mjs document <id> research <folder>/research.md`.
-6. Save each person found with `node scripts/jobs.mjs contact <id> --file jobs/_work/<id>-contact-<n>.json` (fields: `name`, `role`, `email`, `email_verified` as 1 or 0, `linkedin`, `notes`).
-7. Save the salary estimate with `node scripts/jobs.mjs update <id> --file jobs/_work/<id>-update.json` containing `{"salary_estimate": "..."}`, a short line such as "AED 9,000 to 12,000 a month (mid-range for junior backend roles in Dubai)".
-8. Ask about gaps that only the candidate can answer (see "Questions").
-9. Set the status with `node scripts/jobs.mjs status <id> researched`. Exception: if the listing is closed (for example "no longer accepting applications") or the research shows it is very likely not genuine, set `node scripts/jobs.mjs status <id> excluded <short reason>` instead (for a closed listing, first run `node scripts/jobs.mjs update <id> --file jobs/_work/<id>-closed.json` with `{"listing_state": "closed", "listing_reason": "<what the page says>"}`, so the app does not check it again), so no documents are written for it, and explain why in the report.
-10. End with a short report: two or three lines on the company, the biggest strengths and gaps, the people found, the salary estimate, and any questions asked.
+6. Write the job report (see "The job report") to `<folder>/report-input.json` and save it with `node scripts/jobs.mjs report <id> --file <folder>/report-input.json`. If it answers "The report was not saved", fix what it lists and run it again until it is saved.
+7. Save each person found with `node scripts/jobs.mjs contact <id> --file jobs/_work/<id>-contact-<n>.json` (fields: `name`, `role`, `email`, `email_verified` as 1 or 0, `linkedin`, `notes`).
+8. Save the salary estimate with `node scripts/jobs.mjs update <id> --file jobs/_work/<id>-update.json` containing `{"salary_estimate": "..."}`, a short line such as "AED 9,000 to 12,000 a month (mid-range for junior backend roles in Dubai)".
+9. Ask about gaps that only the candidate can answer (see "Questions").
+10. Set the status with `node scripts/jobs.mjs status <id> researched`. Exception: if the listing is closed (for example "no longer accepting applications") or the research shows it is very likely not genuine, set `node scripts/jobs.mjs status <id> excluded <short reason>` instead (for a closed listing, first run `node scripts/jobs.mjs update <id> --file jobs/_work/<id>-closed.json` with `{"listing_state": "closed", "listing_reason": "<what the page says>"}`, so the app does not check it again), so no documents are written for it, and explain why in the report.
+11. End with a short report: the verdict and match figure from the saved report, two or three lines on the company, the biggest strengths and gaps, the people found, the salary estimate, and any questions asked.
 
 ## Company brief
 
@@ -31,8 +32,44 @@ What they do, main products or clients, size, ownership or funding, where they o
 - **Real requirements**: what the listing truly needs versus what is nice to have. Note the level and years asked.
 - **ATS keywords**: the skills, tools, qualifications, and job-title terms an automated CV reader (ATS) will look for, as written in the listing and in its language. One per line as a bullet, short (one to three words, for example `- Spring Boot`), most important first, with `(must)` after the ones the listing requires (for example `- Java (must)`). Leave out years of experience and degrees; the fit table covers them. The app scores every CV against this list, so keep it to 15 to 40 real keywords.
 - **What the team probably does**: day-to-day work, products, and stack, inferred from the listing and the company research.
-- **Fit against the profile**: for each important requirement, whether the profile shows it (with the evidence from the profile), shows something close, or does not show it. Be honest: this decides what the documents emphasise.
+- **Fit against the profile**: goes in the job report's requirements (below), not in `research.md`. Be honest: it decides what the documents emphasise.
 - **Angle**: two or three specific reasons this candidate fits this job, which the cover letter and email can build on.
+
+## The job report
+
+The app shows this as the job's report: a verdict, how each requirement matches (the app weighs them into a match figure), the gaps, the level, the pay and whether the posting looks real. It is checked when saved, so follow these rules exactly. All text in the user's language; quotes in the listing's language.
+
+Fill the requirements in two passes, in this order:
+
+1. **From the listing alone**, before looking at the profile again: each significant requirement (12 at most; keep every critical and high one even past 12), its `importance` and its `basis`.
+   - `importance`: `critical` (an explicit must-have, the title or core duty, a required language or work permit), `high` (central, likely tested in interviews), `meaningful` (real, not decisive), `preferred` (nice to have). It measures how much the requirement matters in this listing, never how well the candidate meets it.
+   - `basis`: `stated` (the listing marks it required, or it is in the title: put the listing's exact words in `quote`), `structural` (no must-have wording, but where it sits in the listing or how often it repeats shows its weight), `inferred` (your judgment of how such roles are screened). An `inferred` requirement can never be `critical` or `high`; the app lowers it if you try.
+   - Include requirements the candidate meets, not only the gaps.
+2. **Then against the profile** (`profile.md`, `facts.md`, the job's notes): `match` is `strong` (shown, with the line that shows it in `evidence`), `partial` (something close, say what), `missing`, or `na` (not a skill: for example a work permit the candidate already has). Never change an importance in this pass.
+
+Every `critical` or `high` requirement that is `missing` or `partial` needs an entry in `gaps` with the same `requirement` text, a specific `risk` (how it will come up) and a `mitigation` (the truthful answer: related experience, a project, how fast it can be learned). `blocker` is true only when the listing makes it a hard condition.
+
+`verdict.call` is `apply`, `consider`, `research_first` (something must be checked before spending effort: say what) or `skip`, with one sentence in `reason` drawn from the report. `legitimacy.tier` is `high`, `caution` or `suspicious`, with the signals behind it (`positive`, `neutral` or `concerning`). Present observations, not accusations, and never call a posting suspicious without evidence; a missing date alone is `caution`. The app adds what it knows itself (posting age, whether the listing is open, reposts, earlier applications to this company, fee wording), so do not repeat those.
+
+```json
+{
+  "verdict": { "call": "apply", "reason": "Meets every must-have except Kafka, and the team is hiring internationally." },
+  "summary": "Three to five lines: the company, the job, the main strengths and gaps.",
+  "role": { "level": "Junior (1-3 years)", "function": "Build and run backend services", "work_mode": "Hybrid, Dubai", "team": "Payments, about 8 engineers" },
+  "requirements": [
+    { "requirement": "Java", "importance": "critical", "basis": "stated", "quote": "Strong Java skills are a must", "match": "strong", "evidence": "Two years of Java at Acme (profile, Experience)" },
+    { "requirement": "Kafka", "importance": "meaningful", "basis": "inferred", "quote": null, "match": "missing", "evidence": null }
+  ],
+  "gaps": [ { "requirement": "Docker", "blocker": false, "risk": "Likely asked how services were deployed", "mitigation": "Point to the containerised final-year project and say what was learned" } ],
+  "level": { "asked": "2-4 years", "yours": "Junior, close to the lower end", "pitch": "How to present the experience at the level asked, truthfully", "if_lower": "What to ask for if they offer a more junior title" },
+  "pay": { "range": "AED 9,000 to 12,000 a month", "ask": "AED 11,000 a month", "basis": "Bayt and Glassdoor ranges for junior backend roles in Dubai", "reliability": "medium" },
+  "legitimacy": { "tier": "high", "signals": [ { "signal": "Specific stack and team", "finding": "Names the tools, team size and first-year goals", "weight": "positive" } ] },
+  "cv_changes": [ { "section": "Summary", "change": "Lead with payments backend work", "why": "The team is Payments" } ],
+  "questions": [ "How is success measured in the first six months?" ]
+}
+```
+
+Leave `level`, `pay` or a `role` field empty (`""`) when nothing is known, and leave out `pay` text when the salary point is switched off. `cv_changes`: up to five changes the documents should make, from the profile only. `questions`: up to four questions for the candidate to ask the employer, the ones this research leaves open.
 
 ## People
 
@@ -77,8 +114,6 @@ When a requirement matters for this job and neither the profile, `facts.md`, nor
 ### Real requirements
 ### ATS keywords
 ### What the team probably does
-## Fit against the profile
-(a table: requirement, evidence from the profile or "not shown", strong / partial / missing)
 ## Angle for the application
 ## Visa sponsorship
 ## <one section per extra point>
