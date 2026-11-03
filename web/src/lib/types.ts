@@ -183,6 +183,8 @@ export type Settings = {
   cvTemplates?: { default: string; byRole: Record<string, string>; byJob?: Record<string, string> };
   // Base CVs (by role key) the user edited; rebuilding the profile leaves them alone.
   cvLocked?: string[];
+  // Skills the user said they do not have (Profile → Skills your jobs ask for).
+  skillGaps?: { dismissed: string[] };
   // The last engine check from the Setup screen.
   setupCheck?: { engine: string; ok: boolean; message: string; at: string };
 };

@@ -114,6 +114,8 @@ export const setSettings = (patch: Partial<Settings>) => core.setSettings(db(), 
 // Jobs for lists: every match, without the long description (use getJob for it).
 export const listJobs = (filter: { status?: Status | Status[]; since?: string; archived?: boolean; limit?: number } = {}) =>
   core.listJobs(db(), { ...filter, slim: true }) as Job[];
+// With the descriptions, for analysis across jobs.
+export const listJobsWithText = (filter: { status?: Status | Status[]; since?: string; archived?: boolean; limit?: number } = {}) => core.listJobs(db(), filter) as Job[];
 export const countJobs = (filter: { status?: Status | Status[]; since?: string } = {}) => core.countJobs(db(), filter);
 // Jobs stored within the last `hours`, whatever their status.
 export const listFoundWithin = (hours: number) =>

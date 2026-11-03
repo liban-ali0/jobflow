@@ -8,6 +8,8 @@ import { PageHeader } from "@/components/page-header";
 import { TextForm } from "@/components/text-form";
 import { getSettings, hasCv, listQuestions, listRuns, profileUpdatedAt, readFacts, readProfile } from "@/lib/data";
 import { formatDateTime } from "@/lib/format";
+import { SkillGaps } from "@/components/skill-gaps";
+import { skillGaps } from "@/lib/skill-gaps";
 
 const RULES_EXAMPLE = `Examples:
 - Skip jobs that require German or French.
@@ -31,6 +33,7 @@ export default function ProfilePage() {
   const lastBuild = listRuns(50).find((run) => run.stage === "build-profile");
   const cv = hasCv();
   const updatedAt = profileUpdatedAt();
+  const skills = skillGaps();
 
   return (
     <div className="max-w-4xl">
@@ -76,6 +79,8 @@ export default function ProfilePage() {
       )}
 
       <div className="mt-8 space-y-6">
+        <SkillGaps gaps={skills.gaps} jobs={skills.jobs} dismissed={skills.dismissed} />
+
         <TextForm
           action={saveFacts}
           version={factsVersion()}

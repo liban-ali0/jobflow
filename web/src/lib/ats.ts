@@ -80,7 +80,7 @@ const SYNONYMS: Record<string, string> = {
   gcp: "google-cloud",
 };
 
-function tokens(text: string) {
+export function tokens(text: string) {
   return text
     .toLowerCase()
     .replace(/c\+\+/g, " cpp ")
@@ -96,11 +96,11 @@ function tokens(text: string) {
     .map((word) => (word.length > 4 && word.endsWith("s") && !word.endsWith("ss") ? word.slice(0, -1) : word));
 }
 
-const significant = (term: string) => tokens(term).filter((word) => !STOPWORDS.has(word));
+export const significant = (term: string) => tokens(term).filter((word) => !STOPWORDS.has(word));
 
 // A keyword counts as present when its important words all appear in the CV
 // (or most of them, for longer phrases).
-function present(keyword: string, cvWords: Set<string>) {
+export function present(keyword: string, cvWords: Set<string>) {
   const words = significant(keyword);
   const found = words.filter((word) => cvWords.has(word)).length;
   return words.length <= 2 ? found === words.length : found / words.length >= 0.7;
